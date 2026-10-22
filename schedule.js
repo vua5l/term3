@@ -233,9 +233,14 @@
         if (active.length > MAX_SUBJECTS) active = active.slice(0, MAX_SUBJECTS);
         var sum = active.reduce(function (t, s) { return t + s._alloc; }, 0);
         if (sum > cap) {
-          // ضاق اليوم: تأخذ الأقرب حاجتها كاملة، ويُنقص من الأبعد
-          var left = cap;
-          active.forEach(function (s) { s._alloc = Math.max(0, Math.min(s._alloc, left)); left -= s._alloc; });
+          // ضاق اليوم: تُقسم الجلسات على قدر حاجة كل مادة، فلا تُهمل مادة يومها
+          // (البحث: المادتان المتقاربتان تظهران كل يوم، ولا يوم كامل لمادة واحدة)
+          var scale = cap / sum, used = 0;
+          active.forEach(function (s) { s._alloc = Math.max(1, Math.floor(s._alloc * scale * 2) / 2); used += s._alloc; });
+          for (var k = 0; used < cap && k < 20; k++) {
+            active.forEach(function (s) { if (used < cap && s._alloc < s._need) { s._alloc += 0.5; used += 0.5; } });
+          }
+          warnings.push({ date: d, type: 'tight' });
         } else if (sum < cap) {
           // فائض اليوم يُقدَّم به العمل، والأقرب اختباراً أحق به
           var spare = cap - sum, wsum = 0;
@@ -287,6 +292,22 @@
           var ORDER = { recall: 0, learn: 1, review: 2, eve: 2 };
           tasks.sort(function (a, b) { return ORDER[a.kind] - ORDER[b.kind]; });
           if (tasks.length) groups.push({ s: s, tasks: tasks });
+        });
+        // ما فضل من السقف (لأن الدرس لا يُقطع) يُعطى لدروس جديدة، والأقرب اختباراً أولاً.
+        // (البحث: تغطية أساسيات المنهج كله أهم من إتقان نصفه.) ولا تعلّم جديد ليلة الاختبار.
+        var left = cap - groups.reduce(function (t, g) { return t + g.tasks.reduce(function (a, x) { return a + x.units; }, 0); }, 0);
+        active.slice().sort(function (a, b) { return a.e.date < b.e.date ? -1 : 1; }).forEach(function (s) {
+          if (left < 0.5 || s._eve) return;
+          var g = null; groups.forEach(function (x) { if (x.s === s) g = x; });
+          var fresh = s.st.filter(function (x) { return x.n === 0; });
+          for (var i = 0; i < fresh.length; i++) {
+            var u = sessionsOf(fresh[i].l);
+            if (left < u - 0.5) break;
+            if (!g) { g = { s: s, tasks: [] }; groups.push(g); }
+            g.tasks.push({ code: s.e.code, lesson: fresh[i].l.id, kind: 'learn', units: u });
+            left -= u; fresh[i].n = 1; fresh[i].last = d;
+          }
+          if (g) { var O = { recall: 0, learn: 1, review: 2, eve: 2 }; g.tasks.sort(function (a, b) { return O[a.kind] - O[b.kind]; }); }
         });
         // مادة ليلة الاختبار آخر اليوم، لتكون آخر ما يُراجع قبل النوم
         groups.sort(function (a, b) { return (a.s._eve - b.s._eve) || (a.s.e.date < b.s.e.date ? -1 : 1); });
