@@ -6,6 +6,8 @@
   - كل موقع مادة يملك تقسيم مادته إلى دروس في <المجلد>/lessons.json.
   - الإنجاز يُسجَّل من داخل موقع المادة، فيقرؤه الجدول.
   - الحفظ في فرع progress بالمفتاح نفسه الذي يستعمله sync.js، ويقع في الجهاز أولاً.
+  - الوقت كله بالدقائق: جهد كل درس في lessons.json (minutes)، والجدول يجمع دروس المادة الصغيرة
+    في جلسة واحدة، ويصحح تقديره لكل مادة بالوقت الفعلي من توقيت علامات الإنجاز.
 */
 (function () {
   'use strict';
@@ -15,11 +17,20 @@
   var BRANCH = 'progress';
   var API = 'https://api.github.com';
   var EXAMS_PATH = '_schedule/exams.json';
-  var REQ = 3;          // مرات مرور الدرس: تعلّم ثم تسميعان في أيام مختلفة
-  var RECALL = 0.5;     // جلسة التسميع نصف جلسة
-  var MAX_SUBJECTS = 3; // لا تزيد المواد في اليوم على ثلاث
+  var REQ = 3;              // مرات مرور الدرس: تعلّم ثم تسميعان في أيام مختلفة
+  var MAX_SUBJECTS = 3;     // لا تزيد المواد في اليوم على ثلاث
+  /* الوقت بالدقائق، على قواعد البحث: الجلسة 25 إلى 30 دقيقة لمادة واحدة، والسقف 6 إلى 8 جلسات */
+  var SESSION = 25;         // الجلسة، والسقف اليومي = السقف بالجلسات × 25 دقيقة (8 = 200)
+  var SESSION_MAX = 30;     // وتمتد الجلسة إلى 30 دقيقة قبل أن تُفتح جلسة جديدة
+  var RECALL_SHARE = 1 / 3; // التسميع نحو ثلث وقت تعلّم الدرس (تقدير؛ البحث يقول: سمّع حتى تصيب مرة)
+  var RECALL_MIN = 1;       // ولا يقل التسميع عن دقيقة
+  var SPECIAL_MIN = 25;     // المراجعة الشاملة وليلة الاختبار جلسة كاملة
+  var STEP = 5;             // تُقرَّب أنصبة المواد بخمس دقائق
+  var TOL = 10;             // ويجوز تجاوز النصيب بعشر دقائق حتى لا يُقطع درس
+  var BURST_MS = 60000;     // علامات الإنجاز المتلاحقة في أقل من دقيقة دفعة واحدة
+  var CAL_MIN = 4, CAL_KEEP = 15; // لا يُصحَّح تقدير مادة قبل أربع عينات، ويُعتمد آخر خمس عشرة
   var SPECIAL = { _review: 'مراجعة شاملة بالتسميع', _eve: 'ليلة الاختبار: تسميع البطاقات وورقة الليلة الأخيرة' };
-  var KIND_UNITS = { learn: null, recall: 0.5, review: 1, eve: 1 };
+  var KINDS = { learn: 1, recall: 1, review: 1, eve: 1 };
 
   /* ---------- المكان ---------- */
   var host = location.hostname, parts = location.pathname.split('/').filter(Boolean);
@@ -180,15 +191,94 @@
     return out;
   }
 
+  /* ---------- الوقت بالدقائق ---------- */
+  /* جهد الدرس أول مرة بالدقائق: خانة minutes، وإلا الجلسات القديمة × 25 دقيقة */
+  function baseMinutes(l) {
+    var m = +(l && l.minutes); if (m > 0) return m;
+    var s = +(l && l.sessions); return (s > 0 ? s : 1) * SESSION;
+  }
+  /* بعد تصحيحه بالوقت الفعلي للمادة إن وُجد */
+  function lessonMinutes(l, f) { return Math.max(1, Math.round(baseMinutes(l) * (f || 1))); }
+  function recallOf(m) { return Math.max(RECALL_MIN, Math.round(m * RECALL_SHARE)); }
+  /* الجلسات بأنصافها، للمواقع التي ما زالت تعرض الجلسات */
+  function unitsOf(m) { return Math.max(0.5, Math.round(m / SESSION * 2) / 2); }
+  function ceilStep(x) { return Math.ceil(x / STEP) * STEP; }
+  function floorStep(x) { return Math.floor(x / STEP) * STEP; }
+
+  /* جمع مهام اليوم في جلسات: مادة واحدة في الجلسة، ودروسها الصغيرة المتتالية في جلسة واحدة
+     إلى 30 دقيقة، والدرس الطويل يمتد على أكثر من جلسة ولا يُقطع */
+  function packDay(day) {
+    var no = 0, fill = 0, prev = null;
+    day.minutes = 0; day.load = 0;
+    day.tasks.forEach(function (t) {
+      var m = +t.minutes || 0;
+      if (t.code !== prev || (fill > 0 && fill + m > SESSION_MAX)) { no++; fill = 0; }
+      prev = t.code; t.session = no; fill += m;
+      day.minutes += m; day.load += unitsOf(m);
+      while (fill > SESSION_MAX) { no++; fill -= SESSION; }
+    });
+    day.sessions = no;
+    return day;
+  }
+
+  /* ---------- الوقت الفعلي ----------
+     من توقيت علامات الإنجاز قبل اليوم: الوقت بين دفعة علامات والتي قبلها في اليوم نفسه
+     هو وقت مذاكرة مهامها. والعلامات المتلاحقة دفعة واحدة، وتُترك الفترات التي فيها استراحة
+     طويلة أو مادتان. فإن علّمتُ دروسي جملةً في آخر اليوم لم يتغير شيء.
+     والنتيجة لكل مادة نسبة الوقت الفعلي إلى المقدَّر، ولا تُعتمد قبل أربع عينات. */
+  function calibrate(marksBy, lessonIndex, passes, today) {
+    var ev = [];
+    Object.keys(marksBy || {}).forEach(function (c) {
+      var rec = marksBy[c]; if (!rec || !rec.marks) return;
+      Object.keys(rec.marks).forEach(function (k) {
+        var m = rec.marks[k]; if (!m || !m.on || !(m.t > 0)) return;
+        var i = k.lastIndexOf('|'), d = k.slice(i + 1);
+        if (d < today) ev.push({ c: c, id: k.slice(0, i), d: d, t: m.t });
+      });
+    });
+    ev.sort(function (a, b) { return a.t - b.t; });
+    var bursts = [];
+    ev.forEach(function (e) {
+      var b = bursts[bursts.length - 1];
+      if (b && b.d === e.d && e.t - b.end < BURST_MS) { b.items.push(e); b.end = e.t; }
+      else bursts.push({ d: e.d, start: e.t, end: e.t, items: [e] });
+    });
+    var samples = {};
+    for (var i = 1; i < bursts.length; i++) {
+      var b = bursts[i], p = bursts[i - 1], c = b.items[0].c, est = 0, ok = b.d === p.d;
+      b.items.forEach(function (e) {
+        var l = (lessonIndex[e.c] || {})[e.id];
+        if (e.c !== c || !l) { ok = false; return; }
+        var m = baseMinutes(l), first = ((passes[e.c] || {})[e.id] || [])[0];
+        est += e.d === first ? m : recallOf(m);
+      });
+      if (!ok || !est) continue;
+      var actual = (b.start - p.end) / 60000;
+      if (actual < 1 || actual > Math.min(150, Math.max(3 * est, est + 30))) continue;
+      (samples[c] = samples[c] || []).push(Math.min(3, Math.max(0.2, actual / est)));
+    }
+    var out = {};
+    Object.keys(samples).forEach(function (c) {
+      var s = samples[c].slice(-CAL_KEEP).sort(function (a, b) { return a - b; });
+      if (s.length < CAL_MIN) return;
+      var h = s.length >> 1, med = s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+      out[c] = { factor: Math.min(2.5, Math.max(0.4, Math.round(med * 100) / 100)), samples: s.length };
+    });
+    return out;
+  }
+
   /* ---------- التوزيع التلقائي على قواعد البحث ---------- */
   /*
     exams:   [{code, name, date}]
-    lessons: {code: [{id, title, sessions}]}
+    lessons: {code: [{id, title, minutes}]}   (أو sessions القديمة)
     passes:  {code: {id: [YYYY-MM-DD]}}
-    يُبنى من بداية اليوم: ما أُنجز اليوم لا يغيّر خطة اليوم، بل يُعلَّم منجزاً فيها.
+    cap:     السقف اليومي بالجلسات، والجلسة 25 دقيقة (8 = 200 دقيقة)
+    factors: {code: نسبة الوقت الفعلي إلى المقدَّر}
+    يُبنى بالدقائق من بداية اليوم: ما أُنجز اليوم لا يغيّر خطة اليوم، بل يُعلَّم منجزاً فيها.
   */
-  function buildPlan(exams, lessons, passes, today, cap) {
-    cap = cap || 8;
+  function buildPlan(exams, lessons, passes, today, cap, factors) {
+    cap = cap || 8; factors = factors || {};
+    var CAP = cap * SESSION;
     var subj = [], warnings = [];
     exams.forEach(function (e) {
       if (!e.code || !e.date || !lessons[e.code] || !lessons[e.code].length) return;
@@ -196,7 +286,8 @@
       var st = lessons[e.code].map(function (l) {
         var ds = ((passes[e.code] || {})[l.id] || []).filter(function (d) { return d < today; });
         ds = ds.filter(function (d, i) { return ds.indexOf(d) === i; });
-        return { l: l, n: Math.min(ds.length, REQ), last: ds.length ? ds[ds.length - 1] : null };
+        var m = lessonMinutes(l, factors[e.code]);
+        return { l: l, m: m, r: recallOf(m), n: Math.min(ds.length, REQ), last: ds.length ? ds[ds.length - 1] : null };
       });
       subj.push({ e: e, st: st });
     });
@@ -204,49 +295,55 @@
     subj.forEach(function (s) { var last = addDays(s.e.date, -1); if (last > end) end = last; });
     if (!subj.length) return { days: [], warnings: [] };
 
-    function sessionsOf(l) { var n = +l.sessions; return n > 0 ? n : 1; }
     function remaining(s) {
       var L = 0, R = 0;
-      s.st.forEach(function (x) { if (x.n === 0) { L += sessionsOf(x.l); R += RECALL * (REQ - 1); } else R += RECALL * (REQ - x.n); });
+      s.st.forEach(function (x) { if (x.n === 0) { L += x.m; R += x.r * (REQ - 1); } else R += x.r * (REQ - x.n); });
       return { L: L, R: R, total: L + R };
     }
+    function task(s, x, kind) { return { code: s.e.code, lesson: x.l.id, kind: kind, minutes: kind === 'learn' ? x.m : x.r }; }
+    // الترتيب داخل المادة: التسميع أول الجلسة، ثم الدرس الجديد، ثم المراجعة الشاملة
+    var ORDER = { recall: 0, learn: 1, review: 2, eve: 2 };
+    function byOrder(a, b) { return ORDER[a.kind] - ORDER[b.kind]; }
 
     for (var d = today; d <= end; d = addDays(d, 1)) {
       var active = subj.filter(function (s) {
         var A = diffDays(d, s.e.date);
         return A > 0 && (remaining(s).total > 0 || A <= 2); // اليومان الأخيران للمراجعة الشاملة دائماً
       });
-      var day = { date: d, tasks: [], load: 0 };
+      var day = { date: d, tasks: [] };
       if (active.length) {
-        // معدّل الحاجة لكل مادة: التعلّم ينتهي قبل الاختبار بيومين ليبقى للتسميع مكان،
+        // معدّل الحاجة لكل مادة بالدقائق: التعلّم ينتهي قبل الاختبار بيومين ليبقى للتسميع مكان،
         // والتسميع يتوزع على كل الأيام الباقية
         active.forEach(function (s) {
           var A = diffDays(d, s.e.date); s._A = A; s._eve = A === 1; s._final = A <= 2;
           var r = remaining(s);
           s._need = r.L / Math.max(1, A - 2) + r.R / A;
-          if (s._eve) { var rec = 0; s.st.forEach(function (x) { if (x.n >= 1 && x.n < REQ) rec += RECALL; if (x.n === 0) rec += sessionsOf(x.l); }); s._need = rec; }
-          if (s._final) s._need += 1; // جلسة المراجعة الشاملة
-          s._alloc = Math.min(cap, Math.ceil(s._need * 2) / 2);
+          if (s._eve) { var rec = 0; s.st.forEach(function (x) { if (x.n >= 1 && x.n < REQ) rec += x.r; if (x.n === 0) rec += x.m; }); s._need = rec; }
+          if (s._final) s._need += SPECIAL_MIN; // جلسة المراجعة الشاملة
+          s._alloc = Math.min(CAP, ceilStep(s._need));
         });
         // الأقرب اختباراً أولاً، وليلة الاختبار مقدّمة
         active.sort(function (a, b) { return (b._eve - a._eve) || (a.e.date < b.e.date ? -1 : a.e.date > b.e.date ? 1 : 0); });
         if (active.length > MAX_SUBJECTS) active = active.slice(0, MAX_SUBJECTS);
         var sum = active.reduce(function (t, s) { return t + s._alloc; }, 0);
-        if (sum > cap) {
-          // ضاق اليوم: تُقسم الجلسات على قدر حاجة كل مادة، فلا تُهمل مادة يومها
+        if (sum > CAP) {
+          // ضاق اليوم: تُقسم الدقائق على قدر حاجة كل مادة، فلا تُهمل مادة يومها
           // (البحث: المادتان المتقاربتان تظهران كل يوم، ولا يوم كامل لمادة واحدة)
-          var scale = cap / sum, used = 0;
-          active.forEach(function (s) { s._alloc = Math.max(1, Math.floor(s._alloc * scale * 2) / 2); used += s._alloc; });
-          for (var k = 0; used < cap && k < 20; k++) {
-            active.forEach(function (s) { if (used < cap && s._alloc < s._need) { s._alloc += 0.5; used += 0.5; } });
+          var scale = CAP / sum, used = 0;
+          active.forEach(function (s) { s._alloc = Math.max(Math.min(SESSION, s._alloc), floorStep(s._alloc * scale)); used += s._alloc; });
+          for (var k = 0, moved = true; used < CAP && moved && k < 100; k++) {
+            moved = false;
+            active.forEach(function (s) {
+              if (used < CAP && s._alloc < s._need) { var add = Math.min(STEP, CAP - used); s._alloc += add; used += add; moved = true; }
+            });
           }
           warnings.push({ date: d, type: 'tight' });
-        } else if (sum < cap) {
+        } else if (sum < CAP) {
           // فائض اليوم يُقدَّم به العمل، والأقرب اختباراً أحق به
-          var spare = cap - sum, wsum = 0;
+          var spare = CAP - sum, wsum = 0;
           active.forEach(function (s) { s._w = 1 / s._A; wsum += s._w; });
           active.forEach(function (s) {
-            var r = remaining(s).total + (s._final ? 1 : 0), extra = Math.floor(spare * s._w / wsum * 2) / 2;
+            var r = remaining(s).total + (s._final ? SPECIAL_MIN : 0), extra = floorStep(spare * s._w / wsum);
             s._alloc = Math.max(s._alloc, Math.min(r, s._alloc + extra));
           });
         }
@@ -254,15 +351,15 @@
         active.forEach(function (s) {
           var budget = s._alloc, tasks = [];
           if (budget <= 0) return;
-          if (s._final) budget -= 1;
+          if (s._final) budget -= SPECIAL_MIN;
           // 1) يُحجز للتعلّم نصيبه أولاً حتى لا يتأخر درس جديد عن موعد تسميعيه
           var fresh = s.st.filter(function (x) { return x.n === 0; });
           var learnTarget = s._eve ? 0 : remaining(s).L / Math.max(1, s._A - 2), learned = 0, fi = 0;
           function learnUpTo(limit) {
             while (fi < fresh.length) {
-              var u = sessionsOf(fresh[fi].l);
-              if (budget <= 0 || budget < u - 0.5 || learned >= limit) break;
-              tasks.push({ code: s.e.code, lesson: fresh[fi].l.id, kind: 'learn', units: u });
+              var u = fresh[fi].m;
+              if (budget <= 0 || budget < u - TOL || learned >= limit) break;
+              tasks.push(task(s, fresh[fi], 'learn'));
               budget -= u; learned += u; fresh[fi].n = 1; fresh[fi].last = d; fi++;
             }
           }
@@ -279,41 +376,39 @@
             return (sa - sb) || (a.last < b.last ? -1 : a.last > b.last ? 1 : 0);
           });
           due.forEach(function (x) {
-            if (budget < RECALL) return;
-            tasks.push({ code: s.e.code, lesson: x.l.id, kind: 'recall', units: RECALL });
-            budget -= RECALL; x.n++; x.last = d;
+            if (budget < x.r - 2) return;
+            tasks.push(task(s, x, 'recall'));
+            budget -= x.r; x.n++; x.last = d;
           });
-          // 3) ما فضل من نصيب المادة لدرس جديد آخر، ولا يُقطع درس، ولا يُتجاوز النصيب إلا بنصف جلسة
+          // 3) ما فضل من نصيب المادة لدرس جديد آخر، ولا يُقطع درس، ولا يُتجاوز النصيب إلا قليلاً
           learnUpTo(Infinity);
           if (s._eve && fresh.some(function (x) { return x.n === 0; })) warnings.push({ date: d, type: 'unfinished', code: s.e.code });
-          // 3) المراجعة الشاملة في اليومين الأخيرين: قبل الأخير مراجعة عامة، وليلة الاختبار تسميع البطاقات وورقة الليلة الأخيرة
-          if (s._final) tasks.push({ code: s.e.code, lesson: s._eve ? '_eve' : '_review', kind: s._eve ? 'eve' : 'review', units: 1 });
-          // الترتيب داخل المادة: التسميع أول الجلسة، ثم الدرس الجديد، ثم المراجعة الشاملة
-          var ORDER = { recall: 0, learn: 1, review: 2, eve: 2 };
-          tasks.sort(function (a, b) { return ORDER[a.kind] - ORDER[b.kind]; });
+          // 4) المراجعة الشاملة في اليومين الأخيرين: قبل الأخير مراجعة عامة، وليلة الاختبار تسميع البطاقات وورقة الليلة الأخيرة
+          if (s._final) tasks.push({ code: s.e.code, lesson: s._eve ? '_eve' : '_review', kind: s._eve ? 'eve' : 'review', minutes: SPECIAL_MIN });
+          tasks.sort(byOrder);
           if (tasks.length) groups.push({ s: s, tasks: tasks });
         });
         // ما فضل من السقف (لأن الدرس لا يُقطع) يُعطى لدروس جديدة، والأقرب اختباراً أولاً.
         // (البحث: تغطية أساسيات المنهج كله أهم من إتقان نصفه.) ولا تعلّم جديد ليلة الاختبار.
-        var left = cap - groups.reduce(function (t, g) { return t + g.tasks.reduce(function (a, x) { return a + x.units; }, 0); }, 0);
+        var left = CAP - groups.reduce(function (t, g) { return t + g.tasks.reduce(function (a, x) { return a + x.minutes; }, 0); }, 0);
         active.slice().sort(function (a, b) { return a.e.date < b.e.date ? -1 : 1; }).forEach(function (s) {
-          if (left < 0.5 || s._eve) return;
+          if (left < 1 || s._eve) return;
           var g = null; groups.forEach(function (x) { if (x.s === s) g = x; });
           var fresh = s.st.filter(function (x) { return x.n === 0; });
           for (var i = 0; i < fresh.length; i++) {
-            var u = sessionsOf(fresh[i].l);
-            if (left < u - 0.5) break;
+            var u = fresh[i].m;
+            if (left < u - TOL) break;
             if (!g) { g = { s: s, tasks: [] }; groups.push(g); }
-            g.tasks.push({ code: s.e.code, lesson: fresh[i].l.id, kind: 'learn', units: u });
+            g.tasks.push(task(s, fresh[i], 'learn'));
             left -= u; fresh[i].n = 1; fresh[i].last = d;
           }
-          if (g) { var O = { recall: 0, learn: 1, review: 2, eve: 2 }; g.tasks.sort(function (a, b) { return O[a.kind] - O[b.kind]; }); }
+          if (g) g.tasks.sort(byOrder);
         });
         // مادة ليلة الاختبار آخر اليوم، لتكون آخر ما يُراجع قبل النوم
         groups.sort(function (a, b) { return (a.s._eve - b.s._eve) || (a.s.e.date < b.s.e.date ? -1 : 1); });
-        groups.forEach(function (g) { g.tasks.forEach(function (t) { day.tasks.push(t); day.load += t.units; }); });
+        groups.forEach(function (g) { g.tasks.forEach(function (t) { t.units = unitsOf(t.minutes); day.tasks.push(t); }); });
       }
-      days.push(day);
+      days.push(packDay(day));
     }
     // تنبيه صادق: دروس لن تمرّ ثلاث مرات قبل اختبارها بهذا السقف
     subj.forEach(function (s) {
@@ -344,30 +439,35 @@
       lessonIndex[c] = {}; j.lessons.forEach(function (l) { lessonIndex[c][l.id] = l; });
     });
 
+    // الوقت الفعلي: نسبة ما استغرقته كل مادة إلى تقديرها، من علامات ما قبل اليوم
+    var calib = calibrate(marksBy, lessonIndex, passes, today), factors = {};
+    Object.keys(calib).forEach(function (c) { factors[c] = calib[c].factor; });
+
     var ov = examsRec && examsRec.override;
     var source = 'auto', plan;
     if (ov && ov.basis === examsBasis(exams) && ov.days) {
       source = 'smart';
       plan = { days: ov.days.filter(function (x) { return x.date >= today; }).map(function (x) {
         return { date: x.date, tasks: x.tasks.map(function (t) {
-          var l = (lessonIndex[t.code] || {})[t.lesson];
-          return { code: t.code, lesson: t.lesson, kind: t.kind, units: KIND_UNITS[t.kind] || (l ? (+l.sessions || 1) : 1) };
+          var l = (lessonIndex[t.code] || {})[t.lesson], m = SPECIAL_MIN;
+          if (l && (t.kind === 'learn' || t.kind === 'recall')) { m = lessonMinutes(l, factors[t.code]); if (t.kind === 'recall') m = recallOf(m); }
+          return { code: t.code, lesson: t.lesson, kind: t.kind, minutes: m };
         }) };
       }), warnings: [] };
     } else {
-      plan = buildPlan(exams, lessonList, passes, today, cap);
+      plan = buildPlan(exams, lessonList, passes, today, cap, factors);
     }
 
-    // تفاصيل كل مهمة: عنوانها ورابطها وهل أُنجزت في يومها
+    // تفاصيل كل مهمة: عنوانها ورابطها ووقتها وهل أُنجزت في يومها، ثم جلسات اليوم
     plan.days.forEach(function (day) {
-      day.load = 0;
       day.tasks.forEach(function (t) {
         var l = (lessonIndex[t.code] || {})[t.lesson] || {};
         t.title = SPECIAL[t.lesson] || l.title || t.lesson; t.pages = l.pages || '';
         t.link = BASE + t.code + '/' + (l.link || '');
         t.done = ((passes[t.code] || {})[t.lesson] || []).indexOf(day.date) >= 0;
-        day.load += t.units;
+        t.units = unitsOf(t.minutes);
       });
+      packDay(day);
     });
 
     // التقدم: مرات المرور المنجزة من المطلوب
@@ -379,10 +479,10 @@
     });
 
     return {
-      today: today, cap: cap, exams: exams, source: source,
+      today: today, cap: cap, capMinutes: cap * SESSION, exams: exams, source: source,
       overrideExpired: !!(ov && ov.basis !== examsBasis(exams)),
       lessons: lessonList, passes: passes, progress: progress,
-      days: plan.days, warnings: plan.warnings || [],
+      days: plan.days, warnings: plan.warnings || [], calib: calib,
       updated: examsRec && examsRec.savedAt || 0
     };
   }
@@ -421,7 +521,8 @@
   function forSite(s, code) {
     var exam = null; s.exams.forEach(function (e) { if (e.code === code) exam = e; });
     var mine = s.days.map(function (d) {
-      return { date: d.date, tasks: d.tasks.filter(function (t) { return t.code === code; }) };
+      var tasks = d.tasks.filter(function (t) { return t.code === code; });
+      return { date: d.date, tasks: tasks, minutes: tasks.reduce(function (a, t) { return a + (t.minutes || 0); }, 0) };
     }).filter(function (d) { return d.tasks.length; });
     var today = (mine[0] && mine[0].date === s.today) ? mine[0].tasks : [];
     return {
@@ -440,7 +541,7 @@
   }
 
   window.term3Schedule = {
-    version: 1,
+    version: 2,
     base: BASE,
     todayISO: todayISO,
     /* load(code): للموقع: موعده ومهامه. load(): للجدول: كل شيء */
@@ -481,6 +582,7 @@
     },
     clearOverride: function () { return this.saveExams(null, { override: null }); },
     buildPlan: buildPlan,
+    calibrate: calibrate,
     basis: examsBasis,
 
     /* الترتيب الذكي: طلب جاهز يُلصق في محادثة جديدة */
@@ -488,11 +590,11 @@
       s = s || state; if (!s) return '';
       var lines = [];
       lines.push('رتّب لي خطة مذاكرة يومية حتى اختباراتي، واكتب الجواب بالصيغة المطلوبة في آخره.');
-      lines.push('اليوم: ' + s.today + '. السقف اليومي: ' + s.cap + ' جلسات (الجلسة 25-30 دقيقة، والتسميع نصف جلسة).');
+      lines.push('اليوم: ' + s.today + '. السقف اليومي: ' + (s.cap * SESSION) + ' دقيقة صافية، أي ' + s.cap + ' جلسات من 25 دقيقة، وتمتد الجلسة إلى 30.');
       lines.push('');
       lines.push('القواعد:');
-      lines.push('1. لا تُخلط مادتان في جلسة واحدة، ولا تزيد المواد في اليوم على ثلاث.');
-      lines.push('2. كل درس يمرّ ثلاث مرات في أيام مختلفة: تعلّم (learn) ثم تسميعان (recall) متباعدان.');
+      lines.push('1. لا تُخلط مادتان في جلسة واحدة، ولا تزيد المواد في اليوم على ثلاث. ودروس المادة الصغيرة المتتالية تُجمع في جلسة واحدة.');
+      lines.push('2. كل درس يمرّ ثلاث مرات في أيام مختلفة: تعلّم (learn) ثم تسميعان (recall) متباعدان، والتسميع نحو ثلث وقت تعلّمه ولا يقل عن دقيقة.');
       lines.push('3. الأقرب اختباراً يأخذ الحصة الأكبر، والمادة البعيدة تأخذ جرعات صغيرة.');
       lines.push('4. في اليومين الأخيرين قبل كل اختبار تظهر المادة كل يوم، وليلة الاختبار تسميع فقط.');
       lines.push('5. ما فاتني يتوزع على الأيام القادمة دون تكديس.');
@@ -501,16 +603,17 @@
       lines.push('الاختبارات:');
       s.exams.forEach(function (e) { if (e.code && s.lessons[e.code]) lines.push('- ' + e.code + ' (' + e.name + '): ' + e.date + (e.tentative ? ' (مبدئي)' : '')); });
       lines.push('');
-      lines.push('الدروس (المعرّف | العنوان | الجلسات | مرات المرور المنجزة):');
+      lines.push('الدروس (المعرّف | العنوان | دقائق التعلّم | مرات المرور المنجزة):');
       Object.keys(s.lessons).forEach(function (c) {
+        var f = s.calib && s.calib[c] ? s.calib[c].factor : 1;
         lines.push(c + ':');
         s.lessons[c].forEach(function (l) {
-          lines.push('  ' + l.id + ' | ' + l.title + ' | ' + (+l.sessions || 1) + ' | ' + Math.min(((s.passes[c] || {})[l.id] || []).length, REQ));
+          lines.push('  ' + l.id + ' | ' + l.title + ' | ' + lessonMinutes(l, f) + ' | ' + Math.min(((s.passes[c] || {})[l.id] || []).length, REQ));
         });
       });
       lines.push('');
       lines.push('صيغة الجواب: كتلة JSON واحدة فقط، تبدأ من اليوم، ولكل درس لم يُتعلّم بعد مهمة learn واحدة.');
-      lines.push('وفي اليوم الذي قبل الاختبار بيومين مهمة {"kind":"review"} للمادة، وفي ليلة الاختبار مهمة {"kind":"eve"}، وكلتاهما جلسة واحدة بلا درس:');
+      lines.push('وفي اليوم الذي قبل الاختبار بيومين مهمة {"kind":"review"} للمادة، وفي ليلة الاختبار مهمة {"kind":"eve"}، وكلتاهما 25 دقيقة بلا درس:');
       lines.push('{"days":[{"date":"YYYY-MM-DD","tasks":[{"code":"law114","lesson":"المعرّف","kind":"learn"},{"code":"law114","lesson":"المعرّف","kind":"recall"},{"code":"law114","kind":"review"}]}]}');
       return lines.join('\n');
     },
@@ -538,7 +641,7 @@
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) { errors.push('تاريخ غير صحيح: ' + d.date); return; }
         (d.tasks || []).forEach(function (tk) {
           if (!s.lessons[tk.code]) { errors.push('مادة غير معروفة: ' + tk.code); return; }
-          if (!(tk.kind in KIND_UNITS)) { errors.push('نوع مهمة غير معروف: ' + tk.kind); return; }
+          if (!(tk.kind in KINDS)) { errors.push('نوع مهمة غير معروف: ' + tk.kind); return; }
           if (tk.kind === 'review' || tk.kind === 'eve') tk.lesson = tk.kind === 'eve' ? '_eve' : '_review';
           else if (!s.lessons[tk.code].some(function (l) { return l.id === tk.lesson; })) { errors.push('درس غير معروف: ' + tk.code + ' ' + tk.lesson); return; }
           if (d.date < s.today || d.date >= examOf[tk.code]) errors.push(tk.code + ' ' + tk.lesson + ': خارج الأيام المتاحة (' + d.date + ')');
