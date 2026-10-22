@@ -434,6 +434,59 @@ footer p+p{margin-top:6px}
 .toast span{background:var(--white);color:var(--ink);font-weight:600;font-size:14px;padding:11px 18px;border-radius:999px;box-shadow:0 12px 40px rgba(0,0,0,.5);opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;max-width:560px;text-align:center}
 .toast.show span{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ---- exam schedule: today's tasks, the plan, lessons, recall steps ---- */
+.task .t small.kind{display:block;font-size:12px;font-weight:700;color:var(--c);margin-bottom:1px;text-decoration:none}
+.task .t .sub{display:block;font-size:12.5px;color:var(--text-3);font-weight:400;margin-top:2px}
+.task.done .t small.kind,.task.done .t .sub{text-decoration:none}
+.small-start{display:flex;align-items:center;justify-content:center;width:100%;margin-top:14px;min-height:44px;border-radius:12px;border:1.5px dashed var(--line-2);background:none;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer}
+.small-start:hover{border-color:#44576F;color:var(--text)}
+.dtasks{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.dchip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--line-2);font-size:13px;font-weight:600;text-decoration:none;color:var(--text);line-height:1.6}
+.dchip:hover{border-color:var(--c-line)}
+.dchip.done{color:var(--text-3);text-decoration:line-through}
+.lvl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;border:1px solid var(--line-2);color:var(--text-2)}
+.lvl-ex{color:var(--ok);background:var(--ok-soft);border-color:var(--ok-line)}
+.lvl-good{color:var(--ch1);background:var(--ch1-soft);border-color:var(--ch1-line)}
+.lvl-weak{color:var(--bad);background:var(--bad-soft);border-color:var(--bad-line)}
+.lvls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:12px;padding:16px 20px}
+.lvls>span{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2)}
+.lvls p{flex-basis:100%;font-size:13px;color:var(--text-3)}
+.steps{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px}
+.step{display:grid;grid-template-columns:40px minmax(0,1fr);gap:16px;padding:20px 22px}
+.step .sn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--c-line,var(--line-2));display:grid;place-items:center;font-family:var(--font-display);font-weight:700;color:var(--c,var(--text))}
+.step b{font-size:16px}
+.step p{font-size:14px;color:var(--text-2);margin-top:4px}
+.step .row-btns{margin-top:12px}
+.done-note{color:var(--ok);font-weight:600}
+.lend{display:grid;gap:14px;padding:20px 22px;margin-top:26px}
+.lend p{color:var(--text-2);font-size:14.5px}
+.lend p b{color:var(--text)}
+.notice.today-n{background:var(--c-soft);border:1px solid var(--c-line);color:var(--text)}
+.notice.today-n a{font-weight:700}
+.slist li.lhead{border-bottom:0;padding:20px 4px 4px;gap:10px;flex-wrap:wrap}
+.slist li.lhead a{font-size:13px;font-weight:700;color:var(--c);text-decoration:none}
+.slist li.lhead a:hover{text-decoration:underline;text-underline-offset:4px}
+.slist li.lhead small{font-size:12px;color:var(--text-3)}
+.ehint{font-size:13px;color:var(--text-2);background:var(--surface-2);border-radius:10px;padding:8px 12px;margin:14px 0 10px;line-height:1.8}
+.ehint b{color:var(--text)}
+.pts{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.pts li{display:flex;gap:10px;align-items:flex-start;line-height:1.85;color:var(--text)}
+.pts .pt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit;color:var(--text);line-height:1.85}
+.pts .pt[aria-pressed="true"]{border-color:var(--ok-line)}
+.pts .check{margin-top:4px}
+.nbnote{display:block;margin-top:4px;font-size:13px;color:var(--text-3)}
+.copyline{display:grid;justify-items:start;gap:6px;margin-top:14px}
+.copyline p{font-size:12.5px;color:var(--text-3)}
+.ztools{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.ztools button{border:1px solid var(--line-2);background:transparent;color:var(--text-2);border-radius:999px;min-width:38px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.ztools button:hover{color:var(--text)}
+.ztools button[aria-pressed="true"]{color:var(--text);border-color:var(--c-line);background:var(--c-soft)}
+.zf{touch-action:pan-x pan-y}
+.zf.test td:not(.span){cursor:pointer;background:repeating-linear-gradient(135deg,rgba(244,243,239,.035) 0 8px,transparent 8px 16px)}
+.zf.test td.shown{background:none}
+.zf.test td:not(.span):not(.shown) .cv{display:none}
+.zf.test td:not(.span):not(.shown)::before{content:"اضغط للكشف";color:var(--text-3);font-size:13px}
+@media (max-width:620px){.step{grid-template-columns:1fr;gap:10px}}
 </style>
 
 <div class="app" dir="rtl" lang="ar">
@@ -469,6 +522,7 @@ footer p+p{margin-top:6px}
 </div>
 
 <script src="../sync.js"></script>
+<script src="../schedule.js"></script>
 <script src="defs.js"></script>
 <script src="content.js"></script>
 <script src="bank.js"></script>
@@ -490,6 +544,12 @@ Object.keys(DEFS).forEach(function(k){var d=DEFS[k]; d.id=k; (DEFBY[d.s]=DEFBY[d
 DEFLIST.sort(function(a,b){return SEC[a.s].i-SEC[b.s].i;});
 function chOf(sid){return CH[SEC[sid].ch];}
 function cOf(sid){return chOf(sid).c;}
+/* lessons: each schedule lesson groups consecutive topics (sections) of one chapter (content.js lessons, lessons.json) */
+var LES=C.lessons||[], LBY={}, LOFS={};
+LES.forEach(function(l,i){ l.n=i+1; LBY[l.id]=l; l.secs.forEach(function(sid){ LOFS[sid]=l; }); });
+function lesN(n){return LES[n-1]||null;}
+function lnum(id){var l=LBY[id]; return l?l.n:0;}
+function lesC(l){return CH[l.ch].c;}
 var EXP=window.EXPECT||{items:[],legend:{},src:''}, EXPBY={};
 EXP.items.forEach(function(e){ (EXPBY[e.s]=EXPBY[e.s]||[]).push(e); });
 function xLabel(c){ return (EXP.legend||{})[c]||''; }
@@ -583,43 +643,65 @@ function scopeOf(sid){var x=S.scope[sid]; return (x&&x.v)||'in';}
 function inQuiz(sid){return scopeOf(sid)==='in';}
 function visible(sid){return scopeOf(sid)!=='out';}
 function isRead(sid){var x=S.read[sid]; return !!(x&&x.v);}
-function taskDone(k){var x=S.tasks[k]; return !!(x&&x.v);}
 function cardKnown(id){var x=S.cards[id]; return x?x.v:null;}
 function activeMist(){return Object.keys(S.mist).filter(function(id){var m=S.mist[id]; return m && !m.g && QID[id] && inQuiz(QID[id].s);});}
 function riyadhISO(ms){return new Date((ms||Date.now())+3*3600000).toISOString().slice(0,10);}
-function daysLeft(){ var p=C.examISO.split('-'), exam=Date.UTC(+p[0],+p[1]-1,+p[2])-3*3600000; return Math.ceil((exam-Date.now())/86400000); }
-function todayInfo(){ var t=riyadhISO(), d=C.days;
-  if(t<d[0].iso) return {n:1, mode:'before'};
-  for(var i=0;i<d.length;i++) if(d[i].iso===t) return {n:d[i].n, mode:'day'};
-  if(t===C.examISO) return {n:d.length, mode:'exam'};
-  return {n:d.length, mode:'after'}; }
-function daySecs(n){return C.sections.filter(function(s){return s.day===n && visible(s.id);});}
-function dayQuizSecs(n){ if(C.days[n-1]&&C.days[n-1].review) return C.sections.filter(function(s){return inQuiz(s.id);}); return daySecs(n).filter(function(s){return inQuiz(s.id);}); }
-function dayDefs(n){ var ids=dayQuizSecs(n).map(function(s){return s.id;}); return DEFLIST.filter(function(d){return ids.indexOf(d.s)>-1;}); }
-function dayTasks(n){
-  var T=[], day=C.days[n-1];
-  if(!day.review){
-    daySecs(n).forEach(function(s){ T.push({k:'read', id:s.id, label:'اقرأ: '+s.t, meta:'ص '+s.pg, done:isRead(s.id), c:cOf(s.id)}); });
-    var defs=dayDefs(n), known=defs.filter(function(d){return cardKnown(d.id)===1;}).length;
-    if(defs.length) T.push({k:'cards', label:'احفظ بطاقات اليوم', meta:known+' من '+defs.length, done:known===defs.length, n:n});
-    T.push({k:'quiz', label:'حلّ اختبار اليوم', meta:qn(dayQuizCount(n)), done:taskDone('d'+n+'-quiz'), n:n});
-    T.push({k:'map', label:'راجع خريطة اليوم', meta:'الخرائط', done:taskDone('d'+n+'-map'), key:'d'+n+'-map', n:n});
-    T.push({k:'mist', label:'راجع ما أخطأت فيه', meta:'دفتر الأخطاء', done:taskDone('d'+n+'-mist'), key:'d'+n+'-mist', n:n});
-  } else if(!day.xonly){
-    T.push({k:'mist', label:'راجع دفتر الأخطاء كله', meta:qn(activeMist().length), done:taskDone('d5-mist'), key:'d5-mist', n:5});
-    T.push({k:'mock', label:'ادخل محاكي الاختبار', meta:'60 دقيقة', done:taskDone('d5-mock'), n:5});
-    var all=DEFLIST.filter(function(d){return inQuiz(d.s);}), kn=all.filter(function(d){return cardKnown(d.id)===1;}).length;
-    T.push({k:'cards', label:'راجع البطاقات كلها', meta:kn+' من '+all.length, done:kn===all.length, n:5});
-    T.push({k:'tables', label:'راجع جداول المقارنة', meta:'الجداول', done:taskDone('d5-tables'), key:'d5-tables', n:5});
-  } else {
-    T.push({k:'quiz', label:'حلّ اختبار المتوقع', meta:qn(dayQuizCount(n)), done:taskDone('d'+n+'-quiz'), n:n});
-    T.push({k:'mist', label:'راجع ما بقي في دفتر الأخطاء', meta:qn(activeMist().length), done:taskDone('d'+n+'-mist'), key:'d'+n+'-mist', n:n});
-    T.push({k:'sheet', label:'اقرأ ورقة الليلة الأخيرة', meta:'صفحة واحدة', done:taskDone('d5-sheet'), key:'d5-sheet', n:n});
-  }
-  return T; }
-function dayProgress(n){var T=dayTasks(n); var d=T.filter(function(t){return t.done;}).length; return {done:d,total:T.length,pct:T.length?Math.round(d*100/T.length):0};}
-function dayPool(n){ var d=C.days[n-1]; return poolFor(dayQuizSecs(n).map(function(s){return s.id;}),{tf:1,mcq:1,essay:1},!!(d&&d.xonly)); }
-function dayQuizCount(n){ var p=dayPool(n), o=p.filter(function(q){return q.t!=='essay';}).length; return Math.min(18,o)+Math.min(2,p.length-o); }
+
+/* ============ exam schedule (../SCHEDULE.md) ============
+   The exam date and each day's tasks come from the schedule alone: nothing in this site is dated by hand.
+   Only three things go back to it: the lesson list (lessons.json), done/undo, and the level. */
+var CODE='law138', SCH=window.term3Schedule||null, INFO=null;
+var AR_DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+var AR_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var KINDS={learn:'تعلّم', recall:'تسميع', review:'مراجعة شاملة', eve:'ليلة الاختبار'};
+function todayISO(){ try{ if(SCH&&SCH.todayISO) return SCH.todayISO(); }catch(e){} return riyadhISO(); }
+function dUTC(s){var p=String(s).split('-'); return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));}
+function arDay(s){return AR_DAYS[dUTC(s).getUTCDay()];}
+function arDate(s){var d=dUTC(s); return d.getUTCDate()+' '+AR_MONTHS[d.getUTCMonth()];}
+function examISO(){return (INFO&&INFO.exam&&INFO.exam.date)||null;}
+function tentative(){return !!(INFO&&INFO.exam&&INFO.exam.tentative);}
+function daysLeft(){var e=examISO(); return e?Math.round((dUTC(e)-dUTC(todayISO()))/86400000):null;}
+function unitsText(u){ var w=Math.floor(u), half=u-w>=0.5, N=['','جلسة','جلستان','ثلاث جلسات','أربع جلسات','خمس جلسات','ست جلسات','سبع جلسات','ثماني جلسات','تسع جلسات','عشر جلسات'];
+  if(!w) return half?'نصف جلسة':'لا جلسات'; var t=w<=10?N[w]:(w+' جلسة'); return half?t+' ونصف':t; }
+function lesQuiz(l){return l.secs.filter(function(sid){return inQuiz(sid);});}
+function lesDefs(l){var ids=lesQuiz(l); return DEFLIST.filter(function(d){return ids.indexOf(d.s)>-1;});}
+function lesObj(l){return poolFor(lesQuiz(l),{tf:1,mcq:1});}
+function passes(id){var p=INFO&&INFO.passes&&INFO.passes[id]; return p?p.slice():[];}
+function passedToday(id){return passes(id).indexOf(todayISO())>-1;}
+function learnedBefore(id){var t=todayISO(); return passes(id).some(function(d){return d<t;});}
+function learned(id){var x=S.tasks['learn-'+id]; return !!(x&&x.v)||passes(id).length>0;}
+function todayTasks(){return (INFO&&INFO.today)||[];}
+function todayTask(id,kind){return todayTasks().filter(function(t){return t.lesson===id&&(!kind||t.kind===kind);})[0]||null;}
+function todayLessons(){var out=[]; todayTasks().forEach(function(t){var l=LBY[t.lesson]; if(l&&out.indexOf(l)<0) out.push(l);}); return out;}
+function taskHref(t){ if(t.kind==='review') return '#rev'; if(t.kind==='eve') return '#eve'; var n=lnum(t.lesson); return n?((t.kind==='recall'?'#r-':'#l-')+n):'#plan'; }
+function taskLabel(t){ if(t.kind==='review') return 'مراجعة شاملة بالتسميع لكل الدروس'; if(t.kind==='eve') return 'البطاقات وورقة الليلة الأخيرة'; var l=LBY[t.lesson]; return l?l.t:(t.title||t.lesson); }
+function taskC(t){var l=LBY[t.lesson]; return l?lesC(l):'cw';}
+function gotSchedule(i){ return !!(i&&i.all&&i.all.exams&&i.all.exams.length); } /* no exams at all means the schedule never arrived (first open offline) */
+function refreshInfo(){ if(!SCH) return; try{ var c=SCH.cached(CODE); if(gotSchedule(c)) INFO=c; }catch(e){} }
+function schDone(id,kind){ if(!SCH) return; try{ SCH.done(CODE,id,kind); }catch(e){} refreshInfo(); }
+function schUndo(id){ if(!SCH) return; try{ SCH.undo(CODE,id); }catch(e){} refreshInfo(); }
+function markLearned(id){ var l=LBY[id]; if(!l) return; var now=Date.now(); S.tasks['learn-'+id]={v:1,t:now};
+  l.secs.forEach(function(sid){ if(visible(sid)&&!isRead(sid)) S.read[sid]={v:1,t:now}; }); commit();
+  if(!passedToday(id)) schDone(id,'learn'); }
+function unmarkLearned(id){ S.tasks['learn-'+id]={v:0,t:Date.now()}; commit(); if(passedToday(id)) schUndo(id); }
+function onInfo(info){ if(!gotSchedule(info)) return; INFO=info;
+  if(cur==='home'||cur==='plan'||cur==='rev'||cur==='eve'||cur==='tools'||/^[lr]-\d+$/.test(cur)) rerender(); }
+function initSchedule(){ if(!SCH) return; refreshInfo();
+  SCH.load(CODE).then(onInfo,function(){});
+  SCH.onChange(function(){ try{ onInfo(SCH.cached(CODE)); }catch(e){} }); }
+
+/* ============ level: from the bank and the mistakes notebook; it informs and never re-plans ============ */
+function levelOf(n,c){ if(n<10) return {k:'none',t:'لم يُقَس بعد',pct:null}; var p=Math.round(c*100/n); return {k:p>=85?'ex':(p>=60?'good':'weak'), t:p>=85?'ممتاز':(p>=60?'جيد':'ضعيف'), pct:p}; }
+function levelStats(){ var per={}, N=0, Cc=0; C.chapters.forEach(function(c){ per[c.id]={n:0,c:0}; });
+  Object.keys(S.ans).forEach(function(id){ var q=QID[id], a=S.ans[id]; if(!q||!a) return; var k=SEC[q.s].ch, n=(a.c||0)+(a.w||0); per[k].n+=n; per[k].c+=(a.c||0); N+=n; Cc+=(a.c||0); });
+  Object.keys(per).forEach(function(k){ per[k].lv=levelOf(per[k].n,per[k].c); });
+  return {per:per, n:N, c:Cc, lv:levelOf(N,Cc)}; }
+function lvlBadge(lv){ return '<span class="lvl lvl-'+lv.k+'">'+esc(lv.t)+(lv.pct!=null?' <b class="num">'+lv.pct+'%</b>':'')+'</span>'; }
+function lvlNote(lv){ var strong=[], weak=[]; C.chapters.forEach(function(c){ var k=lv.per[c.id].lv.k; if(k==='ex') strong.push(c.short); if(k==='weak') weak.push(c.short); });
+  if(strong.length||weak.length) return (strong.length?'متقدم في: '+strong.join('، ')+'. ':'')+(weak.length?'متعثر في: '+weak.join('، ')+'.':'');
+  return 'يُقاس مستوى كل فصل من إجاباتك في بنك الأسئلة ودفتر الأخطاء، ولا يُحكم عليه قبل عشر إجابات، ولا يغيّر الخطة.'; }
+var lvlT=null;
+function sendLevel(){ if(!SCH) return; clearTimeout(lvlT); lvlT=setTimeout(function(){ var s=levelStats(); if(!s.n) return; try{ SCH.level(CODE, s.c*100/s.n, s.n); }catch(e){} },900); }
 function stats(){
   var all={}, rd={}; C.sections.forEach(function(s){ if(!visible(s.id)) return; var r=isRead(s.id); pageSet(s.pg).forEach(function(p){ all[p]=1; if(r) rd[p]=1; }); });
   var c=0,w=0; Object.keys(S.ans).forEach(function(id){var a=S.ans[id]; c+=a.c||0; w+=a.w||0;});
@@ -639,23 +721,56 @@ var Q=null; // running quiz
 function startQuiz(qs, opts){
   opts=opts||{};
   if(!qs.length){ toast('لا توجد أسئلة في هذا الاختيار'); return; }
-  var items=qs.map(function(q){ var it={q:q, pick:null, ok:null, txt:'', shown:false};
+  var items=qs.map(function(q){ var it={q:q, pick:null, ok:null, txt:'', shown:false, checks:{}};
     if(q.t==='mcq'){ it.perm=shuffle(q.o.map(function(_,i){return i;})); } return it; });
   items.sort(function(a,b){ return (a.q.t==='essay')-(b.q.t==='essay'); });
-  Q={items:items, i:0, mode:opts.mode||'train', kind:opts.kind||'custom', title:opts.title||'اختبار', start:Date.now(), dur:opts.dur||0, done:false, histT:0};
+  Q={items:items, i:0, mode:opts.mode||'train', kind:opts.kind||'custom', title:opts.title||'اختبار', start:Date.now(), dur:opts.dur||0, done:false, histT:0, exit:opts.exit||null, back:opts.back||null, backLabel:opts.backLabel||''};
   if(Q.dur) startClock();
   if((location.hash||'')!=='#quiz') location.hash='#quiz'; else render();
 }
+/* the notebook: a question leaves after two right answers on two different days; two on one day count once */
 function record(it){
-  var q=it.q, id=q.id, now=Date.now(), a=S.ans[id]||{c:0,w:0,last:0,t:0};
+  var q=it.q, id=q.id, now=Date.now(), today=todayISO(), a=S.ans[id]||{c:0,w:0,last:0,t:0}, res={was:false,out:false,same:false,inNb:false};
   a=JSON.parse(JSON.stringify(a)); if(it.ok){a.c++; a.last=1;} else {a.w++; a.last=0;} a.t=now; S.ans[id]=a;
-  var m=S.mist[id];
-  if(!it.ok){ S.mist[id]={n:((m&&!m.g)?m.n:0)+1, st:0, a:(q.t==='essay'?'':(it.txt||'')), g:0, t:now}; }
-  else if(m && !m.g){ var st=(m.st||0)+1; if(st>=2){ S.mist[id]={n:m.n, st:st, a:m.a, g:1, t:now}; toast('أتقنت سؤالاً فخرج من دفتر الأخطاء'); } else { S.mist[id]={n:m.n, st:st, a:m.a, g:0, t:now}; } }
+  var m=S.mist[id]; res.was=!!(m&&!m.g);
+  if(!it.ok){ S.mist[id]={n:((m&&!m.g)?m.n:0)+1, st:0, d:'', a:(q.t==='essay'?'':(it.txt||'')), g:0, t:now}; res.inNb=true; }
+  else if(m && !m.g){
+    var same=m.d===today, st=(m.st||0)+(same?0:1); res.same=same;
+    if(st>=2){ S.mist[id]={n:m.n, st:st, d:today, a:m.a, g:1, t:now}; res.out=true; toast('أتقنت سؤالاً فخرج من دفتر الأخطاء'); }
+    else { S.mist[id]={n:m.n, st:st, d:same?m.d:today, a:m.a, g:0, t:now}; res.inNb=true; }
+  }
+  it.nb=res; sendLevel(); return res;
 }
 function answerText(q, v){ if(q.t==='tf') return v===1?'صح':'خطأ'; if(q.t==='mcq') return q.o[v]; return ''; }
 function correctText(q){ if(q.t==='tf') return q.a?'صح':'خطأ'; if(q.t==='mcq') return q.o[0]; return ''; }
-function finishQuiz(){
+/* essays: the model answer becomes points to tick; a missed point sends the question to the notebook */
+function essayPoints(it, ri){
+  var q=it.q, graded=it.ok!==null, got=0, run=ri==='', idx=run?'':' data-ri="'+ri+'"';
+  q.m.forEach(function(_,i){ if(it.checks[i]) got++; });
+  var h='<div class="fb model"><b>نقاط الجواب النموذجي · <span class="nw">ص '+esc(q.p)+'</span></b>'+(graded?'':'<span class="nbnote">علّم كل نقطة ذكرتها في جوابك.</span>')+'<ol class="pts">';
+  q.m.forEach(function(x,i){ var on=!!it.checks[i], box='<span class="check auto" data-on="'+(on?1:0)+'" aria-hidden="true">'+ICON.check+'</span>';
+    h+= graded ? '<li>'+box+'<span>'+md(x)+'</span></li>' : '<li><button type="button" class="pt" data-act="'+(run?'pt':'r-pt')+'" data-i="'+i+'"'+idx+' aria-pressed="'+on+'">'+box+'<span>'+md(x)+'</span></button></li>'; });
+  h+='</ol></div>';
+  if(!graded) h+='<div class="row-btns"><button type="button" class="btn-white" data-act="'+(run?'q-pts':'r-pts')+'"'+idx+'>سجّل: أصبت '+got+' من '+q.m.length+ICON.arrow+'</button></div>';
+  return h;
+}
+function nbNote(it){ var r=it.nb; if(!r) return '';
+  var t=r.out?'وخرج من دفتر الأخطاء بعد إجابتين صحيحتين في يومين مختلفين.':(!it.ok?'ويخرج منه بإجابتين صحيحتين في يومين مختلفين.':(r.inNb&&r.same?'أجبت عنه صحيحاً اليوم من قبل، والإجابة التالية تُحسب في يوم آخر.':(r.inNb?'بقيت إجابة صحيحة في يوم آخر ليخرج من دفتر الأخطاء.':'')));
+  return t?'<span class="nbnote">'+t+'</span>':''; }
+function copyOne(it){ return (it.txt&&it.txt.trim())?'<div class="copyline"><button type="button" class="btn-ghost" data-act="copy-one">انسخ طلب التصحيح لهذا الجواب</button><p>الصقه في محادثة جديدة مع Claude خارج المشروع، فيصحح جوابك على هذه النقاط دون قراءة الكتاب.</p></div>':''; }
+var BOOK='مبادئ القانون الإداري وتطبيقاتها في المملكة العربية السعودية';
+function plain(s){return String(s==null?'':s).replace(/\*\*/g,'');}
+function gradingRequest(items){
+  var out=['صحّح إجاباتي المقالية في مادة القانون الإداري (كتاب «'+BOOK+'»).','قارن كل جواب بنقاط الجواب النموذجي المأخوذة من الكتاب، واكتب في نقاط قصيرة: ما أصبت، وما فاتني، وما أخطأت فيه، وملاحظة على ترتيب الجواب وصياغته. ولا تكتب الجواب النموذجي كاملاً.',''];
+  items.forEach(function(it,k){ var q=it.q; out.push('السؤال '+(k+1)+' ('+SEC[q.s].t+'): '+plain(q.q)); out.push('نقاط الجواب النموذجي من الكتاب (صفحة '+q.p+'):'); q.m.forEach(function(x,i){ out.push((i+1)+'. '+plain(x)); }); out.push('جوابي:'); out.push(String(it.txt||'').trim()); out.push(''); });
+  return out.join('\n'); }
+function newEssaysRequest(){
+  var parts = BLD.custom ? bldSecs().map(function(sid){return SEC[sid].t+' (صفحة '+SEC[sid].pg+')';}) : C.chapters.filter(function(c){return BLD.chs[c.id];}).map(function(c){return c.n+': '+c.title+' (صفحة '+c.pg+')';});
+  return ['اختبرني مقالياً في مادة القانون الإداري (كتاب «'+BOOK+'») في: '+parts.join('، ')+'.','أعطني سؤالين مقاليين دفعة واحدة، ونوّع بينهما بين التعريف والشروط والمقارنة والتطبيق، ثم انتظر جوابي عنهما معاً.','ثم صحّح كل جواب على الكتاب في نقاط قصيرة: ما أصبت، وما فاتني، وما أخطأت فيه، مع رقم الصفحة. ولا تكتب الجواب النموذجي كاملاً إلا إن طلبته.'].join('\n'); }
+function copyText(txt,msg){ msg=msg||'نُسخ الطلب. الصقه في محادثة جديدة مع Claude خارج المشروع.';
+  function fallback(){ var ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast(msg); }catch(e){ toast('تعذّر النسخ'); } ta.remove(); }
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function(){toast(msg);},fallback); else fallback(); }
+function finishQuiz(complete){
   if(!Q||Q.done) return; stopClock();
   if(Q.mode==='exam'){
     Q.items.forEach(function(it){ if(it.q.t==='essay') return;
@@ -667,9 +782,9 @@ function finishQuiz(){
   if(g.length||pendingEssay){
     var chs={}; Q.items.forEach(function(it){chs[SEC[it.q.s].ch]=1;});
     var entry={t:Date.now(), k:Q.kind, n:Q.items.length, g:g.length, ok:ok, m:Q.mode, chs:Object.keys(chs)}; S.hist.push(entry); Q.histT=entry.t;
-    if(/^day-\d$/.test(Q.kind)){ S.tasks['d'+Q.kind.slice(4)+'-quiz']={v:1,t:Date.now()}; }
-    if(Q.kind==='mock'){ S.tasks['d5-mock']={v:1,t:Date.now()}; }
   }
+  /* exit recall: the lesson is recorded as learned once its five questions are through */
+  if(Q.exit && complete!==false){ Q.exitDone=true; markLearned(Q.exit); }
   Q.done=true; commit(); render(); window.scrollTo(0,0);
 }
 function refreshHist(){ if(!Q||!Q.histT) return; var g=Q.items.filter(function(it){return it.ok!==null;}); S.hist.forEach(function(x){ if(x.t===Q.histT){ x.g=g.length; x.ok=g.filter(function(it){return it.ok;}).length; } }); }
@@ -682,14 +797,19 @@ function fmt(s){var m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10
 var view=$('#view'), cur='';
 function route(){ var h=(location.hash||'').replace(/^#/,'')||'home'; var changed=h!==cur; cur=h; render(); setNav(h); if(changed) window.scrollTo(0,0); }
 function rerender(){ var y=window.scrollY; render(); window.scrollTo(0,y); }
-function setNav(h){ var key=h; if(/^day-/.test(h)) key='plan'; else if(/^s-/.test(h)) key='summary'; else if(h==='sheet'||h==='scope') key='tools';
+function go(h){ if(location.hash===h) rerender(); else location.hash=h; }
+function setNav(h){ var key=h; if(/^(day-|l-|r-)/.test(h)||h==='rev'||h==='eve') key='plan'; else if(/^s-/.test(h)) key='summary'; else if(h==='sheet'||h==='scope') key='tools';
   $$('#nav a').forEach(function(a){a.classList.toggle('on', a.dataset.nav===key);}); var on=$('#nav a.on'); if(on&&on.scrollIntoView) try{on.scrollIntoView({block:'nearest',inline:'nearest'});}catch(e){} }
 function updateBadges(){ var n=activeMist().length, b=$('#mist-count'); if(b){ b.hidden=!n; b.textContent=n; } }
 function render(){
   var h=cur||'home', html='';
   if(h==='home') html=vHome();
   else if(h==='plan') html=vPlan();
-  else if(/^day-[1-6]$/.test(h)) html=vDay(+h.slice(4));
+  else if(/^day-\d+$/.test(h)) html=vPlan();
+  else if(/^l-\d+$/.test(h)) html=vLesson(+h.slice(2));
+  else if(/^r-\d+$/.test(h)) html=vRecall(+h.slice(2));
+  else if(h==='rev') html=vReview();
+  else if(h==='eve') html=vEve();
   else if(h==='summary') html=vSummary();
   else if(/^s-/.test(h) && SEC[h.slice(2)]) html=vSection(h.slice(2));
   else if(h==='quiz') html=vQuiz();
@@ -703,99 +823,171 @@ function render(){
   else html=vHome();
   view.innerHTML=html; after(h); updateBadges(); setSync(syncMode);
 }
-function after(h){ if(h==='maps') drawMap(); if(h==='tools') paintTimer(); if(h==='quiz'&&Q&&!Q.done){ var ta=$('#essay-in'); if(ta){ ta.value=Q.items[Q.i].txt||''; } } }
+function after(h){ if(h==='maps') drawMap(); if(h==='tools') paintTimer(); if(h==='tables') fitTables(); if(h==='quiz'&&Q&&!Q.done){ var ta=$('#essay-in'); if(ta){ ta.value=Q.items[Q.i].txt||''; } } }
 function head(eyebrow,title,lead,tight){ return '<div class="pagehead'+(tight?' tight':'')+'"><p class="eyebrow">'+eyebrow+'</p><h2 class="h2">'+title+'</h2>'+(lead?'<p class="lead">'+lead+'</p>':'')+'</div>'; }
 function legend(){ return C.chapters.map(function(c){return '<span class="'+c.c+'"><i class="dot"></i>'+esc(c.n)+' · '+esc(c.short)+'</span>';}).join(''); }
 
-/* ---- home ---- */
+/* ---- home: today's tasks come from the schedule ---- */
 var heroDef=null, heroQ=null, heroDone=null;
+function heroPick(){
+  var defs=DEFLIST.filter(function(d){return inQuiz(d.s)&&d.text.length<=170;}); if(!defs.length) defs=DEFLIST.slice(); heroDef=defs[Math.floor(Math.random()*defs.length)];
+  var ls=todayLessons(); if(!ls.length) ls=LES.filter(function(l){return learned(l.id);});
+  var sids=[]; ls.forEach(function(l){ sids=sids.concat(lesQuiz(l)); });
+  var tfs=BANK.filter(function(q){return q.t==='tf'&&inQuiz(q.s)&&sids.indexOf(q.s)>-1;}); if(!tfs.length) tfs=BANK.filter(function(q){return q.t==='tf'&&inQuiz(q.s);}); if(!tfs.length) tfs=BANK.filter(function(q){return q.t==='tf';});
+  heroQ=tfs[Math.floor(Math.random()*tfs.length)];
+}
 function vHome(){
-  var ti=todayInfo(), left=daysLeft(), st=stats(), day=C.days[ti.n-1], pr=dayProgress(ti.n);
-  if(!heroDef){ var defs=DEFLIST.filter(function(d){return inQuiz(d.s)&&d.text.length<=170;}); if(!defs.length) defs=DEFLIST.slice(); heroDef=defs[Math.floor(Math.random()*defs.length)];
-    var tfs=BANK.filter(function(q){return q.t==='tf'&&inQuiz(q.s)&&dayQuizSecs(ti.n).some(function(s){return s.id===q.s;});}); if(!tfs.length) tfs=BANK.filter(function(q){return q.t==='tf';}); heroQ=tfs[Math.floor(Math.random()*tfs.length)]; }
-  var cd = left<=0 ? '<span>الاختبار</span><b>اليوم</b>' : '<span>حتى الاختبار</span><b class="num">'+dayn(left)+'</b>';
+  if(!heroDef) heroPick();
+  var left=daysLeft(), ex=examISO(), st=stats(), lv=levelStats(), tasks=todayTasks(), pr=INFO&&INFO.progress;
+  var learnedN=LES.filter(function(l){return learned(l.id);}).length;
+  var cd = ex===null ? '<span>موعد الاختبار</span><b>من الجدول</b>' : (left>0 ? '<span>حتى الاختبار</span><b class="num">'+dayn(left)+'</b>' : (left===0 ? '<span>الاختبار</span><b>اليوم</b>' : '<span>الاختبار</span><b>انتهى</b>'));
+  var sub='خطة مذاكرة من أول الكتاب إلى الصفحة 84، '+(ex ? 'والاختبار يوم '+esc(arDay(ex))+' '+esc(arDate(ex))+(tentative()?'، وهو موعد مبدئي':'')+'، كما في جدول الاختبارات.' : 'وموعد الاختبار ومهام كل يوم تأتيك من جدول الاختبارات.');
   var h='<section class="hero"><p class="eyebrow">مبادئ القانون الإداري وتطبيقاتها في المملكة العربية السعودية</p><h1>القانون<br>الإداري</h1>'+
-    '<p class="hero-sub">خطة مذاكرة من أول الكتاب إلى الصفحة 84، والاختبار يوم الأحد 25 أكتوبر.</p><div class="legend" aria-label="ألوان الفصول">'+legend()+'</div>'+
+    '<p class="hero-sub">'+sub+'</p><div class="legend" aria-label="ألوان الفصول">'+legend()+'</div>'+
     '<div class="countdown">'+cd+'</div>'+
     '<div class="floaters"><div class="float float-a '+cOf(heroDef.s)+'"><div class="src"><i class="dot"></i>بطاقة · ص '+esc(heroDef.p)+'</div><p class="fq" style="font-size:13.5px;color:var(--text-2)">'+esc(heroDef.term)+'</p><p class="bk">'+esc(heroDef.text)+'</p></div>'+
     '<div class="float float-b '+cOf(heroQ.s)+'"><div class="src"><i class="dot"></i>صح أم خطأ؟ · ص '+esc(heroQ.p)+'</div><p class="fq">'+md(heroQ.q)+'</p>'+
     '<div class="tf">'+[1,0].map(function(v){var cls=''; if(heroDone!==null){ if(v===heroQ.a) cls='is-right'; else if(v===heroDone) cls='is-wrong'; } return '<button type="button" data-act="hero-tf" data-v="'+v+'" class="'+cls+'" '+(heroDone!==null?'disabled':'')+'>'+(v?'صح':'خطأ')+'</button>';}).join('')+'</div>'+
     (heroDone!==null?'<p class="tf-note">'+md(heroQ.e)+'</p>':'')+'</div></div></section>';
   h+='<div class="stats-label"><span>لوحة التقدم</span><span class="sync" id="sync-chip"><i></i><span>محفوظ على هذا الجهاز</span></span></div><div class="stats">'+
-    '<div class="card stat"><b class="num">'+(left>0?left:'اليوم')+'</b><span>'+(left>0?'الأيام الباقية على الاختبار':'يوم الاختبار')+'</span></div>'+
-    '<div class="card stat c1"><b class="num">'+st.pages+' <small>/ '+st.pagesTotal+'</small></b><span>صفحة قرأت ملخصها</span><div class="pbar"><i style="width:'+(st.pagesTotal?Math.round(st.pages*100/st.pagesTotal):0)+'%"></i></div></div>'+
-    '<div class="card stat"><b class="num">'+(st.acc===null?'—':st.acc+'%')+'</b><span>'+(st.answered?'دقة إجاباتك في '+qn(st.answered):'دقة إجاباتك، تظهر بعد أول اختبار')+'</span><div class="pbar" style="--c:var(--ok)"><i style="width:'+(st.acc||0)+'%"></i></div></div>'+
+    '<div class="card stat"><b class="num">'+(left===null?'—':(left>0?left:(left===0?'اليوم':'—')))+'</b><span>'+(left===null?'يصل موعد الاختبار من الجدول':(left>0?'الأيام الباقية على الاختبار · '+esc(arDay(ex))+' '+esc(arDate(ex))+(tentative()?' (مبدئي)':''):(left===0?'يوم الاختبار':'انتهى الاختبار')))+'</span></div>'+
+    '<div class="card stat c1"><b class="num">'+learnedN+' <small>/ '+LES.length+'</small></b><span>دروس تعلّمتها'+(pr?' · أنجزت '+pr.pct+'% من مرات المرور الثلاث':'')+'</span><div class="pbar"><i style="width:'+(pr?pr.pct:Math.round(learnedN*100/LES.length))+'%"></i></div></div>'+
+    '<div class="card stat"><b class="num">'+(lv.lv.pct===null?'—':lv.lv.pct+'%')+'</b><span>مستواك العام: '+esc(lv.lv.t)+(lv.n?' · من '+cnt(lv.n,'إجابة واحدة','إجابتين','إجابات','إجابة'):'')+'</span><div class="pbar" style="--c:'+(lv.lv.k==='ex'?'var(--ok)':(lv.lv.k==='weak'?'var(--bad)':'var(--ch1)'))+'"><i style="width:'+(lv.lv.pct||0)+'%"></i></div></div>'+
     '<div class="card stat"><b class="num">'+st.mist+'</b><span>'+(st.mist?'في دفتر الأخطاء':'دفتر الأخطاء فارغ')+'</span></div></div>';
-  var label = ti.mode==='before' ? 'ابدأ مبكراً · اليوم الأول' : (ti.mode==='exam' ? 'يوم الاختبار' : (ti.mode==='after' ? 'المراجعة' : 'اليوم '+['الأول','الثاني','الثالث','الرابع','الخامس','السادس'][ti.n-1]+' · '+day.wd));
-  var T=dayTasks(ti.n);
-  h+='<div class="card today '+(day.review?'cw':CH[day.chs[0]].c)+'"><div><p class="eyebrow"><i class="dot"></i>'+esc(label)+'</p><h3 class="h3" style="margin-top:4px">'+esc(day.title)+'</h3><ul class="tasks">'+T.map(taskRow).join('')+'</ul></div>'+
-    '<div class="today-side"><div class="ring num">'+pr.done+' من '+pr.total+'<small>مهام اليوم المنجزة</small><div class="pbar" style="margin-top:12px"><i style="width:'+pr.pct+'%"></i></div></div><a class="btn-white" href="#day-'+ti.n+'">افتح صفحة اليوم'+ICON.arrow+'</a></div></div>';
-  var lastSheet = '<a class="card" href="#sheet"><b>ورقة الليلة الأخيرة</b><span>أهم ما في المقرر في صفحة واحدة.</span></a>';
-  h+='<div class="quick"><button type="button" class="card" data-act="start-day" data-n="'+ti.n+'"><b>اختبار سريع لليوم</b><span>'+qn(dayQuizCount(ti.n))+' من دروس اليوم.</span></button>'+
-     '<a class="card" href="#mistakes"><b>دفتر الأخطاء</b><span>'+(st.mist?qn(st.mist)+' تنتظر المراجعة.':'لا أخطاء بعد.')+'</span></a>'+lastSheet+'</div>';
+  h+='<div class="card lvls">'+C.chapters.map(function(c){ return '<span class="'+c.c+'"><i class="dot"></i>'+esc(c.short)+' '+lvlBadge(lv.per[c.id].lv)+'</span>'; }).join('')+'<p>'+esc(lvlNote(lv))+'</p></div>';
+  var tc='', side='', col=tasks.length?taskC(tasks[0]):'cw';
+  if(!INFO){ tc='<p class="eyebrow"><i class="dot"></i>مهام اليوم</p><h3 class="h3" style="margin-top:4px">افتح الصفحة مع الاتصال ليصلك الجدول</h3><p class="lead" style="margin-top:8px">موعد الاختبار ومهام كل يوم تأتي من جدول الاختبارات. وتستطيع أن تذاكر الآن من قائمة الدروس.</p>'; side='<a class="btn-white" href="#plan">الدروس'+ICON.arrow+'</a>'; }
+  else if(!INFO.exam){ tc='<p class="eyebrow"><i class="dot"></i>مهام اليوم</p><h3 class="h3" style="margin-top:4px">لم أجد موعد هذه المادة في جدول الاختبارات</h3><p class="lead" style="margin-top:8px">أضف موعدها في الجدول، فتظهر هنا مهام كل يوم.</p>'; side='<a class="btn-white" href="#plan">الدروس'+ICON.arrow+'</a>'; }
+  else if(left<0){ tc='<p class="eyebrow"><i class="dot"></i>انتهى الاختبار</p><h3 class="h3" style="margin-top:4px">انتهى اختبار هذه المادة</h3><p class="lead" style="margin-top:8px">بقي المحتوى كله هنا إن احتجته بعدُ.</p>'; side='<a class="btn-white" href="#summary">الملخص'+ICON.arrow+'</a>'; }
+  else if(left===0){ tc='<p class="eyebrow"><i class="dot"></i>يوم الاختبار</p><h3 class="h3" style="margin-top:4px">اليوم اختبارك، فلا مادة جديدة</h3><p class="lead" style="margin-top:8px">راجع ورقة الليلة الأخيرة، ثم البطاقات.</p>'; side='<a class="btn-white" href="#sheet">ورقة الليلة الأخيرة'+ICON.arrow+'</a><a class="btn-ghost" href="#cards">البطاقات</a>'; }
+  else {
+    var doneN=tasks.filter(function(t){return t.done;}).length, t0=todayISO();
+    tc='<p class="eyebrow"><i class="dot"></i>مهام اليوم · '+esc(arDay(t0))+' '+esc(arDate(t0))+'</p><h3 class="h3" style="margin-top:4px">'+(tasks.length?(doneN===tasks.length?'أنجزت مهام اليوم كلها':'ما وزّعه الجدول لهذه المادة اليوم'):'لا مهام لهذه المادة اليوم')+'</h3>'+
+      (tasks.length?'<ul class="tasks">'+tasks.map(taskRow).join('')+'</ul>':'<p class="lead" style="margin-top:8px">هكذا وزّعها الجدول مع موادك الأخرى. وتستطيع أن تراجع البطاقات أو تختبر نفسك.</p>')+
+      '<button type="button" class="small-start" data-act="start-small">ابدأ صغيراً: عشر بطاقات '+(todayLessons().length?'من دروس اليوم':'مما تعلّمت')+'</button>';
+    side='<div class="ring num">'+doneN+' من '+tasks.length+'<small>مهام اليوم المنجزة</small><div class="pbar" style="margin-top:12px"><i style="width:'+(tasks.length?Math.round(doneN*100/tasks.length):0)+'%"></i></div></div><a class="btn-white" href="#plan">الخطة كاملة'+ICON.arrow+'</a>';
+  }
+  h+='<div class="card today '+col+'"><div>'+tc+'</div><div class="today-side">'+side+'</div></div>';
+  h+='<div class="quick"><button type="button" class="card" data-act="quick"><b>اختبار سريع</b><span>عشرة أسئلة من '+(todayLessons().length?'دروس اليوم':(learnedN?'دروس تعلّمتها':'المقرر كله'))+'.</span></button>'+
+     '<a class="card" href="#mistakes"><b>دفتر الأخطاء</b><span>'+(st.mist?'فيه '+qn(st.mist)+'.':'لا أخطاء بعد.')+'</span></a>'+
+     '<a class="card" href="#sheet"><b>ورقة الليلة الأخيرة</b><span>أهم ما في المقرر في صفحة واحدة.</span></a></div>';
   return h;
 }
 function taskRow(t){
-  var c=t.c||'cw', lead, title, tail='';
-  if(t.k==='read'){ lead=chk(t.done,'read','data-id="'+t.id+'" aria-label="علّمه مقروءاً"'); title='<a href="#s-'+t.id+'">'+esc(t.label)+'</a>'; }
-  else if(t.k==='cards'||t.k==='quiz'||t.k==='mock'){
-    lead='<span class="check auto" data-on="'+(t.done?1:0)+'" aria-hidden="true">'+ICON.check+'</span>'; title=esc(t.label);
-    tail='<button type="button" class="go" data-act="'+({cards:'go-cards',quiz:'start-day',mock:'start-mock'}[t.k])+'" data-n="'+t.n+'">'+(t.k==='cards'?'افتح':'ابدأ')+' ←</button>'; }
-  else { lead=chk(t.done,'task','data-k="'+t.key+'" aria-label="علّمها منجزة"'); var href={map:'#maps',mist:'#mistakes',tables:'#tables',sheet:'#sheet'}[t.k];
-    title='<a href="'+href+'"'+(t.k==='map'?' data-act="go-map" data-n="'+t.n+'"':'')+'>'+esc(t.label)+'</a>'; }
-  return '<li class="task '+c+(t.done?' done':'')+'">'+lead+'<span class="t">'+title+'</span><span class="m">'+esc(t.meta)+'</span>'+tail+'</li>';
+  var c=taskC(t), n=lnum(t.lesson), href=taskHref(t);
+  var lead=chk(t.done,'task-tick','data-l="'+esc(t.lesson)+'" data-k="'+esc(t.kind)+'" data-done="'+(t.done?1:0)+'" aria-label="'+(t.done?'ألغِ الإنجاز':'علّمها منجزة')+'"');
+  return '<li class="task '+c+(t.done?' done':'')+'">'+lead+'<span class="t"><small class="kind">'+esc(KINDS[t.kind]||'')+(n?' · الدرس '+n:'')+'</small><a href="'+href+'">'+esc(taskLabel(t))+'</a><span class="sub">'+esc(unitsText(t.units))+(t.pages?' · ص '+esc(t.pages):'')+'</span></span><a class="go" href="'+href+'">افتح ←</a></li>';
 }
 
-/* ---- plan ---- */
+/* ---- plan: the schedule's days for this subject, then the lesson list ---- */
 function vPlan(){
-  var ti=todayInfo();
-  var h=head('على الطريق إلى الأحد','الخطة','ستة أيام: أربعة لدروس المادة، ثم يومان للمراجعة. ومن الأربعاء تذاكر معها أحكام الأسرة، ويتسع السبت لتعويض ما فاتك.');
-  h+='<div class="days">'+C.days.map(function(d){
-    var pr=dayProgress(d.n), isT=(d.n===ti.n&&ti.mode!=='after'), done=pr.pct===100;
-    var dots=d.chs.map(function(c){return '<i class="dot '+CH[c].c+'"></i>';}).join('');
-    var topics=d.review?(d.topics||'دفتر الأخطاء · محاكي الاختبار · البطاقات · الجداول · ورقة الليلة الأخيرة'):daySecs(d.n).map(function(s){return s.t;}).slice(0,4).join(' · ');
-    return '<article class="card day'+(isT?' is-today':'')+'"><div class="day-date"><b class="num">'+(+d.iso.slice(8))+'</b><span>أكتوبر · '+d.wd+'</span></div><div>'+
-      '<div class="day-eyebrow"><span class="dots">'+dots+'</span>'+esc(d.eyebrow)+' · <span class="nw">ص '+d.pg+'</span>'+(d.also?'<span class="status">ومعه '+esc(d.also)+'</span>':'')+(isT?'<span class="status now">اليوم</span>':'')+(done?'<span class="status done">مكتمل</span>':'')+'</div>'+
-      '<h3 class="day-title">'+esc(d.title)+'</h3><p class="day-topics">'+esc(topics)+'</p><div class="pbar"><i style="width:'+pr.pct+'%"></i></div></div>'+
-      '<div class="act"><a class="btn-white" href="#day-'+d.n+'">افتح اليوم'+ICON.arrow+'</a></div></article>';
-  }).join('')+
-  '<article class="card day exam"><div class="day-date"><b class="num">25</b><span>أكتوبر · الأحد</span></div><div><div class="day-eyebrow">من أول الكتاب إلى ص 84<span class="status">ومعه اختبار أحكام الأسرة</span></div><h3 class="day-title">يوم الاختبار</h3></div></article></div>';
+  var h=head('من جدول الاختبارات','الخطة','يوزّع الجدول دروس المادة على الأيام مع موادك الأخرى، فيمرّ كل درس ثلاث مرات في أيام مختلفة: تعلّماً، ثم تسميعين متباعدين. ثم مراجعة شاملة قبل الاختبار بيومين، وتسميع ليلة الاختبار.');
+  if(!INFO) h+='<div class="empty" style="margin-top:22px"><b>افتح الصفحة مع الاتصال ليصلك الجدول</b>وإلى أن يصل تستطيع أن تذاكر من قائمة الدروس أدناه.</div>';
+  else if(!INFO.exam) h+='<div class="empty" style="margin-top:22px"><b>لم أجد موعد هذه المادة في جدول الاختبارات</b>أضف موعدها في الجدول، فتظهر هنا مهام كل يوم.</div>';
+  else {
+    var ex=examISO(), t0=todayISO(), xd=dUTC(ex), w=((INFO.all&&INFO.all.warnings)||[]).filter(function(x){return x.code===CODE&&x.type==='short';})[0];
+    if(w) h+='<div class="notice read">تنبيه من الجدول: الأيام الباقية لا تتسع لثلاث مرات مرور لكل درس، وعدد الدروس التي ستقلّ عن ذلك: '+w.count+'.</div>';
+    h+='<div class="days">'+(INFO.days||[]).map(function(d){ return dayCard(d,t0); }).join('')+
+      '<article class="card day exam"><div class="day-date"><b class="num">'+xd.getUTCDate()+'</b><span>'+AR_MONTHS[xd.getUTCMonth()]+' · '+arDay(ex)+'</span></div><div><div class="day-eyebrow">من أول الكتاب إلى ص 84'+(tentative()?'<span class="status">موعد مبدئي</span>':'')+'</div><h3 class="day-title">يوم الاختبار</h3></div></article></div>';
+  }
+  return h+lessonsBlock();
+}
+function dayCard(d,t0){
+  var isT=d.date===t0, done=d.tasks.filter(function(t){return t.done;}).length, load=d.tasks.reduce(function(a,t){return a+(t.units||0);},0), dt=dUTC(d.date), cs=[];
+  d.tasks.forEach(function(t){ var c=taskC(t); if(cs.indexOf(c)<0) cs.push(c); });
+  return '<article class="card day'+(isT?' is-today':'')+'"><div class="day-date"><b class="num">'+dt.getUTCDate()+'</b><span>'+AR_MONTHS[dt.getUTCMonth()]+' · '+arDay(d.date)+'</span></div><div>'+
+    '<div class="day-eyebrow"><span class="dots">'+cs.map(function(c){return '<i class="dot '+c+'"></i>';}).join('')+'</span>'+esc(unitsText(load))+' لهذه المادة'+(isT?'<span class="status now">اليوم</span>':'')+(done&&done===d.tasks.length?'<span class="status done">مكتمل</span>':'')+'</div>'+
+    '<div class="dtasks">'+d.tasks.map(function(t){ return '<a class="dchip '+taskC(t)+(t.done?' done':'')+'" href="'+taskHref(t)+'"><i class="dot"></i>'+esc(KINDS[t.kind]||'')+(lnum(t.lesson)?': '+esc(taskLabel(t)):'')+'</a>'; }).join('')+'</div>'+
+    '<div class="pbar"><i style="width:'+(d.tasks.length?Math.round(done*100/d.tasks.length):0)+'%"></i></div></div></article>';
+}
+function lessonsBlock(){
+  var h='<h3 class="h3" style="margin-top:44px">دروس المادة</h3><p class="lead" style="margin-top:6px">'+cnt(LES.length,'درس واحد','درسان','دروس','درساً')+'، والجدول يوزّعها على أيامك. علّم ما ذاكرته من قبل، فيجعله الجدول تسميعاً لا تعلّماً.</p>';
+  C.chapters.forEach(function(c){
+    h+='<section class="chap '+c.c+'"><div class="chap-h"><span class="tag"><i class="dot"></i>'+esc(c.n)+'</span><h3>'+esc(c.title)+'</h3><span class="muted nw" style="font-size:13px">ص '+esc(c.pg)+'</span></div><ul class="slist">'+
+      LES.filter(function(l){return l.ch===c.id;}).map(lessonRow).join('')+'</ul></section>';
+  });
+  return h;
+}
+function lessonRow(l){
+  var on=learned(l.id), p=Math.min(passes(l.id).length,3), lock=on&&learnedBefore(l.id);
+  var st=p?('مرّ '+(p===1?'مرة':(p===2?'مرتين':'ثلاث مرات'))+' من ثلاث'):(on?'تعلّمته':'');
+  return '<li>'+chk(on,'les-toggle','data-id="'+l.id+'" aria-label="'+(on?'تعلّمته':'علّمه متعلَّماً')+'"'+(lock?' disabled title="سُجّل في الجدول في يوم سابق"':''))+
+    '<span class="t"><a href="#l-'+l.n+'">'+l.n+'. '+esc(l.t)+'</a><small>ص '+esc(l.pg)+' · '+esc(unitsText(l.ses))+(st?' · '+esc(st):'')+'</small></span></li>';
+}
+
+/* ---- lesson: the schedule's unit, opened by a learn task ---- */
+function vLesson(n){
+  var l=lesN(n); if(!l) return vPlan();
+  var c=CH[l.ch], on=learned(l.id), t=todayTask(l.id), defs=lesDefs(l), pool=poolFor(lesQuiz(l),{tf:1,mcq:1,essay:1}), prev=lesN(n-1), next=lesN(n+1);
+  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#plan">'+ICON.back+'الخطة</a></div><div class="'+c.c+'" style="margin-top:22px">';
+  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>'+esc(c.n)+' · '+esc(c.short)+'</span><span>الدرس '+l.n+' من '+LES.length+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>'+esc(unitsText(l.ses))+'</span></p><h2 class="title-xl">'+esc(l.t)+'</h2>';
+  if(t&&!t.done) h+='<div class="notice today-n">'+(t.kind==='recall'?'اليوم موعد تسميع هذا الدرس في الجدول. <a href="#r-'+n+'">افتح التسميع</a>':'هذا الدرس من مهام اليوم في الجدول: تعلّمه، ثم سمّع نفسك في آخره.')+'</div>';
+  h+='<ul class="slist" style="margin-top:22px">'+l.secs.map(function(sid){ return secRow(SEC[sid]); }).join('')+'</ul>';
+  h+='<div class="row-btns" style="margin-top:20px">'+(defs.length?'<button type="button" class="btn-ghost" data-act="les-cards" data-n="'+n+'">'+cardn(defs.length)+'</button>':'')+(pool.length?'<button type="button" class="btn-ghost" data-act="les-quiz" data-n="'+n+'">اختبرني في الدرس</button>':'')+((l.maps||[]).length?'<button type="button" class="btn-ghost" data-act="les-map" data-n="'+n+'">خريطته الذهنية</button>':'')+'</div>';
+  var flags=l.secs.map(function(sid){return SEC[sid];}).filter(function(s){return s.flag;});
+  if(flags.length) h+='<h3 class="h3" style="margin-top:30px">مواضع وسمها الزملاء في هذا الدرس</h3>'+flags.map(flagBox).join('');
+  h+='<div class="card lend">';
+  if(on){ var p=Math.min(passes(l.id).length,3);
+    h+='<p><b>تعلّمت هذا الدرس.</b> '+(p?'مرّ في الجدول '+(p===1?'مرة واحدة':(p===2?'مرتين':'ثلاث مرات'))+' من ثلاث، والتسميع يأتيك في مهام أيامك.':'ويصل إلى الجدول حين يتصل الموقع.')+'</p>'+(passedToday(l.id)&&!learnedBefore(l.id)?'<div class="row-btns"><button type="button" class="btn-ghost" data-act="les-undo" data-id="'+l.id+'">ألغِ علامة التعلّم</button></div>':''); }
+  else h+='<p><b>أنهيت الدرس؟</b> سمّع نفسك بخمسة أسئلة سريعة منه بلا كتاب، ثم يُسجَّل متعلَّماً في الجدول.</p><div class="row-btns"><button type="button" class="btn-white" data-act="exit-quiz" data-n="'+n+'">تسميع الخروج: خمسة أسئلة'+ICON.arrow+'</button><button type="button" class="btn-ghost" data-act="les-done" data-id="'+l.id+'">سجّله متعلَّماً دون تسميع</button></div>';
+  h+='</div><div class="pager">'+(prev?'<a class="card" href="#l-'+prev.n+'"><span>الدرس السابق</span><b>'+esc(prev.t)+'</b></a>':'<span></span>')+(next?'<a class="card nx" href="#l-'+next.n+'"><span>الدرس التالي</span><b>'+esc(next.t)+'</b></a>':'<span></span>')+'</div></div>';
   return h;
 }
 
-/* ---- day ---- */
-function vDay(n){
-  var d=C.days[n-1], pr=dayProgress(n), T=dayTasks(n);
-  var dots=d.chs.map(function(c){return '<i class="dot '+CH[c].c+'"></i>';}).join('');
-  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#plan">'+ICON.back+'الخطة</a></div>';
-  h+='<div style="margin-top:22px"><p class="eyebrow"><span class="dots">'+dots+'</span>اليوم '+['الأول','الثاني','الثالث','الرابع','الخامس','السادس'][n-1]+' · '+d.wd+' '+(+d.iso.slice(8))+' أكتوبر · <span class="nw">ص '+d.pg+'</span>'+(d.also?'<span class="status">ومعه '+esc(d.also)+'</span>':'')+'</p><h2 class="h2">'+esc(d.title)+'</h2>'+(d.note?'<p class="lead" style="margin-top:10px">'+esc(d.note)+'</p>':'')+
-    '<div style="display:flex;align-items:center;gap:14px;margin-top:16px;max-width:420px"><div class="pbar" style="flex:1"><i style="width:'+pr.pct+'%"></i></div><span class="num muted" style="font-size:13px">'+pr.done+' من '+pr.total+'</span></div></div>';
-  h+='<ul class="tasks" style="margin-top:22px">'+T.map(taskRow).join('')+'</ul>';
-  var flags=daySecs(n).filter(function(s){return s.flag;});
-  if(flags.length) h+='<h3 class="h3" style="margin-top:34px">مواضع وسمها الزملاء في هذا اليوم</h3>'+flags.map(function(s){return flagBox(s);}).join('');
-  if(!d.review){ h+='<div class="row-btns" style="margin-top:26px"><button type="button" class="btn-white" data-act="start-day" data-n="'+n+'">ابدأ اختبار اليوم'+ICON.arrow+'</button><button type="button" class="btn-ghost" data-act="go-cards" data-n="'+n+'">بطاقات اليوم</button><button type="button" class="btn-ghost" data-act="go-map" data-n="'+n+'">خريطة اليوم</button></div>'; }
-  else { h+='<div class="row-btns" style="margin-top:26px">'+(d.xonly?'<button type="button" class="btn-white" data-act="start-day" data-n="'+n+'">ابدأ اختبار المتوقع'+ICON.arrow+'</button>':'<button type="button" class="btn-white" data-act="start-mock">ابدأ محاكي الاختبار'+ICON.arrow+'</button>')+'<a class="btn-ghost" href="#sheet">ورقة الليلة الأخيرة</a><a class="btn-ghost" href="#mistakes">دفتر الأخطاء</a></div>'; }
-  return h;
+/* ---- recall, review and the eve: opened by the schedule's tasks ---- */
+function steps(arr){ return '<ol class="steps">'+arr.map(function(s,i){ return '<li class="card step"><span class="sn num">'+(i+1)+'</span><div><b>'+s[0]+'</b><p>'+s[1]+'</p>'+(s[2]?'<div class="row-btns">'+s[2]+'</div>':'')+'</div></li>'; }).join('')+'</ol>'; }
+function vRecall(n){
+  var l=lesN(n); if(!l) return vPlan();
+  var c=CH[l.ch], defs=lesDefs(l), nq=Math.min(10,lesObj(l).length), t=todayTask(l.id,'recall'), done=!!(t&&t.done);
+  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#home">'+ICON.back+'الرئيسية</a></div><div class="'+c.c+'" style="margin-top:22px">';
+  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>تسميع</span><span>الدرس '+l.n+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>نصف جلسة</span></p><h2 class="title-xl">'+esc(l.t)+'</h2><p class="lead">بلا كتاب ولا ملخص: استرجع من ذاكرتك، ثم صحّح.</p>';
+  h+=steps([
+    ['بطاقات الدرس كلها', defs.length?cardn(defs.length)+'، ومعها ما حفظته من قبل، لأن العودة إليها هي التي تثبّت الحفظ.':'لا بطاقات في هذا الدرس.', defs.length?'<button type="button" class="btn-white" data-act="recall-cards" data-n="'+n+'">ابدأ البطاقات'+ICON.arrow+'</button>':''],
+    ['أسئلة الدرس', nq?qn(nq)+' سريعة من بنكه، وما تخطئ فيه يدخل دفتر الأخطاء.':'لا أسئلة في هذا الدرس.', nq?'<button type="button" class="btn-ghost" data-act="recall-quiz" data-n="'+n+'">ابدأ الأسئلة</button>':''],
+    ['سجّل التسميع', done?'<span class="done-note">سُجّل تسميع اليوم في الجدول.</span>':'فيعرف الجدول أن الدرس مرّ هذه المرة.', done?'':'<button type="button" class="btn-ghost" data-act="recall-done" data-n="'+n+'">أنهيت التسميع</button>']
+  ]);
+  return h+'</div>';
+}
+function vReview(){
+  var done=passedToday('_review'), nm=activeMist().length;
+  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#home">'+ICON.back+'الرئيسية</a></div><div class="cw" style="margin-top:22px"><p class="eyebrow">قبل الاختبار بيومين</p><h2 class="title-xl">المراجعة الشاملة</h2><p class="lead">تسميع لكل الدروس، لا إعادة قراءة.</p>';
+  h+=steps([
+    ['اختبار شامل','عشرون سؤالاً من كل الدروس، يقدّم ما أخطأت فيه وما لم تجب عنه. وإن اتسع وقتك فادخل محاكي الاختبار: أربعون سؤالاً ومقاليان في ستين دقيقة.','<button type="button" class="btn-white" data-act="review-quiz">ابدأ الاختبار الشامل'+ICON.arrow+'</button><button type="button" class="btn-ghost" data-act="start-mock">محاكي الاختبار</button>'],
+    ['دفتر الأخطاء', nm?'فيه '+qn(nm)+'.':'الدفتر فارغ الآن.', '<a class="btn-ghost" href="#mistakes">افتح الدفتر</a>'],
+    ['جداول المقارنة في وضع الاختبار','املأ الخانات من ذاكرتك، ثم اكشفها.','<a class="btn-ghost" href="#tables">افتح الجداول</a>'],
+    ['سجّل المراجعة', done?'<span class="done-note">سُجّلت مراجعة اليوم في الجدول.</span>':'فيعرف الجدول أنك أنهيتها.', done?'':'<button type="button" class="btn-ghost" data-act="review-done">أنهيت المراجعة</button>']
+  ]);
+  return h+'</div>';
+}
+function vEve(){
+  var done=passedToday('_eve'), all=DEFLIST.filter(function(d){return inQuiz(d.s);});
+  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#home">'+ICON.back+'الرئيسية</a></div><div class="cw" style="margin-top:22px"><p class="eyebrow">ليلة الاختبار</p><h2 class="title-xl">تسميع خفيف، ثم نوم</h2><p class="lead">لا مادة جديدة الليلة، ولا سهر.</p>';
+  h+=steps([
+    ['البطاقات كلها', cardn(all.length)+' من كل الدروس، ومعها ما حفظته من قبل.', '<button type="button" class="btn-white" data-act="eve-cards">ابدأ البطاقات'+ICON.arrow+'</button>'],
+    ['ورقة الليلة الأخيرة','أهم ما في المقرر في صفحة واحدة.','<a class="btn-ghost" href="#sheet">افتح الورقة</a>'],
+    ['سجّلها', done?'<span class="done-note">سُجّلت الليلة في الجدول.</span>':'فيعرف الجدول أنك أنهيتها.', done?'':'<button type="button" class="btn-ghost" data-act="eve-done">أنهيتها</button>']
+  ]);
+  return h+'</div>';
 }
 function flagBox(s){ var f=s.flag;
   return '<div class="flag"><span class="who"><i>'+f.w+'</i></span><div><b><a href="#s-'+s.id+'">'+esc(s.t)+'</a> · <span class="nw">ص '+esc(f.p)+'</span></b><br>'+esc(f.x)+' <a href="#scope">حدّد نطاقه</a></div></div>'; }
 
 /* ---- summary index ---- */
 function vSummary(){
-  var h=head('الملخص','ملخص كل درس','مرتب على فصول الكتاب. النصوص المعلّمة «نص حرفي» منقولة كما هي، وتنبيهات الزميلين في الهامش.')+xLegend();
+  var h=head('الملخص','ملخص كل موضوع','مرتب على فصول الكتاب ودروس الجدول. النصوص المعلّمة «نص حرفي» منقولة كما هي، وتنبيهات الزميلين في الهامش.')+xLegend();
   h+='<div class="row-btns" style="margin-top:16px"><a class="btn-ghost" href="#scope">'+ICON.scissors+'نطاق المقرر</a></div>';
   C.chapters.forEach(function(c){
     var secs=C.sections.filter(function(s){return s.ch===c.id;});
     var rd=secs.filter(function(s){return visible(s.id)&&isRead(s.id);}).length, vis=secs.filter(function(s){return visible(s.id);}).length;
     h+='<section class="chap '+c.c+'"><div class="chap-h"><span class="tag"><i class="dot"></i>'+esc(c.n)+'</span><h3>'+esc(c.title)+'</h3><span class="muted nw" style="font-size:13px">ص '+c.pg+' · قرأت '+rd+' من '+vis+'</span></div><ul class="slist">'+
-      secs.map(function(s){ var sc=scopeOf(s.id);
-        return '<li class="'+(sc==='out'?'is-out':'')+'">'+(sc==='out'?'<span class="check" style="opacity:.3"></span>':chk(isRead(s.id),'read','data-id="'+s.id+'" aria-label="علّمه مقروءاً"'))+
-        '<span class="t"><a href="#s-'+s.id+'">'+esc(s.t)+'</a><small>ص '+esc(s.pg)+(s.flag?' · وسمه زميل':'')+'</small></span>'+xBadge(secX(s.id))+
-        (sc==='read'?'<span class="badge warn">للقراءة فقط</span>':'')+(sc==='out'?'<span class="badge out">محذوف</span>':'')+'</li>'; }).join('')+'</ul></section>';
+      LES.filter(function(l){return l.ch===c.id;}).map(function(l){ return '<li class="lhead"><a href="#l-'+l.n+'">الدرس '+l.n+' · '+esc(l.t)+'</a><small class="nw">ص '+esc(l.pg)+'</small></li>'+l.secs.map(function(sid){ return secRow(SEC[sid]); }).join(''); }).join('')+'</ul></section>';
   });
   return h;
 }
-
+function secRow(s){ var sc=scopeOf(s.id);
+  return '<li class="'+(sc==='out'?'is-out':'')+'">'+(sc==='out'?'<span class="check" style="opacity:.3"></span>':chk(isRead(s.id),'read','data-id="'+s.id+'" aria-label="علّمه مقروءاً"'))+
+    '<span class="t"><a href="#s-'+s.id+'">'+esc(s.t)+'</a><small>ص '+esc(s.pg)+(s.flag?' · وسمه زميل':'')+'</small></span>'+xBadge(secX(s.id))+
+    (sc==='read'?'<span class="badge warn">للقراءة فقط</span>':'')+(sc==='out'?'<span class="badge out">محذوف</span>':'')+'</li>'; }
 /* ---- section ---- */
 function block(b){
   var k=b[0];
@@ -811,30 +1003,30 @@ function vSection(id){
   var mins=Math.max(1,Math.round(words/170)), minsTxt=cnt(mins,'دقيقة','دقيقتين','دقائق','دقيقة');
   var h='<div class="article '+c.c+'"><div style="min-width:0">';
   h+='<nav class="crumbs" aria-label="موضعك في الكتاب"><a href="#summary">الملخص</a>'+ICON.chev+'<span>'+esc(c.part)+'</span>'+ICON.chev+'<span>'+esc(c.n)+'</span>'+ICON.chev+'<b>'+esc(s.t)+'</b></nav>';
-  h+='<div class="meta"><span class="tag"><i class="dot"></i>'+esc(c.title)+'</span><span class="nw">ص '+esc(s.pg)+'</span><span>قراءة نحو '+minsTxt+'</span><span>اليوم '+['الأول','الثاني','الثالث','الرابع'][s.day-1]+'</span></div>';
+  h+='<div class="meta"><span class="tag"><i class="dot"></i>'+esc(c.title)+'</span><span class="nw">ص '+esc(s.pg)+'</span><span>قراءة نحو '+minsTxt+'</span>'+(LOFS[id]?'<a href="#l-'+LOFS[id].n+'">الدرس '+LOFS[id].n+' · '+esc(LOFS[id].t)+'</a>':'')+'</div>';
   h+='<h2 class="title-xl">'+esc(s.t)+'</h2>';
   h+='<div class="author"><span class="avatar">ج ب</span><div><b>د. الدين الجيلالي محمد بوزيد</b><span>الكتاب المقرر</span></div></div>';
-  if(sc==='read') h+='<div class="notice read">جعلت هذا الدرس <b>للقراءة فقط</b>: يبقى هنا، ويخرج من الأسئلة والبطاقات.</div>';
-  if(sc==='out') h+='<div class="notice out">هذا الدرس <b>محذوف</b> من المقرر: لا يظهر في الخطة ولا في الأسئلة ولا في البطاقات. أبقيت نصه هنا للرجوع إليه.</div>';
+  if(sc==='read') h+='<div class="notice read">جعلت هذا الموضوع <b>للقراءة فقط</b>: يبقى هنا، ويخرج من الأسئلة والبطاقات.</div>';
+  if(sc==='out') h+='<div class="notice out">هذا الموضوع <b>محذوف</b> من المقرر: لا يظهر في الأسئلة ولا في البطاقات. أبقيت نصه هنا للرجوع إليه.</div>';
   if(s.flag) h+=flagBox(s);
   if(EXPBY[id]){ var xq=(QBY[id]||[]).filter(function(q){return q.x;}).length;
-    h+='<div class="expect"><b>من هذا الدرس في ملف «'+esc(EXP.src)+'»</b><ul>'+EXPBY[id].map(function(e){return '<li>'+xBadge(e.c)+' <b>'+esc(e.t)+'</b> — '+esc(xLabel(e.c))+'</li>';}).join('')+'</ul>'+(inQuiz(id)&&xq?'<button type="button" class="btn-ghost" data-act="start-sec-x" data-id="'+id+'">اختبرني في المتوقع من هذا الدرس ('+qn(xq)+')</button>':'')+'</div>'; }
+    h+='<div class="expect"><b>من هذا الموضوع في ملف «'+esc(EXP.src)+'»</b><ul>'+EXPBY[id].map(function(e){return '<li>'+xBadge(e.c)+' <b>'+esc(e.t)+'</b> — '+esc(xLabel(e.c))+'</li>';}).join('')+'</ul>'+(inQuiz(id)&&xq?'<button type="button" class="btn-ghost" data-act="start-sec-x" data-id="'+id+'">اختبرني في المتوقع من هذا الموضوع ('+qn(xq)+')</button>':'')+'</div>'; }
   h+='<div class="prose">'+s.body.map(block).join('')+'</div>';
-  h+='<div class="pager">'+(prev?'<a class="card" href="#s-'+prev.id+'"><span>الدرس السابق</span><b>'+esc(prev.t)+'</b></a>':'<span></span>')+(next?'<a class="card nx" href="#s-'+next.id+'"><span>الدرس التالي</span><b>'+esc(next.t)+'</b></a>':'<span></span>')+'</div>';
-  h+='</div><aside class="aside" aria-label="أدوات الدرس وتنبيهات الزملاء">';
+  h+='<div class="pager">'+(prev?'<a class="card" href="#s-'+prev.id+'"><span>الموضوع السابق</span><b>'+esc(prev.t)+'</b></a>':'<span></span>')+(next?'<a class="card nx" href="#s-'+next.id+'"><span>الموضوع التالي</span><b>'+esc(next.t)+'</b></a>':'<span></span>')+'</div>';
+  h+='</div><aside class="aside" aria-label="أدوات الموضوع وتنبيهات الزملاء">';
   var nq=(QBY[id]||[]).length, nd=(DEFBY[id]||[]).length;
   h+='<div class="box"><button type="button" class="btn-white" data-act="read-toggle" data-id="'+id+'">'+(isRead(id)?'قرأته ✓':'علّمه مقروءاً')+'</button>'+
-     (inQuiz(id)&&nq?'<button type="button" class="btn-ghost" data-act="start-sec" data-id="'+id+'">اختبرني في هذا الدرس ('+qn(nq)+')</button>':'')+
-     (inQuiz(id)&&nd?'<button type="button" class="btn-ghost" data-act="go-cards-sec" data-id="'+id+'">'+cardn(nd)+' لهذا الدرس</button>':'')+'</div>';
-  h+='<div class="box"><span class="aside-t">نطاق هذا الدرس</span>'+scopeSeg(id)+'<span class="muted" style="font-size:12.5px;line-height:1.7">إذا حذف الدكتور هذا الدرس، اختر «محذوف» فيخرج من الخطة والأسئلة والبطاقات.</span></div>';
+     (inQuiz(id)&&nq?'<button type="button" class="btn-ghost" data-act="start-sec" data-id="'+id+'">اختبرني في هذا الموضوع ('+qn(nq)+')</button>':'')+
+     (inQuiz(id)&&nd?'<button type="button" class="btn-ghost" data-act="go-cards-sec" data-id="'+id+'">'+cardn(nd)+' لهذا الموضوع</button>':'')+'</div>';
+  h+='<div class="box"><span class="aside-t">نطاق هذا الموضوع</span>'+scopeSeg(id)+'<span class="muted" style="font-size:12.5px;line-height:1.7">إذا حذف الدكتور هذا الموضوع، اختر «محذوف» فيخرج من الأسئلة والبطاقات.</span></div>';
   if(s.notes&&s.notes.length){ h+='<p class="aside-t">في الهامش · تنبيهات الزملاء</p>'+s.notes.map(function(n){return '<div class="note"><div class="who"><i>'+n.w+'</i>'+(n.w===1?'الزميل الأول':'الزميل الثاني')+'<span class="pg nw">ص '+esc(n.p)+'</span></div>'+esc(n.x)+'</div>';}).join(''); }
   h+='</aside></div>';
   return h;
 }
-function scopeSeg(id){ var sc=scopeOf(id); return '<div class="seg sm" role="group" aria-label="نطاق الدرس">'+[['in','ضمن المقرر'],['read','للقراءة فقط'],['out','محذوف']].map(function(o){return '<button type="button" data-act="scope" data-id="'+id+'" data-v="'+o[0]+'" aria-pressed="'+(sc===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>'; }
+function scopeSeg(id){ var sc=scopeOf(id); return '<div class="seg sm" role="group" aria-label="نطاق الموضوع">'+[['in','ضمن المقرر'],['read','للقراءة فقط'],['out','محذوف']].map(function(o){return '<button type="button" data-act="scope" data-id="'+id+'" data-v="'+o[0]+'" aria-pressed="'+(sc===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>'; }
 
 /* ---- quiz ---- */
-function studiedChs(){ var n=todayInfo().n, o={}; C.days.forEach(function(d){ if(d.n<=n) d.chs.forEach(function(c){o[c]=1;}); }); return o; }
+function studiedChs(){ var o={}; LES.forEach(function(l){ if(learned(l.id)) o[l.ch]=1; }); if(!Object.keys(o).length) C.chapters.forEach(function(c){o[c.id]=1;}); return o; }
 function isObj(x){return !!x&&typeof x==='object'&&!Array.isArray(x);}
 var BLD=(function(b){ b=isObj(b)?b:{}; return {chs:isObj(b.chs)?b.chs:studiedChs(), custom:!!b.custom, secs:isObj(b.secs)?b.secs:{}, types:isObj(b.types)?b.types:{tf:1,mcq:1,essay:0},
   n:(b.n==='all'||[10,20,30,50].indexOf(b.n)>-1)?b.n:20, mode:b.mode==='exam'?'exam':'train', exp:!!b.exp}; })(UI.bld);
@@ -843,8 +1035,8 @@ function bldSecs(){ var out=[]; C.sections.forEach(function(s){ if(!inQuiz(s.id)
 function vQuiz(){ if(Q&&!Q.done) return vRunner(); if(Q&&Q.done) return vResults(); return vBuilder(); }
 function vBuilder(){
   var pool=poolFor(bldSecs(), BLD.types, BLD.exp), n=BLD.n==='all'?pool.length:Math.min(BLD.n,pool.length);
-  var h=head('بنك الأسئلة','اختبر نفسك','اختر فصلاً أو أكثر في الاختبار نفسه، أو خصّص الدروس واحداً واحداً. في البنك '+qn(BANK.filter(function(q){return inQuiz(q.s);}).length)+' من صح وخطأ واختيار من متعدد ومقالي.');
-  h+='<div class="card builder"><div><div class="group-h"><b>الفصول</b><span><button type="button" class="linkish" data-act="b-all">'+(bldAllOn()?'إلغاء التحديد':'تحديد الكل')+'</button> · <button type="button" class="linkish" data-act="b-custom">'+(BLD.custom?'العودة إلى الفصول':'تخصيص الدروس')+'</button></span></div>';
+  var h=head('بنك الأسئلة','اختبر نفسك','اختر فصلاً أو أكثر في الاختبار نفسه، أو خصّص الموضوعات واحداً واحداً. في البنك '+qn(BANK.filter(function(q){return inQuiz(q.s);}).length)+' من صح وخطأ واختيار من متعدد ومقالي.');
+  h+='<div class="card builder"><div><div class="group-h"><b>الفصول</b><span><button type="button" class="linkish" data-act="b-all">'+(bldAllOn()?'إلغاء التحديد':'تحديد الكل')+'</button> · <button type="button" class="linkish" data-act="b-custom">'+(BLD.custom?'العودة إلى الفصول':'تخصيص الموضوعات')+'</button></span></div>';
   if(!BLD.custom){
     h+='<div class="chips">'+C.chapters.map(function(c){ var cn=C.sections.filter(function(s){return s.ch===c.id;}).reduce(function(a,s){return a+poolFor([s.id],BLD.types,BLD.exp).length;},0);
       return '<button type="button" class="chip '+c.c+'" data-act="b-ch" data-id="'+c.id+'" aria-pressed="'+(!!BLD.chs[c.id])+'"><span class="box2">'+ICON.check+'</span><span><b>'+esc(c.n)+'</b><small>'+esc(c.title)+' · <span class="nw">ص '+c.pg+'</span> · '+qn(cn)+'</small></span></button>'; }).join('')+'</div>';
@@ -856,10 +1048,11 @@ function vBuilder(){
     '<div class="seg" role="group" aria-label="الطريقة"><button type="button" data-act="b-mode" data-v="train" aria-pressed="'+(BLD.mode==='train')+'">تدريب</button><button type="button" data-act="b-mode" data-v="exam" aria-pressed="'+(BLD.mode==='exam')+'">اختبار بوقت</button></div></div></div></div>';
   var sids=bldSecs(), chs={}; sids.forEach(function(sid){chs[SEC[sid].ch]=1;});
   var chNames=Object.keys(chs).map(function(k){return CH[k].short;}), types=[['tf','صح وخطأ'],['mcq','اختيار من متعدد'],['essay','مقالي']].filter(function(t){return BLD.types[t[0]];}).map(function(t){return t[1];});
-  var msg = !sids.length ? 'اختر فصلاً واحداً على الأقل.' : (!types.length ? 'اختر نوعاً واحداً من الأسئلة على الأقل.' : (!pool.length?'لا أسئلة في هذا الاختيار.':'<b>'+qn(n)+'</b> من: '+esc(chNames.join('، '))+(BLD.custom?' ('+sids.length+' درس)':'')+' · '+esc(types.join(' و'))+(BLD.exp?' · المتوقعة فقط':'')+' · '+(BLD.mode==='train'?'تدريب بتصحيح فوري':'اختبار بوقت ('+Math.max(5,Math.ceil(n*1.5))+' دقيقة) والتصحيح في النهاية')+'.'));
+  var msg = !sids.length ? 'اختر فصلاً واحداً على الأقل.' : (!types.length ? 'اختر نوعاً واحداً من الأسئلة على الأقل.' : (!pool.length?'لا أسئلة في هذا الاختيار.':'<b>'+qn(n)+'</b> من: '+esc(chNames.join('، '))+(BLD.custom?' ('+cnt(sids.length,'موضوع واحد','موضوعان','موضوعات','موضوعاً')+')':'')+' · '+esc(types.join(' و'))+(BLD.exp?' · المتوقعة فقط':'')+' · '+(BLD.mode==='train'?'تدريب بتصحيح فوري':'اختبار بوقت ('+Math.max(5,Math.ceil(n*1.5))+' دقيقة) والتصحيح في النهاية')+'.'));
   h+='<div class="builder-foot"><p>'+msg+'</p><button type="button" class="btn-white" data-act="b-start" '+(!pool.length?'disabled':'')+'>ابدأ'+ICON.arrow+'</button></div></div>';
+  h+='<div class="copyline"><button type="button" class="btn-ghost" data-act="new-essays" '+(sids.length?'':'disabled')+'>اطلب أسئلة مقالية جديدة من Claude</button><p>ينسخ طلباً جاهزاً باسم المادة وبما اخترت وصفحاته، تلصقه في محادثة جديدة داخل مشروع المادة.</p></div>';
   var last=S.hist.slice(-5).reverse();
-  if(last.length) h+='<h3 class="h3" style="margin-top:34px">آخر اختباراتك</h3><div class="mlist">'+last.map(function(x){ var pct=x.g?Math.round(x.ok*100/x.g):0; return '<div class="card mrow"><div><span class="tag cw">'+esc({custom:'اختبار مخصص',mock:'محاكي الاختبار',mistakes:'دفتر الأخطاء',sec:'اختبار درس'}[x.k]||('اختبار اليوم '+String(x.k).slice(4)))+(when(x.t)?' · '+esc(when(x.t)):'')+'</span><p class="qm">'+x.ok+' صحيحة من '+x.g+(x.n>x.g?' · '+(x.n-x.g)+' دون تقييم':'')+'</p></div><div class="mside"><b class="num" style="font-family:var(--font-display);font-size:26px;color:'+(pct>=80?'var(--ok)':(pct>=60?'var(--ch3)':'var(--bad)'))+'">'+pct+'%</b></div></div>'; }).join('')+'</div>';
+  if(last.length) h+='<h3 class="h3" style="margin-top:34px">آخر اختباراتك</h3><div class="mlist">'+last.map(function(x){ var pct=x.g?Math.round(x.ok*100/x.g):0; return '<div class="card mrow"><div><span class="tag cw">'+esc({custom:'اختبار مخصص',mock:'محاكي الاختبار',mistakes:'دفتر الأخطاء',sec:'اختبار موضوع',les:'اختبار درس',exit:'تسميع الخروج',recall:'تسميع درس',review:'المراجعة الشاملة',quick:'اختبار سريع'}[x.k]||('اختبار اليوم '+String(x.k).slice(4)))+(when(x.t)?' · '+esc(when(x.t)):'')+'</span><p class="qm">'+x.ok+' صحيحة من '+x.g+(x.n>x.g?' · '+(x.n-x.g)+' دون تقييم':'')+'</p></div><div class="mside"><b class="num" style="font-family:var(--font-display);font-size:26px;color:'+(pct>=80?'var(--ok)':(pct>=60?'var(--ch3)':'var(--bad)'))+'">'+pct+'%</b></div></div>'; }).join('')+'</div>';
   return h;
 }
 function vRunner(){
@@ -875,14 +1068,14 @@ function vRunner(){
     var L=['أ','ب','ج','د','هـ','و'];
     h+='<div class="opts">'+it.perm.map(function(oi,pos){ var cls=''; if(locked){ if(oi===0) cls='is-right'; else if(oi===it.pick) cls='is-wrong'; } else if(it.pick===oi) cls='picked'; return '<button type="button" class="opt '+cls+'" data-act="q-ans" data-v="'+oi+'" '+(locked?'disabled':'')+'><span class="k">'+L[pos]+'</span><span>'+md(q.o[oi])+'</span></button>'; }).join('')+'</div>';
   } else {
-    h+='<div class="essay"><label class="sr" for="essay-in">إجابتك</label><textarea id="essay-in" data-input="essay" placeholder="'+(exam?'اكتب إجابتك هنا، وستقارنها بنموذج الإجابة بعد التسليم':'اكتب إجابتك هنا أو في دفترك، ثم اعرض نموذج الإجابة وقيّم نفسك')+'">'+esc(it.txt)+'</textarea></div>';
+    h+='<p class="ehint"><b>هيكل الجواب:</b> تعريف ← شروط أو أركان ← القاعدة ← الاستثناءات ← مثال ← خاتمة</p>';
+    h+='<div class="essay"><label class="sr" for="essay-in">إجابتك</label><textarea id="essay-in" data-input="essay" placeholder="'+(exam?'اكتب إجابتك هنا، وستقارنها بنقاط الجواب النموذجي بعد التسليم':'اكتب إجابتك هنا من ذاكرتك، ثم اعرض نقاط الجواب النموذجي')+'">'+esc(it.txt)+'</textarea></div>';
     if(!exam){
-      if(!it.shown) h+='<div class="row-btns"><button type="button" class="btn-ghost" data-act="q-show">اعرض نموذج الإجابة</button></div>';
-      else h+='<div class="fb model"><b>نموذج الإجابة · <span class="nw">ص '+esc(q.p)+'</span></b><ul>'+q.m.map(function(x){return '<li>'+md(x)+'</li>';}).join('')+'</ul></div>'+
-        (it.ok===null?'<div class="row-btns"><span class="muted" style="font-size:14px;align-self:center">قارن إجابتك بالنموذج:</span><button type="button" class="btn-ghost" style="color:var(--ok);border-color:var(--ok-line)" data-act="q-grade" data-v="1">أصبت</button><button type="button" class="btn-ghost danger" data-act="q-grade" data-v="0">أخطأت أو نقصت</button></div>':'<p class="fb"><b class="'+(it.ok?'ok':'bad')+'">'+(it.ok?'قيّمت إجابتك صحيحة.':'قيّمت إجابتك ناقصة، فأضفت السؤال إلى دفتر الأخطاء.')+'</b></p>');
+      if(!it.shown) h+='<div class="row-btns"><button type="button" class="btn-ghost" data-act="q-show">اعرض نقاط الجواب النموذجي</button></div>';
+      else h+=essayPoints(it,'')+(it.ok===null?'':'<p class="fb"><b class="'+(it.ok?'ok':'bad')+'">'+(it.ok?'أصبت النقاط كلها.':'فاتتك '+cnt(it.q.m.length-(it.got||0),'نقطة واحدة','نقطتان','نقاط','نقطة')+'، فأضفت السؤال إلى دفتر الأخطاء.')+'</b>'+nbNote(it)+'</p>')+copyOne(it);
     }
   }
-  if(locked && q.t!=='essay') h+='<div class="fb"><b class="'+(it.ok?'ok':'bad')+'">'+(it.ok?'إجابة صحيحة.':'إجابة خاطئة، فأضفت السؤال إلى دفتر الأخطاء.')+'</b> '+md(q.e||'')+' <span class="nw muted">ص '+esc(q.p)+'</span></div>';
+  if(locked && q.t!=='essay') h+='<div class="fb"><b class="'+(it.ok?'ok':'bad')+'">'+(it.ok?'إجابة صحيحة.':'إجابة خاطئة، فأضفت السؤال إلى دفتر الأخطاء.')+'</b> '+md(q.e||'')+' <span class="nw muted">ص '+esc(q.p)+'</span>'+nbNote(it)+'</div>';
   var answered = q.t==='essay' ? (exam ? !!(it.txt&&it.txt.trim()) : it.ok!==null) : (exam ? it.pick!==null : it.ok!==null);
   h+='<div class="runner-foot"><button type="button" class="btn-ghost danger" data-act="q-end">'+(exam?'سلّم الاختبار':'أنهِ الاختبار')+'</button><div class="row-btns">'+
     (Q.i>0&&exam?'<button type="button" class="btn-ghost" data-act="q-prev">السابق</button>':'')+
@@ -904,29 +1097,38 @@ function vResults(){
   var h='<div class="sec" style="padding-top:40px"><p class="eyebrow">'+esc(Q.title)+' · النتيجة</p></div>';
   h+='<div class="card runner"><div class="score"><b class="num" style="color:'+col+'">'+(pct===null?'—':pct+'%')+'</b><span>'+ok+' صحيحة من '+g.length+(pend.length?' · '+(pend.length===1?'سؤال مقالي ينتظر':(pend.length===2?'سؤالان مقاليان ينتظران':pend.length+' أسئلة مقالية تنتظر'))+' تقييمك أدناه':'')+(unseen>0?' · '+qn(unseen)+' لم تصل إليها':'')+'</span></div>';
   h+='<div class="chbars">'+Object.keys(by).filter(function(k){return by[k].g;}).map(function(k){var x=by[k], p=Math.round(x.ok*100/x.g); return '<div class="chbar '+CH[k].c+'"><span class="tag"><i class="dot"></i>'+esc(CH[k].short)+'</span><div class="pbar"><i style="width:'+p+'%"></i></div><span class="num muted">'+x.ok+' / '+x.g+'</span></div>';}).join('')+'</div>';
-  h+='<div class="runner-foot"><div class="row-btns">'+(wrong.length?'<button type="button" class="btn-white" data-act="q-retry">'+(wrong.some(function(it){return it.skip;})?'أعد الخاطئة والمتروكة':'أعد الأسئلة الخاطئة')+' ('+wrong.length+')'+ICON.arrow+'</button>':'')+'<button type="button" class="btn-ghost" data-act="q-new">اختبار جديد</button></div><a class="btn-ghost" href="#mistakes">دفتر الأخطاء</a></div></div>';
+  var essayTxt=Q.items.filter(function(it){return it.q.t==='essay'&&it.txt&&it.txt.trim();}).length;
+  if(Q.exit) h+='<p class="fb" style="margin-top:16px">'+(Q.exitDone?'<b class="ok">سُجّل الدرس متعلَّماً في الجدول.</b> والتسميع يأتيك في مهام أيامك.':'<b>لم يُسجَّل الدرس متعلَّماً</b>، لأنك أنهيت التسميع قبل آخره. عد إلى الدرس لتسجيله.')+'</p>';
+  h+='<div class="runner-foot"><div class="row-btns">'+(Q.back?'<a class="btn-white" href="'+Q.back+'">'+ICON.back+esc(Q.backLabel||'عودة')+'</a>':'')+(wrong.length?'<button type="button" class="'+(Q.back?'btn-ghost':'btn-white')+'" data-act="q-retry">'+(wrong.some(function(it){return it.skip;})?'أعد الخاطئة والمتروكة':'أعد الأسئلة الخاطئة')+' ('+wrong.length+')'+(Q.back?'':ICON.arrow)+'</button>':'')+'<button type="button" class="btn-ghost" data-act="q-new">اختبار جديد</button>'+(essayTxt?'<button type="button" class="btn-ghost" data-act="copy-all">انسخ طلب تصحيح لإجاباتي المقالية ('+essayTxt+')</button>':'')+'</div><a class="btn-ghost" href="#mistakes">دفتر الأخطاء</a></div></div>';
   if(pend.length){ h+='<h3 class="h3" style="margin-top:30px">قيّم إجاباتك المقالية</h3><div class="wrong" style="margin-top:12px">'+pend.map(function(i){ var it=Q.items[i], q=it.q;
     return '<div class="card pending-e '+cOf(q.s)+'"><span class="tag"><i class="dot"></i>'+esc(chOf(q.s).short)+' · <span class="nw">ص '+esc(q.p)+'</span></span><p class="qm">'+md(q.q)+'</p>'+
       (it.txt&&it.txt.trim()?'<div class="mine">'+esc(it.txt)+'</div>':'<p class="muted" style="font-size:14px">لم تكتب إجابة هنا؛ قارن ما كتبته في دفترك.</p>')+
-      '<div class="fb model"><b>نموذج الإجابة</b><ul>'+q.m.map(function(x){return '<li>'+md(x)+'</li>';}).join('')+'</ul></div>'+
-      '<div class="row-btns"><button type="button" class="btn-ghost" style="color:var(--ok);border-color:var(--ok-line)" data-act="r-grade" data-i="'+i+'" data-v="1">أصبت</button><button type="button" class="btn-ghost danger" data-act="r-grade" data-i="'+i+'" data-v="0">أخطأت أو نقصت</button></div></div>'; }).join('')+'</div>'; }
+      essayPoints(it, i)+'</div>'; }).join('')+'</div>'; }
   if(wrong.length){ h+='<h3 class="h3" style="margin-top:30px">ما أخطأت فيه أو تركته</h3><div class="wrong" style="margin-top:12px">'+wrong.map(function(it){ var q=it.q; return '<div class="card '+cOf(q.s)+'"><span class="tag"><i class="dot"></i>'+esc(chOf(q.s).short)+' · <span class="nw">ص '+esc(q.p)+'</span></span><p class="qm">'+md(q.q)+'</p>'+
     (q.t==='essay'?'<div class="ans-e"><b>نموذج الإجابة:</b> '+q.m.map(md).join(' · ')+'</div>':'<div class="ans"><span>إجابتك: <span class="bad">'+(it.skip?'تركته دون إجابة':md(it.txt||answerText(q,it.pick)))+'</span></span><span>الصواب: <span class="ok">'+md(correctText(q))+'</span></span></div><p class="ans-e">'+md(q.e||'')+'</p>')+'</div>'; }).join('')+'</div>'; }
   return h;
 }
 
 /* ---- cards ---- */
-var cardFlip={}, cardOrder=null;
-function cardFilterList(){ var f=UI.cf||{t:'all'}; return DEFLIST.filter(function(d){ if(!inQuiz(d.s)) return false; if(f.t==='ch') return SEC[d.s].ch===f.v; if(f.t==='day') return SEC[d.s].day===+f.v || !!(C.days[+f.v-1]&&C.days[+f.v-1].review); if(f.t==='sec') return d.s===f.v; return true; }); }
+var cardFlip={}, cardOrder=null, CSET=null; /* CSET: a card set opened from a task: {label, ids|les, all (show known too), back, backLabel} */
+function cardFilterList(){
+  if(CSET){ if(CSET.ids) return CSET.ids.map(function(id){return DEFS[id];}).filter(function(d){return d&&inQuiz(d.s);}); var l=lesN(CSET.les); return l?lesDefs(l):[]; }
+  var f=UI.cf||{t:'all'}; return DEFLIST.filter(function(d){ if(!inQuiz(d.s)) return false; if(f.t==='ch') return SEC[d.s].ch===f.v; if(f.t==='sec') return d.s===f.v; return true; }); }
 function vCards(){
-  var f=UI.cf||{t:'all'}, list=cardFilterList(); if(UI.hideKnown) list=list.filter(function(d){return cardKnown(d.id)!==1;});
+  var f=UI.cf||{t:'all'}, list=cardFilterList(), showAll=!!(CSET&&CSET.all); if(UI.hideKnown&&!showAll) list=list.filter(function(d){return cardKnown(d.id)!==1;});
   if(cardOrder){ var pos={}; cardOrder.forEach(function(id,i){pos[id]=i;}); list.sort(function(a,b){return (pos[a.id]==null?999:pos[a.id])-(pos[b.id]==null?999:pos[b.id]);}); }
-  var all=cardFilterList(), known=all.filter(function(d){return cardKnown(d.id)===1;}).length;
-  var h=head('بطاقات المصطلحات','التعريفات بنصها','وجه البطاقة المصطلح، وظهرها نص الكتاب حرفياً مع رقم الصفحة. اضغط البطاقة لتقلبها، ثم علّم ما حفظته.');
-  var label = f.t==='day' ? ('بطاقات اليوم '+f.v) : (f.t==='sec' ? ('بطاقات: '+SEC[f.v].t) : '');
-  h+='<div class="toolbar"><div class="seg" role="group" aria-label="تصفية">'+[['all','الكل']].concat(C.chapters.map(function(c){return [c.id,c.short];})).map(function(o){ var on=(o[0]==='all'&&f.t==='all')||(f.t==='ch'&&f.v===o[0]); return '<button type="button" data-act="cf" data-v="'+o[0]+'" aria-pressed="'+on+'">'+esc(o[1])+'</button>'; }).join('')+'</div>'+
-    '<div class="row-btns"><button type="button" class="btn-ghost" data-act="cards-shuffle">'+ICON.flip+'اخلط</button><button type="button" class="btn-ghost" data-act="cards-hide" aria-pressed="'+(!!UI.hideKnown)+'">'+(UI.hideKnown?'أظهر المحفوظة':'أخفِ المحفوظة')+'</button></div></div>';
-  h+='<p class="muted" style="margin-top:12px;font-size:13.5px">'+(label?esc(label)+' · ':'')+'حفظت '+known+' من '+cardn(all.length)+'.</p>';
+  var all=cardFilterList(), known=all.filter(function(d){return cardKnown(d.id)===1;}).length, h;
+  if(CSET){
+    h=(CSET.back?'<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="'+CSET.back+'">'+ICON.back+esc(CSET.backLabel)+'</a></div>':'')+'<div style="margin-top:22px">'+head('بطاقات المصطلحات',esc(CSET.label),showAll?'تظهر هنا البطاقات كلها، ومعها ما حفظته من قبل، لأن العودة إليها هي التي تثبّت الحفظ.':'وجه البطاقة المصطلح، وظهرها نص الكتاب حرفياً مع رقم الصفحة. اضغط البطاقة لتقلبها، ثم علّم ما حفظته.',true)+'</div>';
+    h+='<div class="toolbar"><div class="row-btns"><button type="button" class="btn-ghost" data-act="cards-shuffle">'+ICON.flip+'اخلط</button>'+(showAll?'':'<button type="button" class="btn-ghost" data-act="cards-hide" aria-pressed="'+(!!UI.hideKnown)+'">'+(UI.hideKnown?'أظهر المحفوظة':'أخفِ المحفوظة')+'</button>')+'<button type="button" class="btn-ghost" data-act="cards-allset">كل البطاقات</button></div></div>';
+    h+='<p class="muted" style="margin-top:12px;font-size:13.5px">حفظت '+known+' من '+cardn(all.length)+'.</p>';
+  } else {
+    var label = f.t==='sec'&&SEC[f.v] ? ('بطاقات: '+SEC[f.v].t) : '';
+    h=head('بطاقات المصطلحات','التعريفات بنصها','وجه البطاقة المصطلح، وظهرها نص الكتاب حرفياً مع رقم الصفحة. اضغط البطاقة لتقلبها، ثم علّم ما حفظته.');
+    h+='<div class="toolbar"><div class="seg" role="group" aria-label="تصفية">'+[['all','الكل']].concat(C.chapters.map(function(c){return [c.id,c.short];})).map(function(o){ var on=(o[0]==='all'&&f.t!=='ch'&&f.t!=='sec')||(f.t==='ch'&&f.v===o[0]); return '<button type="button" data-act="cf" data-v="'+o[0]+'" aria-pressed="'+on+'">'+esc(o[1])+'</button>'; }).join('')+'</div>'+
+      '<div class="row-btns"><button type="button" class="btn-ghost" data-act="cards-shuffle">'+ICON.flip+'اخلط</button><button type="button" class="btn-ghost" data-act="cards-hide" aria-pressed="'+(!!UI.hideKnown)+'">'+(UI.hideKnown?'أظهر المحفوظة':'أخفِ المحفوظة')+'</button></div></div>';
+    h+='<p class="muted" style="margin-top:12px;font-size:13.5px">'+(label?esc(label)+' · ':'')+'حفظت '+known+' من '+cardn(all.length)+'.</p>';
+  }
   if(!list.length) h+='<div class="empty" style="margin-top:16px"><b>'+(all.length?'حفظت كل البطاقات هنا':'لا بطاقات هنا')+'</b>'+(all.length?'أظهر المحفوظة لتراجعها مرة أخرى.':'')+'</div>';
   h+='<div class="cards">'+list.map(function(d){ var c=cOf(d.s), kn=cardKnown(d.id), fl=!!cardFlip[d.id];
     return '<div class="fc '+c+(kn===1?' known':'')+'"><button type="button" class="flip" data-act="flip" data-id="'+d.id+'" aria-pressed="'+fl+'" aria-label="'+esc(d.term)+'"><span class="flip-in"><span class="face front"><span class="top-row"><span class="tag"><i class="dot"></i>'+esc(chOf(d.s).short)+'</span><span class="nw">ص '+esc(d.p)+'</span></span><span class="term">'+esc(d.term)+'</span><span class="hint">'+ICON.flip+'اضغط لترى النص</span></span>'+
@@ -934,26 +1136,35 @@ function vCards(){
       '<div class="row-btns"><button type="button" class="btn-ghost '+(kn===1?'mark-on':'')+'" data-act="card-mark" data-id="'+d.id+'" data-v="1">حفظتها</button><button type="button" class="btn-ghost '+(kn===0?'mark-off':'')+'" data-act="card-mark" data-id="'+d.id+'" data-v="0">أعيدها</button></div></div>'; }).join('')+'</div>';
   return h;
 }
-
 /* ---- tables ---- */
 function cell(v){ if(v&&typeof v==='object'){ var d=DEFS[v.d]; return '<p class="bk-text">'+esc(d.text)+'</p><span class="pg">نص حرفي · ص '+esc(d.p)+'</span>'; } return md(v); }
 function vTables(){
   var f=UI.tf||'all';
-  var h=head('جداول المقارنة','ما يكثر الخلط بينه','كل جدول يقارن بين مفهومين أو أكثر، والخلايا المعلّمة «نص حرفي» منقولة من الكتاب.');
+  var h=head('جداول المقارنة','ما يكثر الخلط بينه','كل جدول يقارن بين مفهومين أو أكثر، والخلايا المعلّمة «نص حرفي» منقولة من الكتاب. ويظهر الجدول كاملاً على عرض الشاشة، فكبّره بإصبعين أو بزر +، واسحبه لتقرأ خاناته. وفي «وضع الاختبار» تختفي الخانات فتملؤها من ذاكرتك، ثم تضغط الخانة لتكشفها.');
   h+='<div class="toolbar"><div class="seg" role="group" aria-label="تصفية">'+[['all','الكل']].concat(C.chapters.map(function(c){return [c.id,c.short];})).map(function(o){return '<button type="button" data-act="tf" data-v="'+o[0]+'" aria-pressed="'+(f===o[0])+'">'+esc(o[1])+'</button>';}).join('')+'</div></div>';
   TABLES.filter(function(t){return (f==='all'||t.ch===f) && visible(t.s);}).forEach(function(t){
     var c=CH[t.ch].c;
-    h+='<section class="tblock '+c+'"><div class="tblock-h"><h3>'+esc(t.title)+'</h3><span class="tag"><i class="dot"></i>'+esc(CH[t.ch].short)+' · <span class="nw">ص '+esc(t.pg)+'</span></span></div><div class="table-scroll"><table class="cmp"><thead><tr>'+t.cols.map(function(x){return '<th scope="col">'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+
-      t.rows.map(function(r){ if(r.length===1) return '<tr><td class="span" colspan="'+t.cols.length+'">'+md(r[0])+'</td></tr>'; return '<tr><th scope="row">'+md(r[0])+'</th>'+r.slice(1).map(function(x){return '<td>'+cell(x)+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody></table></div></section>';
+    h+='<section class="tblock '+c+'"><div class="tblock-h"><h3>'+esc(t.title)+'</h3><span class="tag"><i class="dot"></i>'+esc(CH[t.ch].short)+' · <span class="nw">ص '+esc(t.pg)+'</span></span></div>'+
+      '<div class="ztools"><button type="button" data-act="zt-zoom" data-z="out" aria-label="تصغير">−</button><button type="button" data-act="zt-zoom" data-z="in" aria-label="تكبير">+</button><button type="button" data-act="zt-zoom" data-z="fit">الجدول كاملاً</button><button type="button" data-act="zt-test" aria-pressed="false">وضع الاختبار</button><button type="button" data-act="zt-reveal" hidden>اكشف الكل</button></div>'+
+      '<div class="table-scroll zf"><table class="cmp"><thead><tr>'+t.cols.map(function(x){return '<th scope="col">'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+
+      t.rows.map(function(r){ if(r.length===1) return '<tr><td class="span" colspan="'+t.cols.length+'">'+md(r[0])+'</td></tr>'; return '<tr><th scope="row">'+md(r[0])+'</th>'+r.slice(1).map(function(x){return '<td data-act="zt-cell"><div class="cv">'+cell(x)+'</div></td>';}).join('')+'</tr>'; }).join('')+'</tbody></table></div></section>';
   });
   return h;
 }
-
+function fitTables(){ $$('.zf',view).forEach(function(f){ var t=f.querySelector('table'); if(!t) return; t.style.zoom=1; var fit=Math.min(1,(f.clientWidth-2)/t.scrollWidth); f._fit=fit; f._z=fit; t.style.zoom=fit; }); }
+function setZoom(f,z){ var t=f.querySelector('table'); if(!t) return; z=Math.max(f._fit||.3,Math.min(2.2,z)); t.style.zoom=z; f._z=z; }
+var pinch=null;
+function tdist(ts){ var dx=ts[0].clientX-ts[1].clientX, dy=ts[0].clientY-ts[1].clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
+view.addEventListener('touchstart',function(e){ var f=e.target.closest&&e.target.closest('.zf'); if(!f||e.touches.length!==2) return; pinch={f:f,d:tdist(e.touches),z:f._z||1}; },{passive:true});
+view.addEventListener('touchmove',function(e){ if(!pinch||e.touches.length!==2) return; e.preventDefault(); setZoom(pinch.f,pinch.z*tdist(e.touches)/pinch.d); },{passive:false});
+view.addEventListener('touchend',function(e){ if(e.touches.length<2) pinch=null; },{passive:true});
+document.addEventListener('gesturestart',function(e){ if(e.target.closest&&e.target.closest('.zf')) e.preventDefault(); });
+var fitT=null; window.addEventListener('resize',function(){ clearTimeout(fitT); fitT=setTimeout(function(){ if(cur==='tables') fitTables(); },200); });
 /* ---- maps ---- */
 function vMaps(){
   var keys=Object.keys(MAPS), k=UI.map&&MAPS[UI.map]?UI.map:keys[0];
-  var h=head('الخرائط الذهنية','الدرس في شجرة واحدة','لكل يوم خريطة أو اثنتان. مرّر الخريطة أفقياً على الجوال.');
-  h+='<div class="tabs" role="tablist" aria-label="الخرائط">'+keys.map(function(x){var m=MAPS[x]; var dn=C.days.filter(function(d){return (d.maps||[]).indexOf(x)>-1;})[0]; return '<button type="button" role="tab" class="tab '+m.c+'" data-act="map" data-v="'+x+'" aria-selected="'+(x===k)+'"><i class="dot"></i>'+esc(m.title)+(dn?' <span class="muted" style="font-size:12px">· اليوم '+dn.n+'</span>':'')+'</button>';}).join('')+'</div>';
+  var h=head('الخرائط الذهنية','كل محور في شجرة واحدة','لكل فصل خريطة أو أكثر، وفي صفحة كل درس زر لخريطته. مرّر الخريطة أفقياً على الجوال.');
+  h+='<div class="tabs" role="tablist" aria-label="الخرائط">'+keys.map(function(x){var m=MAPS[x]; return '<button type="button" role="tab" class="tab '+m.c+'" data-act="map" data-v="'+x+'" aria-selected="'+(x===k)+'"><i class="dot"></i>'+esc(m.title)+'</button>';}).join('')+'</div>';
   h+='<div class="map-scroll '+MAPS[k].c+'" id="map-box" role="tabpanel"><div class="map" id="map"></div></div>';
   return h;
 }
@@ -966,14 +1177,14 @@ function drawMap(){ var keys=Object.keys(MAPS), k=UI.map&&MAPS[UI.map]?UI.map:ke
 function vMistakes(){
   var f=UI.mf||'all', ids=activeMist().filter(function(id){return f==='all'||SEC[QID[id].s].ch===f;});
   ids.sort(function(a,b){return (S.mist[b].n-S.mist[a].n)||(S.mist[b].t-S.mist[a].t);});
-  var h=head('دفتر الأخطاء','ما أخطأت فيه يعود إليك','كل سؤال تخطئ فيه يُحفظ هنا، ويخرج من الدفتر حين تجيب عنه صواباً مرتين متتاليتين.');
+  var h=head('دفتر الأخطاء','ما أخطأت فيه يعود إليك','كل سؤال تخطئ فيه يُحفظ هنا، ويخرج من الدفتر حين تجيب عنه صواباً في يومين مختلفين، فالإجابتان في يوم واحد تُحسبان واحدة، والخطأ بعدهما يعيد العدّ.');
   h+='<div class="toolbar"><div class="seg" role="group" aria-label="تصفية حسب الفصل">'+[['all','الكل']].concat(C.chapters.map(function(c){return [c.id,c.short];})).map(function(o){return '<button type="button" data-act="mf" data-v="'+o[0]+'" aria-pressed="'+(f===o[0])+'">'+esc(o[1])+'</button>';}).join('')+'</div>'+
     '<button type="button" class="btn-white" data-act="start-mist" '+(ids.length?'':'disabled')+'>أعد أسئلة الدفتر'+(ids.length?' ('+ids.length+')':'')+ICON.arrow+'</button></div>';
   if(!ids.length) return h+'<div class="empty" style="margin-top:16px"><b>الدفتر فارغ</b>'+(Object.keys(S.mist).length?'أتقنت كل ما أخطأت فيه هنا.':'حين تخطئ في سؤال سيظهر هنا لتعيده.')+'</div>';
   h+='<div class="mlist">'+ids.map(function(id){ var q=QID[id], m=S.mist[id], st=m.st||0;
     return '<article class="card mrow '+cOf(q.s)+'"><div><span class="tag"><i class="dot"></i>'+esc(chOf(q.s).short)+' · '+{tf:'صح أم خطأ',mcq:'اختيار من متعدد',essay:'مقالي'}[q.t]+' · <span class="nw">ص '+esc(q.p)+'</span></span><p class="qm">'+md(q.q)+'</p>'+
       (q.t==='essay'?'<div class="ans-e"><b>نموذج الإجابة:</b> '+q.m.map(md).join(' · ')+'</div>':'<div class="ans"><span>إجابتك: <span class="bad">'+(m.a?md(m.a):'تركته دون إجابة')+'</span></span><span>الصواب: <span class="ok">'+md(correctText(q))+'</span></span></div>')+'</div>'+
-      '<div class="mside"><div class="times" title="الإجابات الصحيحة المتتالية"><i class="'+(st>=1?'':'off')+'"></i><i class="'+(st>=2?'':'off')+'"></i>'+(m.n===1?'أخطأت مرة':(m.n===2?'أخطأت مرتين':'أخطأت '+m.n+' مرات'))+'</div><button type="button" class="btn-ghost" data-act="mist-del" data-id="'+id+'">احذفه من الدفتر</button></div></article>'; }).join('')+'</div>';
+      '<div class="mside"><div class="times" title="إجابات صحيحة في أيام مختلفة"><i class="'+(st>=1?'':'off')+'"></i><i class="'+(st>=2?'':'off')+'"></i>'+(m.n===1?'أخطأت مرة':(m.n===2?'أخطأت مرتين':'أخطأت '+m.n+' مرات'))+'</div><button type="button" class="btn-ghost" data-act="mist-del" data-id="'+id+'">احذفه من الدفتر</button></div></article>'; }).join('')+'</div>';
   return h;
 }
 
@@ -985,8 +1196,10 @@ function vTools(){
   h+='<div class="tools"><article class="card tool"><span class="ic">'+ICON.target+'</span><h3>محاكي الاختبار</h3><p>40 سؤالاً من صح وخطأ واختيار من متعدد، وسؤالان مقاليان، من المقرر كله، في 60 دقيقة. النتيجة في النهاية مفصلة لكل فصل، وأخطاؤك تذهب إلى الدفتر.'+(lastMock?'<br><b style="color:var(--text)">آخر محاولة: '+(lastMock.g?Math.round(lastMock.ok*100/lastMock.g):0)+'%</b>':'')+'</p><div class="row-btns"><button type="button" class="btn-white" data-act="start-mock">ابدأ المحاكاة'+ICON.arrow+'</button></div></article>'+
     '<article class="card tool"><span class="ic">'+ICON.moon+'</span><h3>ورقة الليلة الأخيرة</h3><p>صفحة واحدة تجمع التعريفات والتقسيمات والأرقام والمواد التي يكثر السؤال عنها.</p><div class="row-btns"><a class="btn-ghost" href="#sheet">افتح الورقة</a></div></article>'+
     '<article class="card tool"><span class="ic">'+ICON.clock+'</span><h3>مؤقت التركيز</h3><div class="seg sm" role="group" aria-label="المدة"><button type="button" data-act="focus-mode" data-v="25" aria-pressed="'+(focus.mode===25)+'">مذاكرة 25</button><button type="button" data-act="focus-mode" data-v="5" aria-pressed="'+(focus.mode===5)+'">استراحة 5</button><button type="button" data-act="focus-mode" data-v="50" aria-pressed="'+(focus.mode===50)+'">مذاكرة 50</button></div><p class="timer num" id="ftimer">'+fmt(focus.left)+'</p><p style="flex:0" class="muted" id="fsess">'+(focus.sessions?'أنهيت '+(focus.sessions===1?'جلسة واحدة':(focus.sessions===2?'جلستين':focus.sessions+' جلسات'))+' مذاكرة.':'لم تبدأ جلسة بعد.')+'</p><div class="row-btns"><button type="button" class="btn-white" data-act="focus-go">'+(focus.run?'إيقاف مؤقت':'ابدأ')+'</button><button type="button" class="btn-ghost" data-act="focus-reset">إعادة</button></div></article>'+
-    '<article class="card tool"><span class="ic">'+ICON.scissors+'</span><h3>نطاق المقرر</h3><p>إذا حذف الدكتور شيئاً من المقرر، اجعله «محذوفاً» فيخرج من الخطة والأسئلة والبطاقات، أو «للقراءة فقط» فيبقى في الملخص وحده.</p><div class="row-btns"><a class="btn-ghost" href="#scope">عدّل النطاق</a></div></article></div>';
-  h+='<div class="card" style="margin-top:12px;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><div><b>البدء من جديد</b><p class="muted" style="font-size:13.5px">يمحو القراءة والإجابات والدفتر والبطاقات، ويبقي نطاق المقرر كما هو.</p></div><button type="button" class="btn-ghost danger" data-act="reset-all">امحُ تقدمي</button></div>';
+    '<article class="card tool"><span class="ic">'+ICON.scissors+'</span><h3>نطاق المقرر</h3><p>إذا حذف الدكتور شيئاً من المقرر، اجعله «محذوفاً» فيخرج من الأسئلة والبطاقات، أو «للقراءة فقط» فيبقى في الملخص وحده.</p><div class="row-btns"><a class="btn-ghost" href="#scope">عدّل النطاق</a></div></article></div>';
+  var exd=examISO();
+  h+='<div class="card" style="margin-top:12px;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><div><b>موعد الاختبار</b><p class="muted" style="font-size:13.5px">'+(exd?esc(arDay(exd))+' '+esc(arDate(exd))+(tentative()?' (مبدئي)':'')+'، كما في جدول الاختبارات. ويُغيَّر من الجدول وحده، فيعيد توزيع الدروس على الأيام.':'لم يصل الجدول بعد. افتح الصفحة مع الاتصال.')+'</p></div><a class="btn-ghost" href="'+esc(INFO&&INFO.scheduleUrl||'../')+'">تغيير الموعد من الجدول</a></div>';
+  h+='<div class="card" style="margin-top:12px;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><div><b>البدء من جديد</b><p class="muted" style="font-size:13.5px">يمحو القراءة والإجابات والدفتر والبطاقات وعلامات الدروس، ويبقي نطاق المقرر كما هو. ولا يمحو ما سُجّل في جدول الاختبارات.</p></div><button type="button" class="btn-ghost danger" data-act="reset-all">امحُ تقدمي</button></div>';
   return h;
 }
 function paintTimer(){ var t=$('#ftimer'); if(t) t.textContent=fmt(focus.left); }
@@ -996,13 +1209,12 @@ function focusTick(){ focus.left--; paintTimer(); if(focus.left<=0){ clearInterv
 function vSheet(){
   var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#tools">'+ICON.back+'الأدوات</a></div><div style="margin-top:22px">'+head('ورقة الليلة الأخيرة','المقرر في صفحة واحدة','اقرأها ليلة الاختبار بعد أن تكون قد ذاكرت. الأرقام بين القوسين صفحات الكتاب.',true)+xLegend()+'</div>';
   h+='<div class="sheet">'+SHEET.map(function(b){ var c=CH[b.ch]; return '<section class="card '+c.c+'"><h3><i class="dot"></i>'+esc(c.n)+' · '+esc(c.title)+'</h3><dl>'+b.items.map(function(it){return '<div><dt>'+esc(it[0])+(it[3]?' '+xBadge(it[3]):'')+'</dt><dd>'+md(it[1])+'<span class="pg nw">ص '+esc(it[2])+'</span></dd></div>';}).join('')+'</dl></section>'; }).join('')+'</div>';
-  h+='<div class="row-btns" style="margin-top:16px">'+chk(taskDone('d5-sheet'),'task','data-k="d5-sheet" aria-label="قرأتها"')+'<span style="align-self:center">قرأت الورقة</span></div>';
   return h;
 }
 
 /* ---- scope ---- */
 function vScope(){
-  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#tools">'+ICON.back+'الأدوات</a></div><div style="margin-top:22px">'+head('نطاق المقرر','ما الذي يدخل في الاختبار؟','<b>ضمن المقرر</b>: يدخل في كل شيء. <b>للقراءة فقط</b>: يبقى في الملخص ويخرج من الأسئلة والبطاقات. <b>محذوف</b>: يخرج من الخطة والأسئلة والبطاقات، ويبقى نصه في الملخص للرجوع إليه.',true)+'</div>';
+  var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#tools">'+ICON.back+'الأدوات</a></div><div style="margin-top:22px">'+head('نطاق المقرر','ما الذي يدخل في الاختبار؟','<b>ضمن المقرر</b>: يدخل في كل شيء. <b>للقراءة فقط</b>: يبقى في الملخص ويخرج من الأسئلة والبطاقات. <b>محذوف</b>: يخرج من الأسئلة والبطاقات، ويبقى نصه في الملخص للرجوع إليه، وتبقى دروس الجدول كما هي.',true)+'</div>';
   C.chapters.forEach(function(c){
     h+='<section class="chap '+c.c+'"><div class="chap-h"><span class="tag"><i class="dot"></i>'+esc(c.n)+'</span><h3>'+esc(c.title)+'</h3></div>'+
       C.sections.filter(function(s){return s.ch===c.id;}).map(function(s){ return '<div class="scope-row"><div class="t"><b>'+esc(s.t)+'</b><small>ص '+esc(s.pg)+' · '+qn((QBY[s.id]||[]).length)+'</small>'+(s.flag?'<span class="fl">'+esc(s.flag.x)+'</span>':'')+'</div>'+scopeSeg(s.id)+'</div>'; }).join('')+'</section>';
@@ -1015,13 +1227,51 @@ var A={
   'noop':function(){},
   'read':function(b){ var id=b.dataset.id, on=!isRead(id); S.read[id]={v:on?1:0,t:Date.now()}; commit(); rerender(); if(on) toast('علّمته مقروءاً'); },
   'read-toggle':function(b){ A.read(b); },
-  'task':function(b){ var k=b.dataset.k; S.tasks[k]={v:taskDone(k)?0:1,t:Date.now()}; commit(); rerender(); },
-  'scope':function(b){ var id=b.dataset.id, v=b.dataset.v; S.scope[id]={v:v,t:Date.now()}; commit(); rerender(); toast(v==='out'?'صار الدرس محذوفاً من المقرر':(v==='read'?'صار الدرس للقراءة فقط':'عاد الدرس إلى المقرر')); },
+  'scope':function(b){ var id=b.dataset.id, v=b.dataset.v; S.scope[id]={v:v,t:Date.now()}; commit(); rerender(); toast(v==='out'?'صار الموضوع محذوفاً من المقرر':(v==='read'?'صار الموضوع للقراءة فقط':'عاد الموضوع إلى المقرر')); },
   'hero-tf':function(b){ var v=+b.dataset.v; heroDone=v; record({q:heroQ, ok:v===heroQ.a, txt:v?'صح':'خطأ'}); commit(); rerender(); },
-  'start-day':function(b){ var n=+b.dataset.n; var pool=dayPool(n);
+  'task-tick':function(b){ var id=b.dataset.l, k=b.dataset.k, on=b.dataset.done!=='1';
+    if(k==='learn'&&LBY[id]){ if(on) markLearned(id); else unmarkLearned(id); }
+    else { if(on) schDone(id,k); else schUndo(id); }
+    if(on) toast(k==='learn'?'سُجّل الدرس متعلَّماً في الجدول':'سُجّلت المهمة في الجدول'); rerender(); },
+  'les-toggle':function(b){ var id=b.dataset.id;
+    if(learned(id)){ if(!learnedBefore(id)) unmarkLearned(id); }
+    else { markLearned(id); toast('سُجّل الدرس متعلَّماً في الجدول'); }
+    rerender(); },
+  'les-done':function(b){ markLearned(b.dataset.id); toast('سُجّل الدرس متعلَّماً في الجدول'); rerender(); },
+  'les-undo':function(b){ unmarkLearned(b.dataset.id); rerender(); },
+  'exit-quiz':function(b){ var n=+b.dataset.n, l=lesN(n); if(!l) return; var qs=pick(lesObj(l),5,false);
+    if(!qs.length){ markLearned(l.id); toast('سُجّل الدرس متعلَّماً في الجدول'); rerender(); return; }
+    startQuiz(qs,{kind:'exit', title:'تسميع الخروج: '+l.t, mode:'train', exit:l.id, back:'#l-'+n, backLabel:'الدرس '+n}); },
+  'les-quiz':function(b){ var n=+b.dataset.n, l=lesN(n); if(!l) return; var pool=poolFor(lesQuiz(l),{tf:1,mcq:1,essay:1});
     var obj=pick(pool.filter(function(q){return q.t!=='essay';}),18,true), es=pick(pool.filter(function(q){return q.t==='essay';}),2,true);
-    startQuiz(obj.concat(es),{kind:'day-'+n, title:(C.days[n-1].xonly?'اختبار المتوقع':'اختبار اليوم '+['الأول','الثاني','الثالث','الرابع','الخامس','السادس'][n-1]), mode:'train'}); },
-  'start-sec':function(b){ var id=b.dataset.id; startQuiz(pick(poolFor([id],{tf:1,mcq:1,essay:1}),15,true),{kind:'sec', title:'اختبار درس: '+SEC[id].t, mode:'train'}); },
+    startQuiz(obj.concat(es),{kind:'les', title:'اختبار الدرس '+n+': '+l.t, mode:'train', back:'#l-'+n, backLabel:'الدرس '+n}); },
+  'les-cards':function(b){ var n=+b.dataset.n, l=lesN(n); if(!l) return; CSET={label:'بطاقات الدرس '+n+': '+l.t, les:n, all:false, back:'#l-'+n, backLabel:'الدرس '+n}; cardOrder=null; go('#cards'); },
+  'les-map':function(b){ var l=lesN(+b.dataset.n); if(l&&l.maps&&l.maps.length){ UI.map=l.maps[0]; saveUI(); } go('#maps'); },
+  'recall-cards':function(b){ var n=+b.dataset.n, l=lesN(n); if(!l) return; CSET={label:'تسميع الدرس '+n+': '+l.t, les:n, all:true, back:'#r-'+n, backLabel:'تسميع الدرس '+n}; cardOrder=null; go('#cards'); },
+  'recall-quiz':function(b){ var n=+b.dataset.n, l=lesN(n); if(!l) return; startQuiz(pick(lesObj(l),10,true),{kind:'recall', title:'تسميع الدرس '+n+': '+l.t, mode:'train', back:'#r-'+n, backLabel:'تسميع الدرس '+n}); },
+  'recall-done':function(b){ var l=lesN(+b.dataset.n); if(!l) return; schDone(l.id,'recall'); toast('سُجّل التسميع في الجدول'); rerender(); },
+  'review-quiz':function(){ var all=BANK.filter(function(q){return inQuiz(q.s)&&q.t!=='essay';}); startQuiz(pick(all,20,true),{kind:'review', title:'المراجعة الشاملة', mode:'train', back:'#rev', backLabel:'المراجعة الشاملة'}); },
+  'review-done':function(){ schDone('_review','review'); toast('سُجّلت المراجعة الشاملة في الجدول'); rerender(); },
+  'eve-cards':function(){ CSET={label:'ليلة الاختبار: البطاقات كلها', ids:DEFLIST.filter(function(d){return inQuiz(d.s);}).map(function(d){return d.id;}), all:true, back:'#eve', backLabel:'ليلة الاختبار'}; cardOrder=null; go('#cards'); },
+  'eve-done':function(){ schDone('_eve','eve'); toast('سُجّلت ليلة الاختبار في الجدول'); rerender(); },
+  'start-small':function(){ var ls=todayLessons(); if(!ls.length) ls=LES.filter(function(l){return learned(l.id);}); if(!ls.length) ls=[LES[0]];
+    var ids=[]; ls.forEach(function(l){ lesDefs(l).forEach(function(d){ ids.push(d.id); }); }); if(!ids.length) ids=DEFLIST.filter(function(d){return inQuiz(d.s);}).map(function(d){return d.id;});
+    CSET={label:'ابدأ صغيراً: عشر بطاقات', ids:shuffle(ids).slice(0,10), all:true, back:'#home', backLabel:'الرئيسية'}; cardOrder=null; go('#cards'); },
+  'quick':function(){ var ls=todayLessons(); if(!ls.length) ls=LES.filter(function(l){return learned(l.id);}); var sids=[]; ls.forEach(function(l){ sids=sids.concat(lesQuiz(l)); });
+    var pool=sids.length?poolFor(sids,{tf:1,mcq:1}):BANK.filter(function(q){return inQuiz(q.s)&&q.t!=='essay';}); startQuiz(pick(pool,10,true),{kind:'quick', title:'اختبار سريع', mode:'train'}); },
+  'cards-allset':function(){ CSET=null; cardOrder=null; rerender(); },
+  'pt':function(b){ var it=Q&&Q.items[Q.i]; if(!it||it.ok!==null) return; var i=+b.dataset.i; it.checks[i]=!it.checks[i]; rerender(); },
+  'q-pts':function(){ var it=Q&&Q.items[Q.i]; if(!it||it.ok!==null) return; var got=0; it.q.m.forEach(function(_,i){ if(it.checks[i]) got++; }); it.got=got; it.ok=got===it.q.m.length; record(it); commit(); rerender(); },
+  'r-pt':function(b){ var it=Q&&Q.items[+b.dataset.ri]; if(!it||it.ok!==null) return; var i=+b.dataset.i; it.checks[i]=!it.checks[i]; rerender(); },
+  'r-pts':function(b){ var it=Q&&Q.items[+b.dataset.ri]; if(!it||it.ok!==null) return; var got=0; it.q.m.forEach(function(_,i){ if(it.checks[i]) got++; }); it.got=got; it.ok=got===it.q.m.length; record(it); refreshHist(); commit(); rerender(); },
+  'copy-one':function(){ if(Q) copyText(gradingRequest([Q.items[Q.i]])); },
+  'copy-all':function(){ if(Q) copyText(gradingRequest(Q.items.filter(function(it){return it.q.t==='essay'&&it.txt&&it.txt.trim();}))); },
+  'new-essays':function(){ if(bldSecs().length) copyText(newEssaysRequest(),'نُسخ الطلب. الصقه في محادثة جديدة داخل مشروع المادة.'); },
+  'zt-zoom':function(b){ var f=b.closest('.tblock').querySelector('.zf'), k=b.dataset.z, z=f._z||1; setZoom(f, k==='in'?z*1.25:(k==='out'?z/1.25:(f._fit||1))); },
+  'zt-test':function(b){ var box=b.closest('.tblock'), f=box.querySelector('.zf'), on=!f.classList.contains('test'); f.classList.toggle('test',on); b.setAttribute('aria-pressed',on?'true':'false'); box.querySelector('[data-act="zt-reveal"]').hidden=!on; $$('td',f).forEach(function(td){td.classList.remove('shown');}); },
+  'zt-reveal':function(b){ $$('td',b.closest('.tblock')).forEach(function(td){td.classList.add('shown');}); },
+  'zt-cell':function(b){ if(b.closest('.zf').classList.contains('test')) b.classList.toggle('shown'); },
+  'start-sec':function(b){ var id=b.dataset.id; startQuiz(pick(poolFor([id],{tf:1,mcq:1,essay:1}),15,true),{kind:'sec', title:'اختبار موضوع: '+SEC[id].t, mode:'train'}); },
   'start-mist':function(){ var f=UI.mf||'all'; var ids=activeMist().filter(function(id){return f==='all'||SEC[QID[id].s].ch===f;}); startQuiz(shuffle(ids.map(function(id){return QID[id];})),{kind:'mistakes', title:'أسئلة دفتر الأخطاء', mode:'train'}); },
   'start-mock':function(){ var all=BANK.filter(function(q){return inQuiz(q.s);}); var obj=pick(all.filter(function(q){return q.t!=='essay';}),40,false), es=pick(all.filter(function(q){return q.t==='essay';}),2,false);
     startQuiz(obj.concat(es),{kind:'mock', title:'محاكي الاختبار', mode:'exam', dur:60*60}); },
@@ -1033,28 +1283,24 @@ var A={
   'b-n':function(b){ var v=b.dataset.v; BLD.n= v==='all'?'all':+v; saveB(); },
   'b-mode':function(b){ BLD.mode=b.dataset.v; saveB(); },
   'b-exp':function(){ BLD.exp=!BLD.exp; saveB(); },
-  'start-sec-x':function(b){ var id=b.dataset.id; startQuiz(shuffle((QBY[id]||[]).filter(function(q){return q.x&&inQuiz(q.s);})),{kind:'sec', title:'المتوقع من درس: '+SEC[id].t, mode:'train'}); },
+  'start-sec-x':function(b){ var id=b.dataset.id; startQuiz(shuffle((QBY[id]||[]).filter(function(q){return q.x&&inQuiz(q.s);})),{kind:'sec', title:'المتوقع من موضوع: '+SEC[id].t, mode:'train'}); },
   'b-start':function(){ var pool=poolFor(bldSecs(),BLD.types,BLD.exp); var n=BLD.n==='all'?pool.length:Math.min(BLD.n,pool.length); var qs=pick(pool,n,BLD.mode==='train');
     startQuiz(qs,{kind:'custom', title:'اختبار مخصص', mode:BLD.mode, dur:BLD.mode==='exam'?Math.max(5,Math.ceil(n*1.5))*60:0}); },
   'q-ans':function(b){ var it=Q.items[Q.i], v=+b.dataset.v; if(Q.mode==='train'){ if(it.ok!==null) return; it.pick=v; it.ok=(it.q.t==='tf')?(v===it.q.a):(v===0); it.txt=answerText(it.q,v); record(it); commit(); } else { it.pick=v; } rerender(); },
   'q-show':function(){ var it=Q.items[Q.i]; it.shown=true; rerender(); },
-  'q-grade':function(b){ var it=Q.items[Q.i]; it.ok=b.dataset.v==='1'; if(Q.mode==='train'){ record(it); commit(); } rerender(); },
   'q-next':function(){ if(Q.i<Q.items.length-1){ Q.i++; render(); window.scrollTo(0,0); } },
   'q-go':function(b){ var i=+b.dataset.i; if(i>=0&&i<Q.items.length){ Q.i=i; render(); window.scrollTo(0,0); } },
-  'r-grade':function(b){ var it=Q.items[+b.dataset.i]; if(!it||it.ok!==null) return; it.ok=b.dataset.v==='1'; record(it); refreshHist(); commit(); rerender(); },
   'q-prev':function(){ if(Q.i>0){ Q.i--; render(); window.scrollTo(0,0); } },
-  'q-finish':function(){ finishQuiz(); },
-  'q-end':function(b){ if(!armed(b,Q.mode==='exam'?'اضغط مرة أخرى للتسليم':'اضغط مرة أخرى للإنهاء')) return; finishQuiz(); },
+  'q-finish':function(){ finishQuiz(true); },
+  'q-end':function(b){ if(!armed(b,Q.mode==='exam'?'اضغط مرة أخرى للتسليم':'اضغط مرة أخرى للإنهاء')) return; finishQuiz(Q.mode==='exam'); },
   'q-retry':function(){ var wrong=Q.items.filter(function(it){return it.ok===false;}).map(function(it){return it.q;}); startQuiz(shuffle(wrong),{kind:'mistakes', title:'إعادة الأسئلة الخاطئة', mode:'train'}); },
   'q-new':function(){ Q=null; render(); window.scrollTo(0,0); },
   'flip':function(b){ var id=b.dataset.id; cardFlip[id]=!cardFlip[id]; b.setAttribute('aria-pressed', cardFlip[id]?'true':'false'); },
   'card-mark':function(b){ var id=b.dataset.id, v=+b.dataset.v; S.cards[id]={v:(cardKnown(id)===v?-1:v),t:Date.now()}; commit(); rerender(); },
-  'cf':function(b){ var v=b.dataset.v; UI.cf= v==='all'?{t:'all'}:{t:'ch',v:v}; cardOrder=null; saveUI(); rerender(); },
+  'cf':function(b){ var v=b.dataset.v; CSET=null; UI.cf= v==='all'?{t:'all'}:{t:'ch',v:v}; cardOrder=null; saveUI(); rerender(); },
   'cards-shuffle':function(){ cardOrder=shuffle(DEFLIST.map(function(d){return d.id;})); rerender(); },
   'cards-hide':function(){ UI.hideKnown=!UI.hideKnown; saveUI(); rerender(); },
-  'go-cards':function(b){ var n=+b.dataset.n; UI.cf={t:'day',v:n}; cardOrder=null; saveUI(); if(cur==='cards') rerender(); else location.hash='#cards'; },
-  'go-cards-sec':function(b){ UI.cf={t:'sec',v:b.dataset.id}; cardOrder=null; saveUI(); location.hash='#cards'; },
-  'go-map':function(b,e){ var n=+b.dataset.n, d=C.days[n-1]; if(d&&d.maps&&d.maps.length){ UI.map=d.maps[0]; saveUI(); } if(e) e.preventDefault(); if(cur==='maps') rerender(); else location.hash='#maps'; },
+  'go-cards-sec':function(b){ CSET=null; UI.cf={t:'sec',v:b.dataset.id}; cardOrder=null; saveUI(); location.hash='#cards'; },
   'tf':function(b){ UI.tf=b.dataset.v; saveUI(); rerender(); },
   'map':function(b){ UI.map=b.dataset.v; saveUI(); rerender(); },
   'mf':function(b){ UI.mf=b.dataset.v; saveUI(); rerender(); },
@@ -1068,12 +1314,13 @@ var A={
     S=z; commit(); rerender(); toast('محوت تقدمك، وبقي نطاق المقرر كما هو'); }
 };
 function saveB(){ UI.bld=BLD; saveUI(); rerender(); }
-document.addEventListener('click',function(e){ var b=e.target.closest('[data-act]'); if(!b||b.disabled) return; var f=A[b.dataset.act]; if(f) f(b,e); });
+document.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('#nav a')) CSET=null; var b=e.target.closest('[data-act]'); if(!b||b.disabled) return; var f=A[b.dataset.act]; if(f) f(b,e); });
 document.addEventListener('input',function(e){ if(e.target&&e.target.dataset&&e.target.dataset.input==='essay'&&Q&&!Q.done){ Q.items[Q.i].txt=e.target.value; } });
 window.addEventListener('hashchange',route);
 
 /* boot */
 cur=(location.hash||'').replace(/^#/,'')||'home';
+initSchedule();
 route();
 initRemote();
 })();
