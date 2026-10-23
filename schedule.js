@@ -119,18 +119,24 @@
   function pendKey(path) { return 'term3_sched_pend_' + path; }
   function cacheKey(path) { return 'term3_sched_cache_' + path; }
 
+  /* حالة الرفع، تعرضها شاشة التعديل: كم رفعة جارية، وهل أخفقت آخر محاولة ومتى */
+  var syncBusy = 0, syncFailed = false, syncFailedAt = 0;
+  function syncNote(ok) { if (ok) syncFailed = false; else { syncFailed = true; syncFailedAt = Date.now(); } emit(); }
+
   function store(path, merge) {
     function local() { return merge(lsGet(cacheKey(path)), lsGet(pendKey(path))); }
     function flush(keepalive) {
       var run = (chains[path] || Promise.resolve()).then(function () {
         var rec = lsGet(pendKey(path)); if (!rec || !token()) return;
+        syncBusy++; emit();
         return remoteRead(path).then(function (cur) {
           var m = merge(cur, rec);
           return remoteWrite(path, m, merge, keepalive);
         }).then(function (saved) {
           lsSet(cacheKey(path), saved);
           var now = lsGet(pendKey(path)); if (now && now.savedAt === rec.savedAt) lsSet(pendKey(path), null);
-        });
+          syncBusy--; syncNote(true);
+        }, function (e) { syncBusy--; syncNote(false); throw e; });
       }).catch(function () {});
       chains[path] = run;
       return run;
@@ -510,6 +516,7 @@
         var s = compose(examsRec, lessonsBy, marksBy);
         s._raw = { examsRec: examsRec, lessonsBy: lessonsBy };
         state = s; loading = null; emit();
+        flushAll(); // ما بقي في الجهاز يُرفع فور فتح الصفحة، لا عند مغادرتها فقط
         return state;
       });
     });
@@ -663,13 +670,37 @@
       return { ok: true, plan: plan, errors: [] };
     },
     applySmart: function (plan) { return this.saveExams(null, { override: plan }); },
-    hasToken: function () { return !!token(); }
+    hasToken: function () { return !!token(); },
+
+    /* حالة الحفظ في المستودع: ما ينتظر الرفع من هذا الجهاز، وآخر تغيير محفوظ في المستودع من أي جهاز */
+    syncStatus: function () {
+      var pending = 0, lastSaved = 0;
+      function look(path, count) {
+        var p = lsGet(pendKey(path)); if (p) pending += count(p);
+        var c = lsGet(cacheKey(path)); if (c && (c.savedAt || 0) > lastSaved) lastSaved = c.savedAt;
+      }
+      look(EXAMS_PATH, function () { return 1; });
+      knownCodes().forEach(function (c) {
+        look(c + '/_passes.json', function (p) { return Object.keys(p.marks || {}).length + (p.level ? 1 : 0); });
+      });
+      return { token: !!token(), pending: pending, lastSaved: lastSaved, busy: syncBusy > 0, failed: syncFailed && pending > 0, failedAt: syncFailedAt };
+    },
+    /* إعادة محاولة الرفع بطلب من الصفحة */
+    retrySync: function () { syncFailed = false; return flushAll(); }
   };
 
-  /* رفع ما بقي في الجهاز عند العودة أو الإغلاق */
+  /* رموز المواد المعروفة في الجهاز، ولو لم يكتمل التحميل بعد */
+  function knownCodes() {
+    var rec = examsStore.local(), codes = {};
+    ((rec && rec.exams) || []).forEach(function (e) { if (e.code) codes[e.code] = 1; });
+    Object.keys(markStores).forEach(function (c) { codes[c] = 1; });
+    return Object.keys(codes);
+  }
+  /* رفع ما بقي في الجهاز: عند الفتح، وعند عودة الاتصال، وعند المغادرة */
   function flushAll(keepalive) {
-    examsStore.flush(keepalive);
-    Object.keys(markStores).forEach(function (c) { markStores[c].flush(keepalive); });
+    var runs = [examsStore.flush(keepalive)];
+    knownCodes().forEach(function (c) { runs.push(marksStore(c).flush(keepalive)); });
+    return Promise.all(runs);
   }
   window.addEventListener('online', function () { flushAll(); });
   document.addEventListener('visibilitychange', function () {

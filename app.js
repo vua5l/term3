@@ -232,6 +232,37 @@
     if (Math.abs(p) < 3) w = 'مطابق للتقدير'; else if (p > 0) w = 'أطول بـ' + p + '%'; else w = 'أقصر بـ' + (-p) + '%';
     return w + ' · ' + samplesWord(c.samples);
   }
+  /* حالة الحفظ في المستودع، سطر تحت وصف المزامنة */
+  function ago(t) {
+    var m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return 'الآن';
+    if (m < 60) return 'قبل ' + unit(m, 'دقيقة', 'دقيقتين', 'دقائق', 'دقيقة');
+    var hr = Math.floor(m / 60);
+    if (hr < 24) return 'قبل ' + unit(hr, 'ساعة', 'ساعتين', 'ساعات', 'ساعة');
+    return 'قبل ' + unit(Math.floor(hr / 24), 'يوم', 'يومين', 'أيام', 'يوماً');
+  }
+  function whenText(t) {
+    var d = new Date(t), hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    return (iso(d) === iso(new Date()) ? 'اليوم' : dateText(iso(d))) + ' ' + hm;
+  }
+  function changesWait(n) {
+    if (n === 1) return 'تغيير واحد ينتظر الرفع';
+    if (n === 2) return 'تغييران ينتظران الرفع';
+    return n + (n <= 10 ? ' تغييرات تنتظر' : ' تغييراً ينتظر') + ' الرفع';
+  }
+  function syncLine() {
+    var st = S && S.syncStatus ? S.syncStatus() : null;
+    if (!st) return '';
+    var txt, retry = '';
+    if (st.busy) txt = 'جارٍ الحفظ في المستودع…';
+    else if (st.pending) {
+      txt = (st.failed ? 'تعذّر الحفظ: ' : '') + changesWait(st.pending);
+      retry = '<button type="button" class="chip-btn armed" style="align-self:flex-start" data-act="retry">أعد المحاولة</button>';
+    }
+    else if (st.lastSaved) txt = 'آخر حفظ في المستودع ' + ago(st.lastSaved) + ' (' + whenText(st.lastSaved) + ')';
+    else txt = 'لم يُحفظ في المستودع شيء بعد';
+    return '<div class="t2"' + (st.failed ? ' style="color:var(--coral)"' : '') + '>' + esc(txt) + '</div>' + retry;
+  }
   function renderSettings() {
     var subs = subjects(), today = todayISO(), h = '';
     var pk = currentPick();
@@ -292,7 +323,8 @@
 
     var has = S && S.hasToken();
     h += '<div class="sync"><div class="l"><div class="t1">المزامنة بين الأجهزة</div><div class="t2">' +
-      (has ? 'مفعّلة: يُحفظ تقدمك في المستودع ويُقرأ من أي جهاز' : 'لم يُدخَل مفتاح: التقدم في هذا الجهاز وحده') + '</div></div>' +
+      (has ? 'مفعّلة: يُحفظ تقدمك في المستودع ويُقرأ من أي جهاز' : 'لم يُدخَل مفتاح: التقدم في هذا الجهاز وحده') + '</div>' +
+      (has ? syncLine() : '') + '</div>' +
       '<button type="button" class="pill" data-act="sync">' + (has ? 'المفتاح' : 'إدخال المفتاح') + '</button></div>';
 
     $('settings').innerHTML = h;
@@ -391,7 +423,10 @@
     else if (act === 'cap-minus') setCap((state ? state.cap : 8) - 1);
     else if (act === 'cap-plus') setCap((state ? state.cap : 8) + 1);
     else if (act === 'sync') location.href = location.pathname + '?sync#settings';
+    else if (act === 'retry') { if (S && S.retrySync) { S.retrySync(); toast('جارٍ إعادة المحاولة'); } }
   });
+  /* سطر «آخر حفظ» يتجدد كل دقيقة ما دامت شاشة التعديل مفتوحة وصندوق اللصق مغلقاً */
+  setInterval(function () { if (screen === 'settings' && !pasteOpen) renderSettings(); }, 60000);
   document.addEventListener('change', function (ev) {
     var el = ev.target;
     if (el.getAttribute && el.getAttribute('data-act') === 'date' && el.value) setDate(el.getAttribute('data-code'), el.value);
