@@ -527,7 +527,7 @@
     var today = (mine[0] && mine[0].date === s.today) ? mine[0].tasks : [];
     return {
       exam: exam, today: today, days: mine, progress: s.progress[code] || null,
-      passes: s.passes[code] || {}, scheduleUrl: BASE, all: s
+      passes: s.passes[code] || {}, scheduleUrl: BASE + '#settings', all: s
     };
   }
 

@@ -3,35 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>الترم الثالث</title>
-<style>
-  :root { --bg:#f6f4ef; --ink:#1f1d1a; --muted:#7a7468; --card:#ffffff; --line:#e6e1d6; --accent:#8a5a2b; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#151412; --ink:#efebe3; --muted:#9a9384; --card:#1e1c19; --line:#2e2b26; --accent:#d9a46c; }
-  }
-  * { box-sizing:border-box; }
-  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
-         font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
-         display:flex; align-items:center; justify-content:center;
-         padding:max(24px, env(safe-area-inset-top)) 16px 24px; }
-  main { width:100%; max-width:440px; }
-  h1 { font-size:26px; margin:0 0 4px; }
-  p { margin:0 0 24px; color:var(--muted); font-size:15px; }
-  a { display:flex; justify-content:space-between; align-items:center;
-      background:var(--card); border:1px solid var(--line); border-radius:14px;
-      padding:18px 20px; margin-bottom:12px; text-decoration:none; color:var(--ink);
-      font-size:19px; font-weight:600; transition:border-color .2s, transform .2s; }
-  a:hover, a:focus-visible { border-color:var(--accent); transform:translateY(-1px); outline:none; }
-  a span { color:var(--accent); font-size:22px; line-height:1; }
-</style>
+<meta name="theme-color" content="#ECEAE4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C211E" media="(prefers-color-scheme: dark)">
+<title>جدول الاختبارات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>الترم الثالث</h1>
-  <p>اختر المادة</p>
-  <a href="law117/">أحكام الأسرة <span>‹</span></a>
-  <a href="law114/">مصادر الالتزام <span>‹</span></a>
-  <a href="law138/">القانون الإداري <span>‹</span></a>
-</main>
+<div class="app" id="app">
+
+  <!-- شاشة اليوم -->
+  <section class="screen" id="screen-today" aria-labelledby="nav-today">
+    <header class="head" id="head-today"></header>
+    <section class="track" id="track" aria-label="خط الاختبارات"></section>
+    <section class="today-card" id="today-card" aria-label="تقدم اليوم"></section>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <!-- شاشة التقويم -->
+  <section class="screen" id="screen-calendar" aria-labelledby="nav-calendar">
+    <header class="head" id="head-calendar"></header>
+    <section class="cal" id="cal"></section>
+  </section>
+
+  <!-- شاشة التعديل -->
+  <section class="screen" id="screen-settings" aria-label="التعديل">
+    <header class="head head-settings">
+      <a class="back" href="#today" aria-label="رجوع إلى اليوم">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </a>
+      <div class="head-title">
+        <div class="title">التعديل</div>
+        <div class="subtitle">المواعيد والخطة والمزامنة</div>
+      </div>
+    </header>
+    <div class="settings" id="settings"></div>
+  </section>
+
+  <nav class="nav" id="nav" aria-label="التنقل">
+    <a href="#today" id="nav-today" class="nav-item">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg>
+      <span>اليوم</span>
+    </a>
+    <a href="#calendar" id="nav-calendar" class="nav-item">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+      <span>التقويم</span>
+    </a>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<noscript><p class="noscript">تحتاج هذه الصفحة إلى تشغيل JavaScript.</p></noscript>
+
+<script src="sync.js"></script>
+<script src="schedule.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
