@@ -661,8 +661,13 @@ function arDate(s){var d=dUTC(s); return d.getUTCDate()+' '+AR_MONTHS[d.getUTCMo
 function examISO(){return (INFO&&INFO.exam&&INFO.exam.date)||null;}
 function tentative(){return !!(INFO&&INFO.exam&&INFO.exam.tentative);}
 function daysLeft(){var e=examISO(); return e?Math.round((dUTC(e)-dUTC(todayISO()))/86400000):null;}
-function unitsText(u){ var w=Math.floor(u), half=u-w>=0.5, N=['','جلسة','جلستان','ثلاث جلسات','أربع جلسات','خمس جلسات','ست جلسات','سبع جلسات','ثماني جلسات','تسع جلسات','عشر جلسات'];
-  if(!w) return half?'نصف جلسة':'لا جلسات'; var t=w<=10?N[w]:(w+' جلسة'); return half?t+' ونصف':t; }
+/* time in minutes: a lesson's own estimate (min in content.js), corrected like the tasks by the schedule's
+   actual-pace factor (INFO.all.calib) once it has one; tasks and days take their minutes from the schedule */
+function minText(m){ m=Math.max(1,Math.round(+m||0)); var r=m%100; return m===1?'دقيقة':(m===2?'دقيقتان':m+' '+(r>=3&&r<=10?'دقائق':'دقيقة')); }
+function calibF(){ var c=INFO&&INFO.all&&INFO.all.calib&&INFO.all.calib[CODE], f=c&&+c.factor; return f>0?f:1; }
+function lesMin(l){ return Math.max(1,Math.round((+l.min||(+l.ses||1)*25)*calibF())); }
+function taskMin(t){ var m=+t.minutes; return m>0?m:(+t.units||0)*25; }
+function recallMin(l){ var t=todayTask(l.id,'recall'); return t?taskMin(t):Math.max(1,Math.round(lesMin(l)/3)); }
 function lesQuiz(l){return l.secs.filter(function(sid){return inQuiz(sid);});}
 function lesDefs(l){var ids=lesQuiz(l); return DEFLIST.filter(function(d){return ids.indexOf(d.s)>-1;});}
 function lesObj(l){return poolFor(lesQuiz(l),{tf:1,mcq:1});}
@@ -876,7 +881,7 @@ function vHome(){
 function taskRow(t){
   var c=taskC(t), n=lnum(t.lesson), href=taskHref(t);
   var lead=chk(t.done,'task-tick','data-l="'+esc(t.lesson)+'" data-k="'+esc(t.kind)+'" data-done="'+(t.done?1:0)+'" aria-label="'+(t.done?'ألغِ الإنجاز':'علّمها منجزة')+'"');
-  return '<li class="task '+c+(t.done?' done':'')+'">'+lead+'<span class="t"><small class="kind">'+esc(KINDS[t.kind]||'')+(n?' · الدرس '+n:'')+'</small><a href="'+href+'">'+esc(taskLabel(t))+'</a><span class="sub">'+esc(unitsText(t.units))+(t.pages?' · ص '+esc(t.pages):'')+'</span></span><a class="go" href="'+href+'">افتح ←</a></li>';
+  return '<li class="task '+c+(t.done?' done':'')+'">'+lead+'<span class="t"><small class="kind">'+esc(KINDS[t.kind]||'')+(n?' · الدرس '+n:'')+'</small><a href="'+href+'">'+esc(taskLabel(t))+'</a><span class="sub">'+esc(minText(taskMin(t)))+(t.pages?' · ص '+esc(t.pages):'')+'</span></span><a class="go" href="'+href+'">افتح ←</a></li>';
 }
 
 /* ---- plan: the schedule's days for this subject, then the lesson list ---- */
@@ -893,10 +898,10 @@ function vPlan(){
   return h+lessonsBlock();
 }
 function dayCard(d,t0){
-  var isT=d.date===t0, done=d.tasks.filter(function(t){return t.done;}).length, load=d.tasks.reduce(function(a,t){return a+(t.units||0);},0), dt=dUTC(d.date), cs=[];
+  var isT=d.date===t0, done=d.tasks.filter(function(t){return t.done;}).length, load=+d.minutes||d.tasks.reduce(function(a,t){return a+taskMin(t);},0), dt=dUTC(d.date), cs=[];
   d.tasks.forEach(function(t){ var c=taskC(t); if(cs.indexOf(c)<0) cs.push(c); });
   return '<article class="card day'+(isT?' is-today':'')+'"><div class="day-date"><b class="num">'+dt.getUTCDate()+'</b><span>'+AR_MONTHS[dt.getUTCMonth()]+' · '+arDay(d.date)+'</span></div><div>'+
-    '<div class="day-eyebrow"><span class="dots">'+cs.map(function(c){return '<i class="dot '+c+'"></i>';}).join('')+'</span>'+esc(unitsText(load))+' لهذه المادة'+(isT?'<span class="status now">اليوم</span>':'')+(done&&done===d.tasks.length?'<span class="status done">مكتمل</span>':'')+'</div>'+
+    '<div class="day-eyebrow"><span class="dots">'+cs.map(function(c){return '<i class="dot '+c+'"></i>';}).join('')+'</span>'+esc(minText(load))+' لهذه المادة'+(isT?'<span class="status now">اليوم</span>':'')+(done&&done===d.tasks.length?'<span class="status done">مكتمل</span>':'')+'</div>'+
     '<div class="dtasks">'+d.tasks.map(function(t){ return '<a class="dchip '+taskC(t)+(t.done?' done':'')+'" href="'+taskHref(t)+'"><i class="dot"></i>'+esc(KINDS[t.kind]||'')+(lnum(t.lesson)?': '+esc(taskLabel(t)):'')+'</a>'; }).join('')+'</div>'+
     '<div class="pbar"><i style="width:'+(d.tasks.length?Math.round(done*100/d.tasks.length):0)+'%"></i></div></div></article>';
 }
@@ -912,7 +917,7 @@ function lessonRow(l){
   var on=learned(l.id), p=Math.min(passes(l.id).length,3), lock=on&&learnedBefore(l.id);
   var st=p?('مرّ '+(p===1?'مرة':(p===2?'مرتين':'ثلاث مرات'))+' من ثلاث'):(on?'تعلّمته':'');
   return '<li>'+chk(on,'les-toggle','data-id="'+l.id+'" aria-label="'+(on?'تعلّمته':'علّمه متعلَّماً')+'"'+(lock?' disabled title="سُجّل في الجدول في يوم سابق"':''))+
-    '<span class="t"><a href="#l-'+l.n+'">'+l.n+'. '+esc(l.t)+'</a><small>ص '+esc(l.pg)+' · '+esc(unitsText(l.ses))+(st?' · '+esc(st):'')+'</small></span></li>';
+    '<span class="t"><a href="#l-'+l.n+'">'+l.n+'. '+esc(l.t)+'</a><small>ص '+esc(l.pg)+' · '+esc(minText(lesMin(l)))+(st?' · '+esc(st):'')+'</small></span></li>';
 }
 
 /* ---- lesson: the schedule's unit, opened by a learn task ---- */
@@ -920,7 +925,7 @@ function vLesson(n){
   var l=lesN(n); if(!l) return vPlan();
   var c=CH[l.ch], on=learned(l.id), t=todayTask(l.id), defs=lesDefs(l), pool=poolFor(lesQuiz(l),{tf:1,mcq:1,essay:1}), prev=lesN(n-1), next=lesN(n+1);
   var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#plan">'+ICON.back+'الخطة</a></div><div class="'+c.c+'" style="margin-top:22px">';
-  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>'+esc(c.n)+' · '+esc(c.short)+'</span><span>الدرس '+l.n+' من '+LES.length+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>'+esc(unitsText(l.ses))+'</span></p><h2 class="title-xl">'+esc(l.t)+'</h2>';
+  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>'+esc(c.n)+' · '+esc(c.short)+'</span><span>الدرس '+l.n+' من '+LES.length+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>'+esc(minText(lesMin(l)))+'</span></p><h2 class="title-xl">'+esc(l.t)+'</h2>';
   if(t&&!t.done) h+='<div class="notice today-n">'+(t.kind==='recall'?'اليوم موعد تسميع هذا الدرس في الجدول. <a href="#r-'+n+'">افتح التسميع</a>':'هذا الدرس من مهام اليوم في الجدول: تعلّمه، ثم سمّع نفسك في آخره.')+'</div>';
   h+='<ul class="slist" style="margin-top:22px">'+l.secs.map(function(sid){ return secRow(SEC[sid]); }).join('')+'</ul>';
   h+='<div class="row-btns" style="margin-top:20px">'+(defs.length?'<button type="button" class="btn-ghost" data-act="les-cards" data-n="'+n+'">'+cardn(defs.length)+'</button>':'')+(pool.length?'<button type="button" class="btn-ghost" data-act="les-quiz" data-n="'+n+'">اختبرني في الدرس</button>':'')+((l.maps||[]).length?'<button type="button" class="btn-ghost" data-act="les-map" data-n="'+n+'">خريطته الذهنية</button>':'')+'</div>';
@@ -940,7 +945,7 @@ function vRecall(n){
   var l=lesN(n); if(!l) return vPlan();
   var c=CH[l.ch], defs=lesDefs(l), nq=Math.min(10,lesObj(l).length), t=todayTask(l.id,'recall'), done=!!(t&&t.done);
   var h='<div class="sec" style="padding-top:40px"><a class="btn-ghost" href="#home">'+ICON.back+'الرئيسية</a></div><div class="'+c.c+'" style="margin-top:22px">';
-  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>تسميع</span><span>الدرس '+l.n+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>نصف جلسة</span></p><h2 class="title-xl">'+esc(l.t)+'</h2><p class="lead">بلا كتاب ولا ملخص: استرجع من ذاكرتك، ثم صحّح.</p>';
+  h+='<p class="eyebrow"><span class="tag"><i class="dot"></i>تسميع</span><span>الدرس '+l.n+'</span><span class="nw">ص '+esc(l.pg)+'</span><span>'+esc(minText(recallMin(l)))+'</span></p><h2 class="title-xl">'+esc(l.t)+'</h2><p class="lead">بلا كتاب ولا ملخص: استرجع من ذاكرتك، ثم صحّح.</p>';
   h+=steps([
     ['بطاقات الدرس كلها', defs.length?cardn(defs.length)+'، ومعها ما حفظته من قبل، لأن العودة إليها هي التي تثبّت الحفظ.':'لا بطاقات في هذا الدرس.', defs.length?'<button type="button" class="btn-white" data-act="recall-cards" data-n="'+n+'">ابدأ البطاقات'+ICON.arrow+'</button>':''],
     ['أسئلة الدرس', nq?qn(nq)+' سريعة من بنكه، وما تخطئ فيه يدخل دفتر الأخطاء.':'لا أسئلة في هذا الدرس.', nq?'<button type="button" class="btn-ghost" data-act="recall-quiz" data-n="'+n+'">ابدأ الأسئلة</button>':''],

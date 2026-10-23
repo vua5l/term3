@@ -9,22 +9,23 @@ window.COURSE = {
   /* دروس الجدول: كل درس موضوعات متتالية من فصل واحد، ولا يُقطع فيه تعريف ولا قائمة.
      ونسخة منها في lessons.json يقرؤها جدول الاختبارات، فإن غيّرت شيئاً هنا فغيّره هناك.
      والمعرّف (id) لا يتغير بعد النشر أبداً، لأن إنجازك في الجدول مربوط به، والدرس الجديد يأخذ معرّفاً جديداً.
-     ses: جهد مذاكرة الدرس أول مرة بعدد الجلسات (الجلسة 25 إلى 30 دقيقة). */
+     min: دقائق مذاكرة الدرس أول مرة حتى تسميعه، وهي ما يُعرض ويقرؤه الجدول (minutes في lessons.json).
+     ses: الجلسات القديمة، باقية ولا تُعرض. */
   lessons: [
-    {id:'l1',  ch:'ch1', t:'المقدمة، وتعريف القانون الإداري ومدلولاه', pg:'5–19', ses:2.5, secs:['intro','def','meaning','opinion','rule'], maps:['ch1map']},
-    {id:'l2',  ch:'ch1', t:'خصائص القانون الإداري', pg:'20–25', ses:2, secs:['traits'], maps:['ch1map']},
-    {id:'l3',  ch:'ch1', t:'معيار العمل الإداري', pg:'26–29', ses:1.5, secs:['criterion'], maps:['ch1map']},
-    {id:'l4',  ch:'ch2', t:'علاقته بالشريعة والقانون الدستوري', pg:'31–35', ses:1.5, secs:['sharia','const','constcrit'], maps:['ch2map']},
-    {id:'l5',  ch:'ch2', t:'علاقته بالقانون المالي والجنائي والمدني، وبعلم الإدارة العامة', pg:'35–42', ses:2, secs:['finance','criminal','pubadmin','civil'], maps:['ch2map']},
-    {id:'l6',  ch:'ch3', t:'مدخل المصادر، والتشريع الأساسي والعادي، والتنظيم', pg:'43–47', ses:2, secs:['sources','legis','tanzeem'], maps:['sourcesmap','legismap']},
-    {id:'l7',  ch:'ch3', t:'التشريع الفرعي: اللوائح وأنواعها', pg:'47–52', ses:2.5, secs:['regs'], maps:['legismap']},
-    {id:'l8',  ch:'ch3', t:'العرف الإداري: تعريفه وأركانه وشروطه', pg:'52–57', ses:2, secs:['custom','custpillars'], maps:['custommap']},
-    {id:'l9',  ch:'ch3', t:'دور العرف، والعرف المخالف والمفسر', pg:'57–59', ses:1, secs:['custrole','custcontra'], maps:['custommap']},
-    {id:'l10', ch:'ch3', t:'المبادئ العامة للقانون', pg:'60–63', ses:1.5, secs:['principles'], maps:['sourcesmap']},
-    {id:'l11', ch:'ch3', t:'المصادر التفسيرية: القضاء والفقه', pg:'64–68', ses:1.5, secs:['judiciary','doctrine'], maps:['sourcesmap']},
-    {id:'l12', ch:'ch4', t:'تعريف المركزية وأسسها، والسلطة الرئاسية', pg:'69–74', ses:1.5, secs:['centraldef','centralbase','hier'], maps:['centralmap','hiermap']},
-    {id:'l13', ch:'ch4', t:'أوامر الرئيس المشروعة وغير المشروعة', pg:'74–80', ses:2, secs:['orders','illegal'], maps:['hiermap']},
-    {id:'l14', ch:'ch4', t:'صور المركزية وتقديرها', pg:'80–84', ses:1.5, secs:['forms','assess'], maps:['centralmap']}
+    {id:'l1',  ch:'ch1', t:'المقدمة، وتعريف القانون الإداري ومدلولاه', pg:'5–19', ses:2.5, min:52, secs:['intro','def','meaning','opinion','rule'], maps:['ch1map']},
+    {id:'l2',  ch:'ch1', t:'خصائص القانون الإداري', pg:'20–25', ses:2, min:29, secs:['traits'], maps:['ch1map']},
+    {id:'l3',  ch:'ch1', t:'معيار العمل الإداري', pg:'26–29', ses:1.5, min:29, secs:['criterion'], maps:['ch1map']},
+    {id:'l4',  ch:'ch2', t:'علاقته بالشريعة والقانون الدستوري', pg:'31–35', ses:1.5, min:26, secs:['sharia','const','constcrit'], maps:['ch2map']},
+    {id:'l5',  ch:'ch2', t:'علاقته بالقانون المالي والجنائي والمدني، وبعلم الإدارة العامة', pg:'35–42', ses:2, min:35, secs:['finance','criminal','pubadmin','civil'], maps:['ch2map']},
+    {id:'l6',  ch:'ch3', t:'مدخل المصادر، والتشريع الأساسي والعادي، والتنظيم', pg:'43–47', ses:2, min:37, secs:['sources','legis','tanzeem'], maps:['sourcesmap','legismap']},
+    {id:'l7',  ch:'ch3', t:'التشريع الفرعي: اللوائح وأنواعها', pg:'47–52', ses:2.5, min:42, secs:['regs'], maps:['legismap']},
+    {id:'l8',  ch:'ch3', t:'العرف الإداري: تعريفه وأركانه وشروطه', pg:'52–57', ses:2, min:35, secs:['custom','custpillars'], maps:['custommap']},
+    {id:'l9',  ch:'ch3', t:'دور العرف، والعرف المخالف والمفسر', pg:'57–59', ses:1, min:23, secs:['custrole','custcontra'], maps:['custommap']},
+    {id:'l10', ch:'ch3', t:'المبادئ العامة للقانون', pg:'60–63', ses:1.5, min:22, secs:['principles'], maps:['sourcesmap']},
+    {id:'l11', ch:'ch3', t:'المصادر التفسيرية: القضاء والفقه', pg:'64–68', ses:1.5, min:26, secs:['judiciary','doctrine'], maps:['sourcesmap']},
+    {id:'l12', ch:'ch4', t:'تعريف المركزية وأسسها، والسلطة الرئاسية', pg:'69–74', ses:1.5, min:29, secs:['centraldef','centralbase','hier'], maps:['centralmap','hiermap']},
+    {id:'l13', ch:'ch4', t:'أوامر الرئيس المشروعة وغير المشروعة', pg:'74–80', ses:2, min:29, secs:['orders','illegal'], maps:['hiermap']},
+    {id:'l14', ch:'ch4', t:'صور المركزية وتقديرها', pg:'80–84', ses:1.5, min:32, secs:['forms','assess'], maps:['centralmap']}
   ],
   sections: [
 
