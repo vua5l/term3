@@ -176,7 +176,24 @@
         g += '</section>';
       });
     }
+    g += extraBlock(total, done);
     $('groups').innerHTML = g;
+  }
+
+  /* «إن بقي عندك وقت»: في أسفل شاشة اليوم بعد المهام الأساسية، يظهر حين تُنجز مهام اليوم كلها أو لا تكون
+     لليوم مهام، ويقترح أنفع مهمة تالية كما يحسبها الجدول (state.extra). وهي اختيارية */
+  function extraBlock(total, done) {
+    var ex = state && state.extra;
+    if (!ex || (total && done < total)) return '';
+    var s = { key: 'other', name: ex.code };
+    subjects().forEach(function (x) { if (x.code === ex.code) s = x; });
+    return '<section class="group extra"><div class="g-head"><div class="g-name">إن بقي عندك وقت</div><div class="g-left">اختيارية</div></div>' +
+      '<div class="task">' +
+      '<button type="button" class="check" data-act="extra" data-code="' + esc(ex.code) + '" data-lesson="' + esc(ex.lesson) + '" data-kind="' + esc(ex.kind) + '" aria-label="إنجاز المهمة">' + ICON_CHECK + '</button>' +
+      '<a class="t-title" href="' + esc(ex.link) + '">' + esc(ex.title) + '</a>' +
+      '<span class="t-kind">' + (KIND[ex.kind] || esc(ex.kind)) + '</span>' +
+      '<span class="t-min">' + (ex.minutes | 0) + ' د</span></div>' +
+      '<div class="extra-note"><span style="color:' + textColor(s.key) + '">' + esc(s.name) + '</span> · إن أنجزتها خفّت بها أيامك التالية.</div></section>';
   }
 
   /* ---------- شاشة التقويم ---------- */
@@ -263,9 +280,49 @@
     else txt = 'لم يُحفظ في المستودع شيء بعد';
     return '<div class="t2"' + (st.failed ? ' style="color:var(--coral)"' : '') + '>' + esc(txt) + '</div>' + retry;
   }
+  /* الدقائق على قواعد العدد: دقيقة، دقيقتان، 3 دقائق، 11 دقيقة، 104 دقائق */
+  function minutesText(m) {
+    m = Math.round(+m || 0);
+    if (m === 1) return 'دقيقة';
+    if (m === 2) return 'دقيقتان';
+    var r = m % 100;
+    return m + (r >= 3 && r <= 10 ? ' دقائق' : ' دقيقة');
+  }
+  /* تنبيه الجدول في أعلى شاشة التعديل: التغطية، والأيام التي تحتاج أكثر من السقف لأجلها،
+     وليلة اختبار دخلها تعلّم، والمواد التي بلا موقع */
+  function coverageCard() {
+    if (!state) return '';
+    var over = [], eve = [], nosite = [], name = {};
+    (state.exams || []).forEach(function (e) { name[e.code] = e.name || e.code; });
+    (state.warnings || []).forEach(function (w) {
+      if (w.type === 'over') over.push(w);
+      else if (w.type === 'eve-learn') eve.push(w);
+      else if (w.type === 'nosite') nosite.push(w);
+    });
+    var h = '';
+    if (Object.keys(state.lessons || {}).length) h += '<div class="cv-line">كل درس من دروس المواد التي لها مواقع له مكان قبل اختبار مادته.</div>';
+    if (over.length) {
+      h += '<div class="cv-line">ويحتاج ذلك أكثر من سقفك (' + minutesText(state.capMinutes) + ') في هذه الأيام:</div><ul class="cv-list">' +
+        over.slice(0, 7).map(function (w) { return '<li><span>' + esc(dateText(w.date)) + '</span><b>' + esc(minutesText(w.minutes)) + '</b></li>'; }).join('') +
+        '</ul><div class="cv-note">السقف حدّ اليوم المريح، ولا يتجاوزه الجدول إلا لتغطية الدروس. وإن تأخرت يوماً زادت دقائق ما بعده.</div>';
+    }
+    eve.forEach(function (w) { h += '<div class="cv-line">ليلة اختبار ' + esc(name[w.code] || w.code) + ' فيها دروس لم تُتعلَّم بعد، لأن التعلّم تأخر عن موعده.</div>'; });
+    if (nosite.length) {
+      var n = nosite.length;
+      var tail = n === 1 ? 'بلا موقع، فلا يعرف الجدول دروسها ولا يضمن تغطيتها.' : n === 2 ? 'بلا موقعين، فلا يعرف الجدول دروسهما ولا يضمن تغطيتهما.' : 'بلا مواقع، فلا يعرف الجدول دروسها ولا يضمن تغطيتها.';
+      h += '<div class="cv-line">' + nosite.map(function (w) { return esc(w.name) + ' (' + esc(dayMonth(w.date)) + ')'; }).join('، ') + ': ' + tail + '</div>';
+    }
+    if (state.overrideLost) h += '<div class="cv-line">الخطة الذكية تركت دروساً بلا مكان قبل اختبارها، فعاد الجدول إلى الترتيب التلقائي.</div>';
+    if (!h) return '';
+    var warn = over.length || eve.length || nosite.length || state.overrideLost;
+    return '<div class="cover' + (warn ? ' warn' : '') + '"><div class="sec-title">التغطية قبل الاختبارات</div>' + h + '</div>';
+  }
+
   function renderSettings() {
     var subs = subjects(), today = todayISO(), h = '';
     var pk = currentPick();
+
+    h += coverageCard();
 
     h += '<div class="exam-rows"><div class="sec-head"><div class="sec-title">مواعيد الاختبارات</div><div class="sec-note">تُغيَّر من هنا وحده</div></div>';
     subs.forEach(function (s) {
@@ -278,7 +335,7 @@
     if (!subs.length) h += '<div class="empty">' + (state ? 'لا مواعيد بعد.' : 'جارٍ تحميل الجدول…') + '</div>';
     h += '</div>';
 
-    var status = !state ? '' : state.source === 'smart' ? 'الخطة الحالية ذكية.' : state.overrideExpired ? 'الخطة الذكية السابقة انتهت بتغيير المواعيد، والجدول الآن تلقائي.' : 'الخطة الحالية تلقائية.';
+    var status = !state ? '' : state.source === 'smart' ? 'الخطة الحالية ذكية.' : state.overrideLost ? 'الخطة الذكية تركت دروساً بلا مكان قبل اختبارها، والجدول الآن تلقائي.' : state.overrideExpired ? 'الخطة الذكية السابقة انتهت بتغيير المواعيد، والجدول الآن تلقائي.' : 'الخطة الحالية تلقائية.';
     h += '<div class="mode-card"><div><div class="k">بعد تغيير موعد</div><div class="q">كيف تُعاد خطة الأيام؟</div></div>' +
       '<button type="button" class="opt' + (pk === 'auto' ? ' on' : '') + '" data-act="pick-auto"><span class="radio"><i></i></span><span class="txt"><span class="t1">ترتيب تلقائي</span><span class="t2">فوري ومجاني، بقواعد الجدول نفسها</span></span></button>' +
       '<button type="button" class="opt' + (pk === 'smart' ? ' on' : '') + '" data-act="pick-smart"><span class="radio"><i></i></span><span class="txt"><span class="t1">ترتيب ذكي</span><span class="t2">ينسخ طلباً تلصقه في محادثة جديدة، ثم تلصق الجواب هنا</span></span></button>';
@@ -406,6 +463,10 @@
       if (!S) return;
       var code = el.getAttribute('data-code'), lesson = el.getAttribute('data-lesson'), kind = el.getAttribute('data-kind');
       try { if (el.getAttribute('data-done') === '1') S.undo(code, lesson); else S.done(code, lesson, kind); } catch (e) { toast('تعذّر الحفظ'); }
+    }
+    else if (act === 'extra') {
+      if (!S) return;
+      try { S.done(el.getAttribute('data-code'), el.getAttribute('data-lesson'), el.getAttribute('data-kind')); toast('سُجّلت، وتخفّ بها أيامك التالية'); } catch (e) { toast('تعذّر الحفظ'); }
     }
     else if (act === 'confirm-date') confirmDate(el.getAttribute('data-code'));
     else if (act === 'pick-auto') {
