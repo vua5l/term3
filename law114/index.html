@@ -564,9 +564,30 @@ function applyScope(){
 var KINDS = {learn:'تعلّم', recall:'تسميع', review:'مراجعة شاملة', eve:'ليلة الاختبار'};
 function lid(id){ return 'l' + id; }
 function lnum(lesson){ var m = /^l(\d+)$/.exec(lesson || ''); return m ? +m[1] : 0; }
-function unitsText(u){
-  var t = {0.5:'نصف جلسة', 1:'جلسة', 1.5:'جلسة ونصف', 2:'جلستان', 2.5:'جلستان ونصف', 3:'ثلاث جلسات', 3.5:'ثلاث جلسات ونصف', 4:'أربع جلسات'};
-  return t[u] || (u + ' جلسات');
+/* الوقت بالدقائق على قواعد العدد: دقيقة، دقيقتان، 3 دقائق، 11 دقيقة */
+function minText(m){
+  m = Math.round(+m || 0);
+  if (m < 1) return '';
+  if (m === 1) return 'دقيقة';
+  if (m === 2) return 'دقيقتان';
+  var r = m % 100;
+  return m + (r >= 3 && r <= 10 ? ' دقائق' : ' دقيقة');
+}
+/* وقت المهمة كما يرسله الجدول (minutes)، والجلسات للحفظ القديم وحده */
+function taskMin(t){ return +t.minutes > 0 ? +t.minutes : (+t.units > 0 ? t.units * 25 : 0); }
+/* دقائق الدرس من lessons.json كما وصلت عبر الجدول، مصحّحة بوقتك الفعلي إن صحّحها الجدول (calib) */
+function lessonMin(id){
+  var all = INFO && INFO.all, ls = all && all.lessons && all.lessons[CODE], l = null;
+  (ls || []).forEach(function(x){ if (x.id === lid(id)) l = x; });
+  if (!l) return 0;
+  var m = +l.minutes > 0 ? +l.minutes : (+l.sessions > 0 ? l.sessions * 25 : 0);
+  var c = all.calib && all.calib[CODE], f = c && +c.factor > 0 ? +c.factor : 1;
+  return m ? Math.max(1, Math.round(m * f)) : 0;
+}
+function lessonMinTag(id){ var m = lessonMin(id); return '<bdi data-lmin="' + id + '">' + (m ? ' · ' + minText(m) : '') + '</bdi>'; }
+function refreshLessonMins(){
+  var els = document.querySelectorAll('[data-lmin]');
+  for (var i = 0; i < els.length; i++){ var m = lessonMin(+els[i].getAttribute('data-lmin')); els[i].textContent = m ? ' · ' + minText(m) : ''; }
 }
 function taskHref(t){
   if (t.kind === 'review') return '#rev';
@@ -583,6 +604,7 @@ function onInfo(info){
   INFO = info; updateCount();
   var h = (location.hash || '#home').slice(1);
   if (h === '' || h === 'home' || h === 'rev' || h === 'eve' || /^r-\d+$/.test(h)) render(true);
+  refreshLessonMins();
   if (!document.getElementById('sheet').hidden) drawSheet();
 }
 function initSchedule(){
@@ -632,7 +654,7 @@ function vHome(){
 var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 function taskRow(t){
   var ttl = t.kind === 'review' ? 'تسميع لكل الدروس' : t.kind === 'eve' ? 'البطاقات وورقة الليلة الأخيرة' : taskTitle(t);
-  return '<li class="task' + (t.done ? ' done' : '') + '"><a class="go" href="' + taskHref(t) + '"><small>' + esc(KINDS[t.kind] || '') + '</small><b>' + esc(ttl) + '</b><span>' + esc(unitsText(t.units)) + (t.pages ? ' · الصفحات ' + esc(t.pages) : '') + '</span></a>'
+  return '<li class="task' + (t.done ? ' done' : '') + '"><a class="go" href="' + taskHref(t) + '"><small>' + esc(KINDS[t.kind] || '') + '</small><b>' + esc(ttl) + '</b><span>' + esc([minText(taskMin(t)), t.pages ? 'الصفحات ' + t.pages : ''].filter(Boolean).join(' · ')) + '</span></a>'
     + '<button class="tick" type="button" data-act="task-tick" data-l="' + esc(t.lesson) + '" data-k="' + esc(t.kind) + '" data-done="' + (t.done ? 1 : 0) + '" aria-pressed="' + !!t.done + '" aria-label="' + (t.done ? 'إلغاء الإنجاز' : 'علّمها منجزة') + '">' + TICK + '</button></li>';
 }
 function planList(ex){
@@ -641,11 +663,12 @@ function planList(ex){
     var load = 0;
     h += '<li class="day' + (d.date === today ? ' is-today' : '') + '"><div class="day-date"><b>' + esc(d.date === today ? 'اليوم' : arDay(d.date)) + '</b><span>' + esc(arDate(d.date)) + '</span></div><div class="day-body"><div class="chips">';
     d.tasks.forEach(function(t){
-      load += t.units || 0;
+      load += taskMin(t);
       var lab = t.kind === 'review' ? 'مراجعة شاملة' : t.kind === 'eve' ? 'ليلة الاختبار' : (KINDS[t.kind] + ': ' + taskTitle(t));
       h += '<a class="lchip' + (t.done ? ' done' : '') + '" href="' + taskHref(t) + '">' + esc(lab) + '</a>';
     });
-    h += '</div><p>' + esc(unitsText(load)) + ' لهذه المادة</p></div></li>';
+    var dm = +d.minutes > 0 ? +d.minutes : load;
+    h += '</div>' + (dm ? '<p>' + esc(minText(dm)) + ' لهذه المادة</p>' : '') + '</div></li>';
   });
   h += '<li class="day is-exam"><div class="day-date"><b>' + esc(arDay(ex)) + '</b><span>' + esc(arDate(ex)) + '</span></div><div class="day-body"><div class="chips"><a class="lchip" href="#last">ورقة الليلة الأخيرة</a><a class="lchip" href="#cards">البطاقات</a></div><p>يوم الاختبار' + (INFO.exam.tentative ? ' · موعد مبدئي' : '') + '</p></div></li>';
   return h + '</ol>';
@@ -673,9 +696,9 @@ function lessonRows(){
   var h = '<div class="list">';
   D.all.forEach(function(a){
     var av = AVAIL.indexOf(a.id) >= 0;
-    if (!av){ h += '<div class="lrow soon"><span class="num">' + a.id + '</span><span class="meta"><b>' + esc(a.title) + '</b><span>الصفحات ' + esc(a.pages) + '</span></span><span class="stat">قيد المراجعة</span></div>'; return; }
+    if (!av){ h += '<div class="lrow soon"><span class="num">' + a.id + '</span><span class="meta"><b>' + esc(a.title) + '</b><span>الصفحات ' + esc(a.pages) + lessonMinTag(a.id) + '</span></span><span class="stat">قيد المراجعة</span></div>'; return; }
     var s = lessonStat(a.id);
-    h += '<a class="lrow" href="#l-' + a.id + '"><span class="num' + (P.read[a.id] ? ' done' : '') + '">' + a.id + '</span><span class="meta"><b>' + esc(a.title) + '</b><span>الصفحات ' + esc(a.pages) + (P.read[a.id] ? ' · مقروء' : '') + '</span></span><span class="stat">' + (s.done ? 'حللت ' + s.done + ' من ' + s.total + (s.pct != null ? '<br>صحيح ' + s.pct + '٪' : '') : s.total + ' سؤالاً') + '</span></a>';
+    h += '<a class="lrow" href="#l-' + a.id + '"><span class="num' + (P.read[a.id] ? ' done' : '') + '">' + a.id + '</span><span class="meta"><b>' + esc(a.title) + '</b><span>الصفحات ' + esc(a.pages) + lessonMinTag(a.id) + (P.read[a.id] ? ' · مقروء' : '') + '</span></span><span class="stat">' + (s.done ? 'حللت ' + s.done + ' من ' + s.total + (s.pct != null ? '<br>صحيح ' + s.pct + '٪' : '') : s.total + ' سؤالاً') + '</span></a>';
   });
   return h + '</div>';
 }
@@ -718,7 +741,7 @@ function vLesson(id){
   var l = L[id];
   if (!l) return '<div class="empty"><p>هذا الدرس لم يصل بعد، فهو قيد المراجعة.</p></div>';
   var h = '<a class="back" href="#lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>الدروس</a>';
-  h += '<p class="eyebrow">الدرس ' + l.id + ' · الصفحات ' + esc(l.pages) + '</p><h1 class="l-title">' + esc(l.title) + '</h1><p class="l-intro">' + fmt(l.intro) + '</p>';
+  h += '<p class="eyebrow">الدرس ' + l.id + ' · الصفحات ' + esc(l.pages) + lessonMinTag(l.id) + '</p><h1 class="l-title">' + esc(l.title) + '</h1><p class="l-intro">' + fmt(l.intro) + '</p>';
   h += '<div class="chips toc">';
   l.sections.forEach(function(s, i){ h += '<button class="chip" type="button" data-act="toc" data-i="' + i + '">' + esc(s.h) + '</button>'; });
   h += '</div>';
