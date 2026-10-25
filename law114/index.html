@@ -195,6 +195,11 @@ main{padding-block:1.1rem calc(6.2rem + env(safe-area-inset-bottom,0px));outline
 .setup-group{margin-top:1.1rem}
 .setup-group h3{font-size:.86rem;font-weight:600;color:var(--text-2);margin:0 0 .5rem}
 .avail{margin-top:1rem;font-size:.84rem;color:var(--text-3)}
+.chip .cnt{display:inline-block;margin-inline-start:.35rem;font-size:.72rem;font-weight:500;color:var(--text-3);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"] .cnt{color:var(--text-2)}
+.chip .cnt.full{color:var(--ok)}
+.rnote{margin-top:.9rem;border-color:var(--ok);background:var(--ok-tint)}
+.rnote p{margin:0;line-height:1.8}
 .run-top{display:flex;align-items:center;gap:.8rem}
 .run-top .pos{flex:1;font-size:.86rem;color:var(--text-2);font-variant-numeric:tabular-nums}
 .bar{height:5px;border-radius:999px;background:var(--raised);overflow:hidden;margin:.6rem 0 1rem}
@@ -439,9 +444,9 @@ function nArabic(n, one, two, few, many){ if (n === 1) return one; if (n === 2) 
 
 /* ---------- progress ---------- */
 var KEY = 'mlz2-progress-v1';
-function blank(){ return {v:1, t:0, read:{}, q:{}, c:{}, set:{font:'readex', size:1}}; }
+function blank(){ return {v:1, t:0, read:{}, q:{}, c:{}, rd:{}, set:{font:'readex', size:1}}; }
 var P = blank();
-function adopt(o){ var b = blank(); if (!o || o.v !== 1) return b; b.t = o.t || 0; b.read = o.read || {}; b.q = o.q || {}; b.c = o.c || {}; b.set = Object.assign(b.set, o.set || {}); return b; }
+function adopt(o){ var b = blank(); if (!o || o.v !== 1) return b; b.t = o.t || 0; b.read = o.read || {}; b.q = o.q || {}; b.c = o.c || {}; b.rd = o.rd || {}; b.set = Object.assign(b.set, o.set || {}); return b; }
 try { var raw = localStorage.getItem(KEY); if (raw) P = adopt(JSON.parse(raw)); } catch(e) {}
 function saveLocal(){ try { localStorage.setItem(KEY, JSON.stringify(P)); } catch(e) {} }
 var dbRef = null, writing = false, dirty = false, timer = null, cloudState = 'local';
@@ -488,7 +493,7 @@ function record(id, ok){
       if (r.s >= 2){ r.nb = 0; r.s = 0; r.d = ''; }
     }
   } else { r.nb = 1; r.s = 0; r.d = ''; }
-  P.q[id] = r; touch(); updateBadge(); sendLevel();
+  P.q[id] = r; roundMark(id, ok); touch(); updateBadge(); sendLevel();
   return {r:r, was:before, same:same};
 }
 function nbList(){ return Object.keys(P.q).filter(function(id){ return P.q[id].nb && QBY[id]; }); }
@@ -511,6 +516,61 @@ function levelStats(){
 }
 function lvlBadge(lv){ return '<span class="lvl lvl-' + lv.k + '">' + esc(lv.t) + (lv.pct != null ? ' ' + lv.pct + '٪' : '') + '</span>'; }
 function sendLevel(){ if (!SCH) return; var s = levelStats(); if (!s.n) return; try { SCH.level(CODE, s.c / s.n * 100, s.n); } catch(e){} }
+
+/* ---------- سجل الأسئلة المحلولة وجولاته ----------
+   P.rd[رقم الدرس] = {n: رقم الجولة، s: {معرّف السؤال: 1 إن أصبت و0 إن أخطأت فيه في هذه الجولة}، m: [ما أخطأت فيه في الجولة السابقة]}
+   كل سؤال يُجاب عنه في أي موضع من الموقع يُحسب محلولاً في جولة درسه. وإذا حُلّت أسئلة الدرس كلها بدأت له جولة جديدة يُقدَّم فيها ما أُخطئ فيه.
+   ولا يمسّ هذا دفتر الأخطاء ولا المستوى، فهما يُحسبان من P.q كما كانا. */
+function rdOf(id){
+  var r = P.rd[id];
+  if (r && r.n) return r;
+  r = {n:1, s:{}, m:[]};
+  /* أول مرة: تُبنى الجولة الأولى مما أُجيب عنه قبل هذه الإضافة، وما في دفتر الأخطاء يُعدّ خطأً */
+  (L[id] ? L[id].q : []).forEach(function(q){ var x = P.q[q.id]; if (x && x.n) r.s[q.id] = x.nb ? 0 : 1; });
+  P.rd[id] = r;
+  roundCheck(id);
+  return P.rd[id];
+}
+function roundCheck(id){
+  var r = P.rd[id], qs = L[id] ? L[id].q : [], right = 0, miss = [];
+  if (!r || !qs.length) return null;
+  for (var i = 0; i < qs.length; i++) if (!(qs[i].id in r.s)) return null;
+  qs.forEach(function(q){ if (r.s[q.id]) right++; else miss.push(q.id); });
+  P.rd[id] = {n:r.n + 1, s:{}, m:miss};
+  return {id:id, n:r.n, right:right, total:qs.length};
+}
+function roundMark(qid, ok){
+  var q = QBY[qid]; if (!q) return;
+  rdOf(q.l).s[qid] = ok ? 1 : 0;
+  var done = roundCheck(q.l);
+  if (done && S) (S.rounds = S.rounds || []).push(done);
+}
+function roundStat(id){
+  var r = rdOf(id), tot = 0, did = 0;
+  L[id].q.forEach(function(q){ if (setup.kinds.indexOf(q.k) >= 0){ tot++; if (q.id in r.s) did++; } });
+  return {n:r.n, tot:tot, did:did};
+}
+function roundRestart(id){
+  var r = rdOf(id), miss = [];
+  if (!Object.keys(r.s).length) return false;
+  L[id].q.forEach(function(q){ if (q.id in r.s){ if (!r.s[q.id]) miss.push(q.id); } else if (r.m.indexOf(q.id) >= 0) miss.push(q.id); });
+  P.rd[id] = {n:r.n + 1, s:{}, m:miss};
+  return true;
+}
+/* سحب العشرة والعشرين: ما لم يُحلّ في الجولة أولاً، ويُقدَّم منه في الاختيار ما أُخطئ فيه في الجولة السابقة،
+   ثم يُكمل العدد بما أُخطئ فيه ثم بغيره. وما لم يُحلّ يُعرض قبل التكملة، لتكتمل الجولة قبلها فتُحسب التكملة في الجولة الجديدة. */
+function pickBank(){
+  var all = pool(), take = Math.min(setup.count, all.length), miss = [], fresh = [], wrong = [], rest = [];
+  all.forEach(function(q){
+    var r = rdOf(q.l);
+    if (!(q.id in r.s)) (r.m.indexOf(q.id) >= 0 ? miss : fresh).push(q);
+    else (r.s[q.id] ? rest : wrong).push(q);
+  });
+  var head = shuffle(miss).concat(shuffle(fresh)).slice(0, take);
+  return shuffle(head).concat(shuffle(wrong).concat(shuffle(rest)).slice(0, take - head.length));
+}
+function ordAr(n){ return ['', 'الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'][n] || ('رقم ' + n); }
+function qWord(n){ return nArabic(n, 'سؤال واحد', 'سؤالان', 'أسئلة', 'سؤالاً'); }
 
 /* ---------- settings ---------- */
 function ensureFont(key){
@@ -771,22 +831,36 @@ function pool(){
 }
 function startQuiz(qs, label, ctx){
   if (!qs.length) return;
-  S = {label:label, ctx:ctx || null, checks:{}, items:shuffle(qs.slice()).map(function(q){ return {q:q, order: q.o ? shuffle(q.o.map(function(_, i){ return i; })) : null}; }), i:0, res:[], revealed:false, picked:null, essay:false, last:null};
+  S = {label:label, ctx:ctx || null, checks:{}, items:(ctx && ctx.keep ? qs.slice() : shuffle(qs.slice())).map(function(q){ return {q:q, order: q.o ? shuffle(q.o.map(function(_, i){ return i; })) : null}; }), i:0, res:[], revealed:false, picked:null, essay:false, last:null};
   go('#run');
 }
 function finishQuiz(){ if (S && S.ctx && S.ctx.exit && !S.exitDone){ S.exitDone = true; markLearned(S.ctx.exit); } }
+function cntTag(i){ var st = roundStat(i); return ' <span class="cnt' + (st.tot && st.did >= st.tot ? ' full' : '') + '">' + st.did + ' من ' + st.tot + (st.n > 1 ? ' · الجولة ' + ordAr(st.n) : '') + '</span>'; }
+function availText(n, take){
+  if (!n) return 'لا أسئلة بهذه الاختيارات.';
+  var fresh = 0, prev = 0, other = 0;
+  pool().forEach(function(q){ var r = rdOf(q.l); if (!(q.id in r.s)){ fresh++; if (r.m.indexOf(q.id) >= 0) prev++; } });
+  setup.lessons.forEach(function(i){ if (!L[i]) return; var r = rdOf(i); L[i].q.forEach(function(q){ if (setup.kinds.indexOf(q.k) < 0 && !(q.id in r.s)) other++; }); });
+  var t = 'متاح بهذه الاختيارات ' + qWord(n) + (fresh ? '، منها ' + (fresh === 1 ? 'سؤال واحد لم تحله' : fresh + ' لم تحلها') + ' في الجولة الحالية. ' : '، وقد حللتها كلها في الجولة الحالية. ');
+  if (!setup.count) return t + 'وسيُعرض عليك ' + n + ' بترتيب عشوائي.';
+  if (fresh >= take) t += 'سيُعرض عليك ' + take + ' مما لم تحله' + (prev ? '، ويُقدَّم في الاختيار ما أخطأت فيه في الجولة السابقة' : '') + '.';
+  else if (fresh) t += (fresh === 1 ? 'سيأتيك هذا السؤال أولاً' : 'ستأتيك هذه أولاً') + '، ثم يُكمل العدد إلى ' + take + ' بما أخطأت فيه، ثم بغيره.';
+  else t += 'وسيُعرض عليك ' + take + '، يبدأ بما أخطأت فيه.';
+  if (fresh < take && other) t += ' وبقي في هذه الدروس ' + qWord(other) + ' لم تحلها من أنواع لم تخترها، وتكتمل جولة الدرس حين تحلها.';
+  return t;
+}
 function vSetup(){
   var h = '<div class="stack"><p class="eyebrow">بنك الأسئلة</p><h1 class="h-view">اختبر نفسك</h1></div>';
   if (S && S.i < S.items.length) h += '<div class="card" style="margin-top:.9rem"><p style="margin:0">عندك اختبار لم يكتمل: وصلت إلى السؤال ' + (S.i + 1) + ' من ' + S.items.length + '.</p><a class="btn btn-gold btn-block" style="margin-top:.7rem" href="#run">أكمل الاختبار</a></div>';
-  h += '<div class="setup-group"><h3>الدروس</h3><div class="chips">';
+  h += '<div class="setup-group"><h3>الدروس</h3><p class="avail" style="margin:0 0 .5rem">بجانب كل درس عدد ما حللته من أسئلته في جولته الحالية، من الأنواع المختارة.</p><div class="chips">';
   h += '<button class="chip" type="button" data-act="s-all" aria-pressed="' + (setup.lessons.length === AVAIL.length) + '">كل الدروس</button>';
-  AVAIL.forEach(function(i){ h += '<button class="chip" type="button" data-act="s-les" data-id="' + i + '" aria-pressed="' + (setup.lessons.indexOf(i) >= 0) + '">' + esc(L[i].title) + '</button>'; });
+  AVAIL.forEach(function(i){ h += '<button class="chip" type="button" data-act="s-les" data-id="' + i + '" aria-pressed="' + (setup.lessons.indexOf(i) >= 0) + '">' + esc(L[i].title) + cntTag(i) + '</button>'; });
   h += '</div></div><div class="setup-group"><h3>نوع الأسئلة</h3><div class="chips">';
   ['tf','mcq','fill','essay'].forEach(function(k){ h += '<button class="chip" type="button" data-act="s-kind" data-k="' + k + '" aria-pressed="' + (setup.kinds.indexOf(k) >= 0) + '">' + KIND[k] + '</button>'; });
   h += '</div></div><div class="setup-group"><h3>عدد الأسئلة</h3><div class="chips">';
   [[10,'عشرة'],[20,'عشرون'],[0,'الكل']].forEach(function(c){ h += '<button class="chip" type="button" data-act="s-count" data-n="' + c[0] + '" aria-pressed="' + (setup.count === c[0]) + '">' + c[1] + '</button>'; });
   var n = pool().length, take = setup.count ? Math.min(setup.count, n) : n;
-  h += '</div></div><p class="avail">متاح بهذه الاختيارات ' + n + ' سؤالاً، وسيُعرض عليك ' + take + ' بترتيب عشوائي.</p>';
+  h += '</div></div><p class="avail">' + availText(n, take) + '</p>';
   h += '<button class="btn btn-gold btn-block" type="button" data-act="s-start"' + (n ? '' : ' disabled') + '>ابدأ</button>';
   h += '<button class="btn btn-line btn-block" style="margin-top:.6rem" type="button" data-act="new-essays"' + (setup.lessons.length ? '' : ' disabled') + '>اطلب أسئلة مقالية جديدة من Claude</button><p class="avail" style="margin-top:.4rem">ينسخ طلباً جاهزاً بالدروس المختارة وصفحاتها، تلصقه في محادثة جديدة داخل مشروع المادة.</p>';
   var nbn = nbList().length;
@@ -858,6 +932,9 @@ function answer(ok, picked){
 function vDone(){
   var tot = S.res.length, ok = S.res.filter(function(r){ return r.ok; }).length, h = '';
   h += '<div class="stack"><p class="eyebrow">النتيجة · ' + esc(S.label) + '</p><div class="score"><b>' + ok + '</b><span>من ' + tot + ' إجابة صحيحة</span></div></div>';
+  (S.rounds || []).forEach(function(x){
+    h += '<div class="card rnote"><p>أتممت أسئلة درس «' + esc(title(x.id)) + '» كلها في جولته ' + ordAr(x.n) + '، وكانت إجابتك صحيحة في ' + x.right + ' من ' + x.total + '. ' + (x.right < x.total ? 'وبدأت له جولة جديدة، يُقدَّم فيها ما أخطأت فيه.' : 'ولم تخطئ في شيء منها، وبدأت له جولة جديدة.') + '</p></div>';
+  });
   var wr = S.res.filter(function(r){ return !r.ok; });
   if (wr.length){
     h += '<div class="sec-title"><h2>ما أخطأت فيه</h2></div><div class="wrongs">';
@@ -1028,9 +1105,21 @@ function newEssaysRequest(){
 
 /* ---------- settings sheet ---------- */
 var confirmReset = false;
+var rdPick = null; /* بدء أسئلة درس من جديد: null الزر وحده، و0 اختيار الدرس، أو رقم الدرس، أو 'all' لكل الدروس */
+function rdSettings(){
+  var h = '<h3>بنك الأسئلة</h3><p class="small" style="margin:0 0 .5rem">يحفظ الموقع ما حللته من أسئلة كل درس، ويعرض عليك في العشرة والعشرين ما لم تحله أولاً. وإذا أتممت أسئلة الدرس بدأت له جولة جديدة من تلقاء نفسها، ولك أن تبدأها قبل ذلك من هنا.</p>';
+  if (rdPick === null) return h + '<button class="btn btn-line btn-block" type="button" data-act="rd-open">ابدأ أسئلة درس من جديد</button>';
+  h += '<div class="chips"><button class="chip" type="button" data-act="rd-pick" data-id="all" aria-pressed="' + (rdPick === 'all') + '">كل الدروس</button>';
+  AVAIL.forEach(function(i){ h += '<button class="chip" type="button" data-act="rd-pick" data-id="' + i + '" aria-pressed="' + (rdPick === i) + '">' + esc(L[i].title) + '</button>'; });
+  h += '</div>';
+  if (rdPick) h += '<p class="small" style="margin:.7rem 0 0">سيعود عدّاد ' + (rdPick === 'all' ? 'كل الدروس' : 'درس «' + esc(L[rdPick].title) + '»') + ' إلى الصفر في جولة جديدة، ويُقدَّم فيها ما أخطأت فيه. ولا يُمسّ دفتر الأخطاء ولا مستواك.</p>';
+  else h += '<p class="small" style="margin:.7rem 0 0">اختر الدرس الذي تريد أن تبدأ أسئلته من جديد.</p>';
+  h += '<div class="btn-row" style="margin-top:.6rem"><button class="btn btn-soft" type="button" data-act="rd-yes"' + (rdPick ? '' : ' disabled') + '>ابدأ من جديد</button><button class="btn btn-line" type="button" data-act="rd-no">إلغاء</button></div>';
+  return h;
+}
 function openSheet(){
   Object.keys(FONTS).forEach(ensureFont);
-  confirmReset = false; drawSheet();
+  confirmReset = false; rdPick = null; drawSheet();
   document.getElementById('backdrop').hidden = false;
   var sh = document.getElementById('sheet'); sh.hidden = false;
   var f = sh.querySelector('button'); if (f) f.focus();
@@ -1045,7 +1134,7 @@ function drawSheet(){
   Object.keys(FONTS).forEach(function(k){ var f = FONTS[k]; h += '<button class="fontopt" type="button" data-act="font" data-k="' + k + '" aria-pressed="' + (P.set.font === k) + '"><span class="smp" style="font-family:\'' + f.name + '\',system-ui,sans-serif">الغلط والتغرير والإكراه</span><span class="nm">' + f.label + '</span></button>'; });
   h += '</div><h3>حجم الخط</h3><div class="sizes">';
   [[0,'أصغر'],[1,'متوسط'],[2,'أكبر']].forEach(function(s){ h += '<button type="button" data-act="size" data-s="' + s[0] + '" aria-pressed="' + (P.set.size === s[0]) + '">' + s[1] + '</button>'; });
-  h += '</div><h3>تقدمك</h3>';
+  h += '</div>' + rdSettings() + '<h3>تقدمك</h3>';
   if (!confirmReset) h += '<button class="btn btn-line btn-block danger" type="button" data-act="reset-ask">امسح تقدمي وابدأ من جديد</button>';
   else h += '<p class="small" style="margin:0 0 .5rem">سيُمسح ما علّمته مقروءاً، وإجاباتك، ودفتر الأخطاء، والبطاقات المعروفة. هل أنت متأكد؟</p><div class="btn-row"><button class="btn btn-soft danger" type="button" data-act="reset-yes">نعم، امسح</button><button class="btn btn-gold" type="button" data-act="reset-no">لا، أبقِه</button></div>';
   h += '<p class="saveinfo">' + (cloudState === 'cloud' ? 'يُحفظ تقدمك في حسابك، فيبقى لو فتحت الموقع من جهاز آخر.' : 'يُحفظ تقدمك في هذا الجهاز وهذا المتصفح.') + '</p>';
@@ -1125,7 +1214,7 @@ var ACT = {
   's-les': function(el){ var id = +el.getAttribute('data-id'), i = setup.lessons.indexOf(id); if (i >= 0) setup.lessons.splice(i, 1); else setup.lessons.push(id); render(true); },
   's-kind': function(el){ var k = el.getAttribute('data-k'), i = setup.kinds.indexOf(k); if (i >= 0) setup.kinds.splice(i, 1); else setup.kinds.push(k); render(true); },
   's-count': function(el){ setup.count = +el.getAttribute('data-n'); render(true); },
-  's-start': function(){ var qs = shuffle(pool()); if (setup.count) qs = qs.slice(0, setup.count); var names = setup.lessons.length === AVAIL.length ? 'كل الدروس' : setup.lessons.map(function(i){ return L[i].title; }).join('، '); startQuiz(qs, names); },
+  's-start': function(){ var qs = setup.count ? pickBank() : shuffle(pool()); var names = setup.lessons.length === AVAIL.length ? 'كل الدروس' : setup.lessons.map(function(i){ return L[i].title; }).join('، '); startQuiz(qs, names, setup.count ? {keep:true} : null); },
   'nb-practice': function(){ startQuiz(nbList().map(function(id){ return QBY[id]; }), 'دفتر الأخطاء'); },
   'q-opt': function(el){ if (S.revealed) return; var j = +el.getAttribute('data-j'), it = S.items[S.i]; answer(it.order[j] === it.q.a, j); },
   'q-tf': function(el){ if (S.revealed) return; var v = el.getAttribute('data-v') === '1'; answer(v === S.items[S.i].q.a, v); },
@@ -1143,6 +1232,18 @@ var ACT = {
   'c-reset': function(){ cardLessons.forEach(function(i){ if (L[i]) L[i].c.forEach(function(c){ delete P.c[c.id]; }); }); touch(); buildDeck(); render(true); },
   'font': function(el){ P.set.font = el.getAttribute('data-k'); touch(); applySettings(); drawSheet(); },
   'size': function(el){ P.set.size = +el.getAttribute('data-s'); touch(); applySettings(); drawSheet(); },
+  'rd-open': function(){ rdPick = 0; drawSheet(); },
+  'rd-pick': function(el){ var v = el.getAttribute('data-id'); rdPick = v === 'all' ? 'all' : +v; drawSheet(); },
+  'rd-no': function(){ rdPick = null; drawSheet(); },
+  'rd-yes': function(){
+    if (!rdPick) return;
+    var ids = rdPick === 'all' ? AVAIL : [rdPick], did = 0;
+    ids.forEach(function(i){ if (roundRestart(i)) did++; });
+    rdPick = null;
+    if (did){ touch(); toast(ids.length > 1 ? 'بدأت جولة جديدة لكل درس حللت فيه شيئاً.' : 'بدأت جولة جديدة لهذا الدرس.'); }
+    else toast('لم تحل شيئاً في الجولة الحالية، فلا حاجة إلى البدء من جديد.');
+    drawSheet(); render(true);
+  },
   'reset-ask': function(){ confirmReset = true; drawSheet(); },
   'reset-no': function(){ confirmReset = false; drawSheet(); },
   'reset-yes': function(){ var s = P.set; P = blank(); P.set = s; touch(); confirmReset = false; deck = null; S = null; updateBadge(); drawSheet(); render(true); },
