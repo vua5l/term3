@@ -32,6 +32,7 @@
   var TOL = 10;             // ويجوز تجاوز النصيب بعشر دقائق حتى لا يُقطع درس
   var BURST_MS = 60000;     // علامات الإنجاز المتلاحقة في أقل من دقيقة دفعة واحدة
   var CAL_MIN = 4, CAL_KEEP = 15; // لا يُصحَّح تقدير مادة قبل أربع عينات، ويُعتمد آخر خمس عشرة
+  var DAY_START = 7;        // يبدأ يوم الجدول في السابعة صباحاً، فالسهر بعد منتصف الليل يُحسب لليوم السابق
   var SPECIAL = { _review: 'مراجعة شاملة بالتسميع', _eve: 'ليلة الاختبار: تسميع البطاقات وورقة الليلة الأخيرة' };
   var KINDS = { learn: 1, recall: 1, review: 1, eve: 1 };
 
@@ -65,7 +66,15 @@
   function parseISO(s) { var p = String(s).slice(0, 10).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function addDays(s, n) { var d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); }
   function diffDays(a, b) { return Math.round((parseISO(b) - parseISO(a)) / 86400000); } // b - a
-  function todayISO() { return iso(new Date()); }
+  /* يوم الجدول لوقتٍ ما: ما قبل السابعة صباحاً من اليوم السابق */
+  function dayOf(t) { var d = new Date(t); if (d.getHours() < DAY_START) d.setDate(d.getDate() - 1); return iso(d); }
+  function todayISO() { return dayOf(Date.now()); }
+  /* يوم العلامة من مفتاحها (الدرس|اليوم). وما سُجّل بين منتصف الليل والسابعة قبل أن يبدأ اليوم في السابعة
+     كُتب بتاريخ اليوم الجديد، فيُعاد إلى يومه، والعلامات الجديدة لا يمسّها هذا لأن تاريخها يوم الجدول */
+  function markDay(k, m) {
+    var d = k.slice(k.lastIndexOf('|') + 1), t = m && m.t > 0 ? new Date(m.t) : null;
+    return t && t.getHours() < DAY_START && iso(t) === d ? addDays(d, -1) : d;
+  }
 
   /* ---------- GitHub ---------- */
   function gh(method, path, body, keepalive) {
@@ -193,8 +202,9 @@
     if (!rec || !rec.marks) return out;
     Object.keys(rec.marks).forEach(function (k) {
       var m = rec.marks[k]; if (!m || !m.on) return;
-      var i = k.lastIndexOf('|'), id = k.slice(0, i), d = k.slice(i + 1);
-      (out[id] = out[id] || []).push(d);
+      var id = k.slice(0, k.lastIndexOf('|')), d = markDay(k, m);
+      out[id] = out[id] || [];
+      if (out[id].indexOf(d) < 0) out[id].push(d);
     });
     Object.keys(out).forEach(function (id) { out[id].sort(); });
     return out;
@@ -241,8 +251,8 @@
       var rec = marksBy[c]; if (!rec || !rec.marks) return;
       Object.keys(rec.marks).forEach(function (k) {
         var m = rec.marks[k]; if (!m || !m.on || !(m.t > 0)) return;
-        var i = k.lastIndexOf('|'), d = k.slice(i + 1);
-        if (d < today) ev.push({ c: c, id: k.slice(0, i), d: d, t: m.t });
+        var d = markDay(k, m);
+        if (d < today) ev.push({ c: c, id: k.slice(0, k.lastIndexOf('|')), d: d, t: m.t });
       });
     });
     ev.sort(function (a, b) { return a.t - b.t; });
@@ -638,9 +648,16 @@
   }
 
   function mark(code, lessonId, on, kind, date) {
-    var k = lessonId + '|' + (date || todayISO());
+    var day = date || todayISO(), k = lessonId + '|' + day, now = Date.now();
     var rec = { v: 1, marks: {} };
-    rec.marks[k] = { on: on ? 1 : 0, t: Date.now(), k: kind || '' };
+    rec.marks[k] = { on: on ? 1 : 0, t: now, k: kind || '' };
+    if (!on) { // والإلغاء يشمل علامة الدرس التي كُتبت بتاريخ الغد وهي لهذا اليوم (انظر markDay)
+      var cur = (marksStore(code).local() || {}).marks || {};
+      Object.keys(cur).forEach(function (x) {
+        if (x !== k && cur[x] && cur[x].on && x.slice(0, x.lastIndexOf('|')) === lessonId && markDay(x, cur[x]) === day)
+          rec.marks[x] = { on: 0, t: now, k: '' };
+      });
+    }
     var p = marksStore(code).put(rec);
     refreshFromLocal();
     return p;

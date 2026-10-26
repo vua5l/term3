@@ -36,7 +36,7 @@
   function parseISO(s) { var p = String(s).slice(0, 10).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function addDays(s, n) { var d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); }
   function diffDays(a, b) { return Math.round((parseISO(b) - parseISO(a)) / 86400000); }
-  function todayISO() { return (state && state.today) || iso(new Date()); }
+  function todayISO() { return (state && state.today) || (S && S.todayISO ? S.todayISO() : iso(new Date())); } // يوم الجدول يبدأ في السابعة صباحاً
 
   /* الأعداد على قواعد العربية */
   function unit(n, one, two, few, many) { if (n === 1) return one; if (n === 2) return two; return n + ' ' + (n >= 3 && n <= 10 ? few : many); }

@@ -594,6 +594,7 @@ function applySettings(){
 var AR_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 var AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 function riyadhToday(){
+  try { if (SCH && SCH.todayISO) return SCH.todayISO(); } catch(e){}   /* يوم الجدول: يبدأ في السابعة صباحاً */
   try { return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Riyadh', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date()); }
   catch(e){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 }
