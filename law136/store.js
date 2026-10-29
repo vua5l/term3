@@ -7,6 +7,7 @@
        learn[معرّف الدرس] { v: 1 تعلّمته أو 0، t }
        exit[معرّف الدرس]  { pass اجتاز تسميع الخروج، pct نسبة آخر محاولة، day يوم آخر محاولة، via، t }
        bank[معرّف الفصل]  { r الجولة، cur ما حُلّ فيها {معرّف السؤال: 1 صواب أو 0 خطأ}، prev نتائج الجولة السابقة، last نتيجة آخر جولة، t }
+       cell[معرّف الخانة] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لسؤال الخانة، ولا يدخل المستوى ولا دفتر الأخطاء
    - بين الجهاز والمستودع يُجمع التقدم مدخلاً مدخلاً بالأحدث، فلا يضيع ما أُنجز في أحدهما.
    - التفضيلات (النهار والليل وما يشبهه) لهذا الجهاز وحده، ولا تُرفع. */
 (function () {
@@ -14,9 +15,9 @@
   var C = window.LAW136_CONFIG || {};
   var KEY = C.storageKey || 'law136-v1';
   var PREFS = KEY + '-prefs';
-  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank'];
+  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell'];
 
-  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {} }; }
+  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {} }; }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
   function norm(s) {
     var o = fresh(); if (!isObj(s)) return o;
@@ -52,7 +53,7 @@
     if (!m.last && o.last) m.last = clone(o.last);
     return m;
   }
-  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank };
+  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ };
   function merge(a, b) {
     a = norm(a); b = norm(b);
     if (a.base !== b.base) return clone(b.base > a.base ? b : a); // «البدء من جديد» في جهاز يغلب ما قبله

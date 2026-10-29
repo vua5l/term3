@@ -452,5 +452,21 @@ html.map-open,html.map-open body{overflow:hidden}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;max-width:calc(100% - 32px);padding:10px 16px;border-radius:999px;background:var(--pill);color:var(--pill-ink);font-family:var(--f-ui);font-size:.84rem;line-height:1.6;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .noscript{padding:24px;text-align:center}
 
+/* ---------- سؤال الخانة ---------- */
+.cmp-acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;flex-shrink:0;max-width:52%}
+.cell-tbl{margin:0;font-size:.8rem;color:var(--ink-2);line-height:1.7}
+.cell-box{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;background:var(--quote);border-inline-start:3px solid var(--accent)}
+.cell-asp{font-size:.74rem;font-weight:700;color:var(--accent);line-height:1.6}
+.cell-x{margin:0;font-size:1.02rem;font-weight:700;line-height:1.9}
+.cell-row{margin:0;display:flex;flex-direction:column;gap:6px}
+.cell-row > div{display:grid;grid-template-columns:minmax(84px,34%) minmax(0,1fr);gap:10px;align-items:start;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2)}
+.cell-row > div.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.cell-row dt{font-size:.78rem;font-weight:700;line-height:1.7}
+.cell-row dd{margin:0;font-size:.86rem;line-height:1.8}
+.cell-miss{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.cell-miss li{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.cell-mx{font-size:.88rem;line-height:1.8}
+.cell-miss b{font-size:.84rem;color:var(--ok)}
+
 @media (min-width:700px){ .fc-q{font-size:1.3rem} }
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }

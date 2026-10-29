@@ -8,6 +8,7 @@
    مهام الجدول: recallHTML، reviewHTML، eveHTML. البطاقات: deckHTML، cardsBrowser.
    البنك: objSetup، bankPick، bankMark، closeRound. المقالي: essaySetup، essayMessage، newEssaysRequest.
    دفتر الأخطاء: record، nbHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
+   سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
    الخرائط: openMap، drawEdges، mapFit. الإعدادات: openSettings. التنقل: parseHash، route. */
 (function () {
 'use strict';
@@ -44,7 +45,8 @@ var W = {
   ess: ['سؤال مقالي واحد', 'سؤالان مقاليان', 'أسئلة مقالية', 'سؤالاً مقالياً', 'سؤالين مقاليين', 'لا أسئلة مقالية'],
   card: ['بطاقة واحدة', 'بطاقتان', 'بطاقات', 'بطاقة', 'بطاقتين', 'لا بطاقات'],
   ans: ['إجابة واحدة', 'إجابتان', 'إجابات', 'إجابة', 'إجابتين', 'لا إجابات'],
-  day: ['يوم واحد', 'يومان', 'أيام', 'يوماً', 'يومين', 'لا أيام']
+  day: ['يوم واحد', 'يومان', 'أيام', 'يوماً', 'يومين', 'لا أيام'],
+  cell: ['خانة واحدة', 'خانتان', 'خانات', 'خانة', 'خانتين', 'لا خانات']
 };
 function countWord(n, f, gen) {
   n = Math.round(+n || 0);
@@ -91,6 +93,32 @@ var CHS = [], CH = {}, LES = [], LBY = {}, Q = {}, QL = [], E = {}, EL = [], K =
     c.night = c.night.filter(function (x) { return x && x.x; });
   });
 })();
+/* سؤال الخانة: كل خانة في جداول المقارنة يُسأل لأيّ عمود هي. وتُترك الخانة الفارغة، والمكررة في صفها
+   لأن لها جوابين، والتي فيها اسم عمودها لأنها تكشف جوابها. ومعرّفها <الجدول>:<الصف>:<العمود> */
+var CELLS = [], CBY = {};
+(function buildCells() {
+  function nz(s) {
+    return String(s == null ? '' : s).replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+      .replace(/[^ء-يA-Za-z0-9]+/g, ' ').trim();
+  }
+  TB.forEach(function (t) {
+    var cols = arr(t.cols); if (cols.length < 3) return;
+    arr(t.rows).forEach(function (r, ri) {
+      r = arr(r);
+      var vals = cols.map(function (_, ci) { return ci ? nz(r[ci]) : ''; });
+      for (var ci = 1; ci < cols.length; ci++) {
+        var v = vals[ci], hd = nz(cols[ci]);
+        if (v.length < 3 || !hd) continue;
+        if (vals.some(function (x, j) { return j > 0 && j !== ci && x === v; })) continue;
+        if ((' ' + v + ' ').indexOf(' ' + hd + ' ') > -1) continue;
+        var c = { id: t.id + ':' + ri + ':' + ci, t: t, ri: ri, ci: ci, aspect: String(r[0] == null ? '' : r[0]), x: String(r[ci]).trim(), ch: t.ch };
+        CELLS.push(c); CBY[c.id] = c;
+      }
+    });
+  });
+})();
+function cellsOf(chId) { return CELLS.filter(function (c) { return c.ch.id === chId; }); }
+function tableCells(tid) { return CELLS.filter(function (c) { return c.t.id === tid; }); }
 function chLabel(c) { return c ? (c.title ? c.title + ': ' : '') + c.name : ''; }
 function chShort(c) { return String(c.title || c.id).replace(/^الفصل\s+/, '') || c.title; }
 function chBar(act, cur, withAll, extra) {
@@ -133,7 +161,7 @@ function calibFactor() { var c = INFO && INFO.all && INFO.all.calib && INFO.all.
 function lesMin(l) { return Math.max(1, Math.round((+l.minutes || 1) * calibFactor())); }
 function taskMin(k) { return +k.minutes > 0 ? +k.minutes : Math.round((+k.units || 0) * 25); }
 function todayTask(lid) { var t = INFO && INFO.today || [], i; for (i = 0; i < t.length; i++) if (t[i].lesson === lid) return t[i]; return null; }
-function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length); }
+function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length) || (screen === 'cells' && CQ && CQ.i < CQ.ids.length); }
 function onInfo(info) { if (!gotSchedule(info)) return; INFO = info; if (!busy()) render(); else updateBadge(); }
 function initSchedule() {
   if (!SCH) return;
@@ -236,6 +264,17 @@ function bankPick(chIds, count) {
   return tiers[0].concat(tiers[1], tiers[2], tiers[3], tiers[4]).slice(0, count).map(function (q) { return q.id; });
 }
 
+/* سؤال الخانة: يُقدَّم ما أخطأت فيه آخر مرة، ثم ما لم تُسأل عنه، ثم الباقي وأقلّه صواباً أولاً */
+function cellRec(id) { var r = S.cell && S.cell[id]; return r && typeof r === 'object' ? r : null; }
+function cellWeight(c) { var r = cellRec(c.id); if (!r) return 1; if (+r.w) return 0; return 2 + (+r.n ? (+r.c || 0) / +r.n : 0); }
+function cellPick(list, count) { var a = shuffle(list).sort(function (x, y) { return cellWeight(x) - cellWeight(y); }); return count ? a.slice(0, count) : a; }
+function cellRecord(id, ok) {
+  if (!S.cell || typeof S.cell !== 'object') S.cell = {};
+  var r = cellRec(id) || {};
+  S.cell[id] = { n: (+r.n || 0) + 1, c: (+r.c || 0) + (ok ? 1 : 0), w: ok ? 0 : 1, t: now() };
+  ST.save();
+}
+
 /* ---------- تسميع الخروج: أسئلة الدرس الموضوعية كلها، والنجاح بـ75%، ولا يُعاد في يوم المحاولة ---------- */
 var PASS = 75;
 function exitNeeded(l) { return !!(l && l.objective.length); }
@@ -328,11 +367,12 @@ function newEssaysRequest(ls) {
 var screen = 'home', arg = null;
 var quiz = null;   /* { ids, i, picked, results, label, mode, les, order, lastRes, fin } */
 var DECK = null;   /* { ids, i, flip, title, back, then, les } */
+var CQ = null;     /* سؤال الخانة: { ids, i, picked, res, label, back, src, order } */
 var RSTEP = {};    /* خطوة البطاقات منتهية في هذه الجلسة، لكل مهمة */
 var bankKind = 'obj', objSel = null, objCount = 10, essaySel = null;
 var sumCh = null, revSub = 'cards', cardFilter = { ch: 'all', les: 'all', hideKnown: false };
 var armed = null;
-var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan' };
+var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan' };
 
 function render() {
   var tb = TAB_OF[screen] || 'home';
@@ -348,6 +388,7 @@ function render() {
     else if (screen === 'eve') h = eveHTML();
     else if (screen === 'quiz') h = quiz ? runHTML() : bankHTML();
     else if (screen === 'nb') h = nbHTML();
+    else if (screen === 'cells') { if (!CQ) bankKind = 'cells'; h = CQ ? cellsHTML() : bankHTML(); }
     else if (screen === 'deck') h = DECK ? deckHTML() : revHTML();
     else if (screen === 'rev') h = revHTML();
     else h = homeHTML();
@@ -752,7 +793,7 @@ function selInit() {
   if (!objSel) { var o = ST.pref('objSel'); objSel = Array.isArray(o) ? o.filter(function (id) { return CH[id]; }) : []; if (!objSel.length) objSel = CHS.map(function (c) { return c.id; }); }
   if (!essaySel) { var e = ST.pref('essaySel'); essaySel = {}; if (Array.isArray(e) && e.length) e.forEach(function (id) { if (LBY[id]) essaySel[id] = 1; }); else LES.forEach(function (l) { essaySel[l.id] = 1; }); }
   var oc = ST.pref('objCount'); if (oc === 10 || oc === 20 || oc === 0) objCount = oc;
-  var bk = ST.pref('bankKind'); if (bk === 'obj' || bk === 'essay') bankKind = bk;
+  var bk = ST.pref('bankKind'); if (bk === 'obj' || bk === 'essay' || bk === 'cells') bankKind = bk;
 }
 function saveSel() { ST.setPref('objSel', objSel); ST.setPref('essaySel', Object.keys(essaySel).filter(function (k) { return essaySel[k]; })); ST.setPref('objCount', objCount); ST.setPref('bankKind', bankKind); }
 function roundBanner() {
@@ -803,11 +844,31 @@ function bankHTML() {
   selInit();
   var mk = mistakes().length;
   return '<div class="block-head"><h2>بنك الأسئلة</h2><span class="chip">' + countWord(QL.length, W.q) + ' · ' + countWord(EL.length, W.ess) + '</span></div>' +
-    '<div class="seg" role="group" aria-label="نوع الاختبار"><button type="button" data-act="bank-kind" data-k="obj" aria-pressed="' + (bankKind === 'obj') + '">اختبار موضوعي</button><button type="button" data-act="bank-kind" data-k="essay" aria-pressed="' + (bankKind === 'essay') + '">اختبار مقالي</button></div>' +
+    '<div class="seg" role="group" aria-label="نوع الاختبار"><button type="button" data-act="bank-kind" data-k="obj" aria-pressed="' + (bankKind === 'obj') + '">اختبار موضوعي</button><button type="button" data-act="bank-kind" data-k="essay" aria-pressed="' + (bankKind === 'essay') + '">اختبار مقالي</button>' +
+      (CELLS.length ? '<button type="button" data-act="bank-kind" data-k="cells" aria-pressed="' + (bankKind === 'cells') + '">سؤال الخانة</button>' : '') + '</div>' +
     (bankKind === 'obj' ? '<p class="muted small p0">صح وخطأ، واختيار من متعدد، وضع الكلمة الصحيحة، من فصل واحد أو أكثر.</p>' + roundBanner() + objSetup() +
       '<section class="card"><div class="block-head"><h3>دفتر الأخطاء</h3><span class="chip">' + countWord(mk, W.q) + '</span></div><p class="muted small p0">يدخله كل سؤال موضوعي أخطأت فيه، ويخرج منه بعد إجابتين صحيحتين في يومين مختلفين.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>'
-    : essaySetup());
+    : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup());
+}
+function cellsSetup() {
+  var pool = 0;
+  objSel.forEach(function (id) { if (CH[id]) pool += cellsOf(id).length; });
+  var n = objCount ? Math.min(objCount, pool) : pool, going = CQ && CQ.i < CQ.ids.length;
+  return '<p class="muted small p0">يعرض لك الموقع خانة من جداول المقارنة، فتختار لأيّ عمود هي، ثم يكشف لك الصف كاملاً. يُقدَّم ما أخطأت فيه آخر مرة، ولا يدخل المستوى ولا دفتر الأخطاء.</p>' +
+    (going ? '<section class="card tight"><p class="fin-msg">عندك جولة جارية: ' + esc(CQ.label) + '، أجبت عن ' + CQ.res.length + ' من ' + CQ.ids.length + '.</p><button type="button" class="btn wide" data-go="#cells">أكملها</button></section>' : '') +
+    '<section class="card">' +
+    '<div class="field"><span class="f-l">الفصول</span><div class="pick full" role="group" aria-label="الفصول">' + CHS.map(function (c) {
+      var k = cellsOf(c.id).length;
+      return '<button type="button" data-act="pick-ch" data-ch="' + c.id + '" aria-pressed="' + (objSel.indexOf(c.id) > -1) + '"' + (k ? '' : ' disabled') + '><b>' + esc(c.title) + '</b><small>' + esc(c.name) + '</small>' +
+        '<small class="rd">' + countWord(k, W.cell) + ' في ' + countWord(c.tables.length, ['جدول واحد', 'جدولان', 'جداول', 'جدولاً', 'جدولين', 'لا جداول']) + '</small></button>';
+    }).join('') + '</div></div>' +
+    '<div class="field"><span class="f-l">عدد الخانات</span><div class="seg" role="group" aria-label="عدد الخانات">' +
+      [10, 20, 0].map(function (x) { return '<button type="button" data-act="pick-count" data-n="' + x + '" aria-pressed="' + (objCount === x) + '">' + (x ? x : 'الكل') + '</button>'; }).join('') +
+    '</div></div>' +
+    '<button type="button" class="btn wide" data-act="cells-start"' + (n ? '' : ' disabled') + '>ابدأ: ' + (n ? countWord(n, W.cell) : 'اختر فصلاً') + '</button>' +
+    '<p class="muted small p0">وتجده أيضاً في كل جدول مقارنة بزر «سؤال الخانة» لتختبر نفسك في خانات ذلك الجدول وحده.</p>' +
+  '</section>';
 }
 function startQuiz(ids, label, mode, les) {
   ids = ids.filter(function (id) { return Q[id]; });
@@ -904,6 +965,65 @@ function resultHTML() {
     '<div class="row">' + nav + '</div>';
 }
 
+/* ---------- سؤال الخانة ---------- */
+function startCells(list, label, back, src) {
+  if (!list.length) { toast('لا خانات هنا'); return; }
+  CQ = { ids: list.map(function (c) { return c.id; }), i: 0, picked: null, res: [], label: label, back: back || '#quiz', src: src || null, order: {} };
+  go('#cells');
+}
+function cellsAgain() {
+  var s = CQ && CQ.src, back = CQ ? CQ.back : '#quiz';
+  if (s && s.k === 'tbl') { var tc = tableCells(s.id); if (tc.length) { startCells(cellPick(tc, 0), CQ.label, back, s); return; } }
+  if (s && s.k === 'chs') {
+    var cs = CELLS.filter(function (c) { return s.chs.indexOf(c.ch.id) > -1; });
+    if (cs.length) { startCells(cellPick(cs, s.n), CQ.label, back, s); return; }
+  }
+  CQ = null; bankKind = 'cells'; go('#quiz');
+}
+function cellsHTML() {
+  if (CQ.i >= CQ.ids.length) return cellsResultHTML();
+  var c = CBY[CQ.ids[CQ.i]];
+  if (!c) { CQ.i++; return cellsHTML(); }
+  var t = c.t, cols = arr(t.cols), row = arr(arr(t.rows)[c.ri]), n = CQ.ids.length, answered = CQ.picked !== null;
+  if (!CQ.order[c.id]) CQ.order[c.id] = shuffle(cols.map(function (_, i) { return i; }).slice(1));
+  var h = '<div class="block-head"><h2>' + esc(CQ.label) + '</h2><button type="button" class="link" data-act="cell-quit">إنهاء</button></div>' +
+    '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * CQ.i / n) + '%"></div></div><span class="n">' + (CQ.i + 1) + ' من ' + n + '</span></div>' +
+    '<div class="chips"><span class="chip">سؤال الخانة</span><span class="chip">' + esc(c.ch.title) + '</span>' + pg(t.pg) + '</div>';
+  var b = '<p class="cell-tbl">' + esc(t.title) + '</p>' +
+    '<div class="cell-box"><span class="cell-asp">' + esc(c.aspect) + '</span><p class="cell-x">' + esc(c.x) + '</p></div>' +
+    '<p class="q-text">لأيّها هذه الخانة؟</p>' +
+    '<div class="opts">' + CQ.order[c.id].map(function (ci, k) {
+      var cls = 'opt';
+      if (answered) { if (ci === c.ci) cls += ' is-right'; else if (ci === CQ.picked) cls += ' is-wrong'; }
+      return '<button type="button" class="' + cls + '" data-act="cell-answer" data-v="' + ci + '"' + (answered ? ' disabled' : '') + '><span class="k">' + 'أبجده'.charAt(k) + '</span><span>' + esc(cols[ci]) + '</span></button>';
+    }).join('') + '</div>';
+  if (answered) {
+    var ok = CQ.res[CQ.res.length - 1];
+    b += '<p class="verdict ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'إجابة صحيحة' : 'إجابة خاطئة، والصواب: ' + esc(cols[c.ci])) + '</p>' +
+      '<p class="sec-title p0">الصف كاملاً: ' + esc(c.aspect) + '</p>' +
+      '<dl class="cell-row">' + cols.map(function (cn, ci) {
+        if (!ci) return '';
+        var v = row[ci] == null || String(row[ci]).trim() === '' ? '—' : row[ci];
+        return '<div' + (ci === c.ci ? ' class="on"' : '') + '><dt>' + esc(cn) + '</dt><dd>' + esc(v) + '</dd></div>';
+      }).join('') + '</dl>' +
+      (t.core ? '<p class="why"><b>الفرق الجوهري:</b> ' + esc(t.core) + '</p>' : '') +
+      '<div class="row"><button type="button" class="btn" data-act="cell-next">' + (CQ.i + 1 < n ? 'الخانة التالية' : 'النتيجة') + '</button></div>';
+  }
+  return h + '<section class="card">' + b + '</section>';
+}
+function cellsResultHTML() {
+  var n = CQ.res.length, right = CQ.res.filter(Boolean).length, pct = n ? Math.round(100 * right / n) : 0;
+  var wrong = CQ.ids.slice(0, n).filter(function (id, i) { return !CQ.res[i] && CBY[id]; }).map(function (id) { return CBY[id]; });
+  return '<div class="block-head"><h2>النتيجة</h2><span class="chip">' + esc(CQ.label) + '</span></div>' +
+    '<section class="card"><div class="score">' + pct + '%</div>' +
+    '<p class="muted p0">' + right + ' صحيحة من ' + n + (n < CQ.ids.length ? ' (أنهيت قبل آخر الخانات)' : '') + '</p>' +
+    (wrong.length ? '<p class="sec-title">ما أخطأت فيه، ويُقدَّم في المرة القادمة</p><ul class="cell-miss">' + wrong.map(function (c) {
+      return '<li><span class="cell-asp">' + esc(c.t.title) + ' · ' + esc(c.aspect) + '</span><span class="cell-mx">' + esc(c.x) + '</span><b>' + esc(arr(c.t.cols)[c.ci]) + '</b></li>';
+    }).join('') + '</ul>' : (n ? '<p class="fin-msg ok">أصبت في الخانات كلها.</p>' : '')) +
+    '</section>' +
+    '<div class="row"><button type="button" class="btn" data-act="cell-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="cell-quit">رجوع</button></div>';
+}
+
 /* دفتر الأخطاء */
 var nbCh = 'all';
 function nbHTML() {
@@ -948,7 +1068,9 @@ function revHTML() {
 /* ---------- جداول المقارنة: كاملة مصغّرة على الجوال، وتُكبَّر بإصبعين أو بالزرين، ووضع اختبار ---------- */
 function cmpHTML(t) {
   var cols = arr(t.cols), rows = arr(t.rows);
-  return '<section class="cmp" id="t-' + esc(t.id) + '"><div class="cmp-top"><h4>' + esc(t.title) + pg(t.pg) + expChip(t) + '</h4><button type="button" class="mini" data-act="cmp-test" aria-pressed="false">اختبر نفسي</button></div>' +
+  var askable = tableCells(t.id).length;
+  return '<section class="cmp" id="t-' + esc(t.id) + '"><div class="cmp-top"><h4>' + esc(t.title) + pg(t.pg) + expChip(t) + '</h4><span class="cmp-acts"><button type="button" class="mini" data-act="cmp-test" aria-pressed="false">اختبر نفسي</button>' +
+    (askable ? '<button type="button" class="mini" data-act="cells-table" data-t="' + esc(t.id) + '">سؤال الخانة</button>' : '') + '</span></div>' +
     '<div class="zf"><table class="cmp-t"><thead><tr>' + cols.map(function (c) { return '<th scope="col">' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
     rows.map(function (r) { r = arr(r); return '<tr>' + cols.map(function (_, i) { var c = r[i] == null ? '' : r[i]; return i === 0 ? '<th scope="row">' + esc(c) + '</th>' : '<td data-act="cell">' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') +
     (t.core ? '<tr class="core"><th scope="row">الفرق الجوهري</th><td data-act="cell" colspan="' + Math.max(1, cols.length - 1) + '">' + esc(t.core) + '</td></tr>' : '') +
@@ -1214,7 +1336,7 @@ document.getElementById('setBtn').addEventListener('click', openSettings);
 function parseHash() {
   var h = (location.hash || '').replace(/^#/, ''), m;
   if (!h || h === 'home') return ['home'];
-  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb'].indexOf(h) > -1) return [h];
+  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells'].indexOf(h) > -1) return [h];
   if ((m = /^l-(\d+)$/.exec(h))) return ['lesson', +m[1]];
   if ((m = /^r-(\d+)$/.exec(h))) return ['recall', +m[1]];
   if (h === 'deck') return [DECK ? 'deck' : 'rev'];
@@ -1225,6 +1347,7 @@ function route() {
   var p = parseHash(); screen = p[0]; arg = p[1] || null;
   /* اختبار انتهى: يُعرض بعده البنك لا النتيجة القديمة */
   if (quiz && quiz.i >= quiz.ids.length) quiz = null;
+  if (CQ && screen !== 'cells' && CQ.i >= CQ.ids.length) CQ = null;
   render(); window.scrollTo(0, 0);
 }
 function go(h) { if (location.hash === h) route(); else location.hash = h; }
@@ -1324,6 +1447,30 @@ view.addEventListener('click', function (e) {
       var md = quiz.mode, ql = LBY[quiz.les]; quiz = null; go(quitDest(md, ql)); return;
     }
     case 'new-quiz': quiz = null; render(); window.scrollTo(0, 0); return;
+    case 'cells-start': {
+      var cChs = CHS.filter(function (x) { return objSel.indexOf(x.id) > -1 && cellsOf(x.id).length; });
+      var cPool = CELLS.filter(function (x) { return cChs.some(function (y) { return y.id === x.ch.id; }); });
+      var cAll = CHS.filter(function (x) { return cellsOf(x.id).length; }).length;
+      var cLbl = cChs.length === cAll ? 'الفصول كلها' : cChs.length === 1 ? cChs[0].title : 'الفصول: ' + cChs.map(chShort).join('، ');
+      startCells(cellPick(cPool, objCount), 'سؤال الخانة: ' + cLbl, '#quiz', { k: 'chs', chs: cChs.map(function (x) { return x.id; }), n: objCount });
+      return;
+    }
+    case 'cells-table': {
+      var cTid = el.getAttribute('data-t'), cList = tableCells(cTid);
+      if (cList.length) startCells(cellPick(cList, 0), 'سؤال الخانة', location.hash || '#rev', { k: 'tbl', id: cTid });
+      return;
+    }
+    case 'cell-answer': {
+      if (!CQ || CQ.picked !== null || CQ.i >= CQ.ids.length) return;
+      var cCell = CBY[CQ.ids[CQ.i]], cV = +el.getAttribute('data-v'), cOk = !!cCell && cV === cCell.ci;
+      CQ.picked = cV; CQ.res.push(cOk); if (cCell) cellRecord(cCell.id, cOk);
+      render();
+      var cVd = view.querySelector('.verdict'); if (cVd && cVd.getBoundingClientRect().bottom > window.innerHeight - 70) cVd.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    case 'cell-next': if (CQ) { CQ.i++; CQ.picked = null; } render(); window.scrollTo(0, 0); return;
+    case 'cell-again': cellsAgain(); return;
+    case 'cell-quit': { var cBack = CQ ? CQ.back : '#quiz'; CQ = null; go(cBack === '#cells' ? '#quiz' : cBack); return; }
     case 'nb-ch': nbCh = ch; render(); return;
     case 'start-nb': { var list = mistakes(nbCh === 'all' ? null : nbCh); startQuiz(shuffle(list.map(function (x) { return x.id; })), 'دفتر الأخطاء', 'nb'); return; }
     case 'rev-sub': revSub = el.getAttribute('data-sub'); ST.setPref('revSub', revSub); render(); return;
