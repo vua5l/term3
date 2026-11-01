@@ -11,9 +11,10 @@ Book: «النظام السياسي والدستوري للمملكة العرب
 - Automatic pre-check: `/home/claude/work/reviews/auto-cN.txt` — validator warnings (a verbatim quote not found in the transcription, a possible date). A first screen, not a verdict.
 
 ## Method
-1. Read the automatic pre-check, then go through the review copy lesson by lesson with the page images of that lesson open (Read the images of the lesson's pages).
-2. Every item marked «نص حرفي» (verbatim definitions and quotes) must match the page image word for word (diacritics aside; omissions marked «(...)» are allowed). Check every number, list and enumeration against the image too.
-3. For everything else, compare its meaning with the book; go back to the image whenever in doubt.
+1. Read the automatic pre-check, then go through the review copy lesson by lesson, using the transcription to find each item's source text quickly.
+2. Every item marked «نص حرفي» (verbatim definitions and quotes) must match the page image word for word (diacritics aside; omissions marked «(...)» are allowed). Check every number, list and enumeration against the image too. Open only the page images you need for this and for step 3 (the student's rule: images for verbatim text and doubtful points, not the whole book), which saves his credit.
+3. For everything else, compare its meaning with the transcription; go back to the image whenever in doubt.
+4. Also check consistency with the first part of the book already on the site (`/home/claude/term3/law136/data/c1.js` … `c5.js`, search them, do not read them whole): a term, a name or a rule that the first part states differently must not make an answer wrong or two answers right.
 
 ## What to check
 - Verbatim text matches the book, and every page number is right.

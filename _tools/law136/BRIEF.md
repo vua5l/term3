@@ -71,6 +71,14 @@ File: `/home/claude/work/data/<chapter id>.js` — same format as `c5.js`:
 5. Every list and every count card has a lead-in saying exactly what it lists and how many («أسباب سقوط الدولة السعودية الأولى ثلاثة:»). Wording must be self-contained: the student must never need to open the book to understand a sentence.
 6. Nothing testable about the book's own structure: no card, question, essay or night point such as «ماذا يتضمن الباب الثاني؟» or «كم مبحثاً في الفصل؟». The summary may state the chapter plan briefly for orientation, nothing more.
 
+**Lessons learned on chapters 6–8** (apply them)
+- A `note` block's text never starts with «تنبيه:» — the site prints that label itself.
+- A list whose items carry the book's letters (أ، ب، ج) is not `ordered`.
+- When the book gives examples («مثل»، «كـ»، «على سبيل المثال»), present them as examples («ذكر الكتاب منها خمسة»), never as a closed count.
+- Keep the book's hedges («ويبدو أن…»، «على الأرجح») and its attributions («في رأي المؤلف»); do not turn an opinion into a fact.
+- Check terms against the first part already on the site (search `data/c1.js`…`c5.js`): the book sometimes uses two names for one thing, and a wrong option must not be a name the book also uses.
+- Multiple choice built from sets (e.g. three countries): make sure the most frequent items across the options do not point to the answer.
+
 **Summary** (the main study text — the student studies from it instead of the book)
 7. Faithful and complete for everything examinable on the pages, in the book's order, with headings mirroring the book's (المبحث، المطلب، أولاً…). Paragraphs short (1–3 sentences). Use `q` for each real definition in the book, `list` for every enumeration (`ordered: true` when the book numbers it or the order matters), `note` («تنبيه») for traps such as two names for one thing.
 
