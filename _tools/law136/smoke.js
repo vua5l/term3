@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
       await page.evaluate(() => { location.hash = '#quiz'; });
       await page.waitForTimeout(300);
       const quizText = await page.evaluate(() => (document.querySelector('main') || document.body).innerText);
-      out.push('#quiz mentions chapters: ' + ['الفصل الأول', 'الفصل الخامس', 'الفصل السادس', 'الفصل السابع', 'الفصل الثامن'].filter((c) => quizText.indexOf(c) > -1).join('، '));
+      out.push('#quiz mentions chapters: ' + ['الفصل الأول', 'الفصل الخامس', 'الفصل السادس', 'الفصل السابع', 'الفصل الثامن', 'الفصل التاسع', 'الفصل العاشر'].filter((c) => quizText.indexOf(c) > -1).join('، '));
       await page.evaluate(() => { location.hash = '#sum'; });
       await page.waitForTimeout(300);
       const sumText = await page.evaluate(() => (document.querySelector('main') || document.body).innerText);

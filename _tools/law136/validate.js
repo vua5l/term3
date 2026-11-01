@@ -56,7 +56,7 @@ function checkPg(where, pg) {
 
 /* --- النص المستخرج للمقابلة الآلية (كشف أولي لا حكم) --- */
 function norm(s) {
-  return String(s).replace(/[ً-ْٰـ]/g, '')
+  return String(s).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[ً-ْٰـ]/g, '')
     .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
     .replace(/[^ء-يA-Za-z0-9٠-٩]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -69,7 +69,8 @@ if (srcFile) {
 }
 function verbatim(where, text) {
   if (!SRC || !isStr(text)) return;
-  const parts = text.split(/\(\s*\.\.\.\s*\)|\(\s*…\s*\)|…|\.\.\./).map((x) => norm(x)).filter(Boolean);
+  const parts = text.replace(/\s*\[[^\]]+\]/g, '').split(   /* ما بين معقوفين تصحيح للخطأ الطباعي من الموقع، لا من الكتاب */
+    /\(\s*\.\.\.\s*\)|\(\s*…\s*\)|…|\.\.\./).map((x) => norm(x)).filter(Boolean);
   const miss = parts.filter((p) => SRC.indexOf(p) < 0);
   if (miss.length) W(where + ': verbatim text not found in the source transcription -> check against the page image: «' + text.slice(0, 90) + (text.length > 90 ? '…' : '') + '»');
 }
