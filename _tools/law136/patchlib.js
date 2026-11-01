@@ -27,6 +27,16 @@ module.exports = function open(file) {
       if (!/, ordered: true/.test(lines[i] || '')) throw new Error('unorder: no ordered flag for «' + sub.slice(0, 50) + '»');
       lines[i] = lines[i].replace(', ordered: true', ''); s = lines.join('\n'); log.push('unorder ' + sub.slice(0, 40));
     },
+    block(sub, newText) {
+      /* يستبدل كتلة ملخص كاملة (قد تمتد على أسطر) تبدأ بسطر فيه sub، أو يحذفها إن كان newText فارغاً */
+      const lines = s.split('\n'); const idx = lines.map((l, i) => (l.includes(sub) ? i : -1)).filter((i) => i > -1);
+      if (idx.length !== 1) throw new Error('block: ' + idx.length + ' lines for «' + sub.slice(0, 60) + '»');
+      const i0 = idx[0]; if (!/\{ t: "/.test(lines[i0])) throw new Error('block: not a block start «' + sub.slice(0, 50) + '»');
+      let i1 = i0; while (i1 < lines.length && !/\}\s*,?\s*$/.test(lines[i1])) i1++;
+      const ind = lines[i0].match(/^\s*/)[0]; const comma = /,\s*$/.test(lines[i1]) ? ',' : '';
+      lines.splice(i0, i1 - i0 + 1, ...(newText ? [ind + newText + comma] : []));
+      s = lines.join('\n'); log.push('block ' + sub.slice(0, 40));
+    },
     stripNotePrefix() {
       const before = s;
       s = s.replace(/(\{ t: "note", x: ")تنبيه\s*:\s*/g, '$1');
