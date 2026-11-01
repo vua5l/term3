@@ -470,3 +470,38 @@ html.map-open,html.map-open body{overflow:hidden}
 
 @media (min-width:700px){ .fc-q{font-size:1.3rem} }
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+
+/* ---------- التعريفات (نوع في بنك الأسئلة) ---------- */
+.seg.four button{font-size:.76rem;padding-inline:2px}
+.dterm{margin:0;font-size:1.12rem;font-weight:700;line-height:1.7}
+.dline{min-height:56px;padding:10px 12px;border-radius:12px;border:1.5px dashed var(--line);background:var(--quote);font-family:var(--f-book);font-size:var(--bk);line-height:2}
+.dline.full{border-style:solid;border-color:var(--ok)}
+.dline-ph{font-family:var(--f-ui);font-size:.8rem;color:var(--ink-2)}
+.dchips{display:flex;flex-wrap:wrap;gap:8px}
+.dchip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:12px;padding:8px 12px;font-size:.9rem;line-height:1.6;cursor:pointer;text-align:start;max-width:100%}
+.dchip.bad{animation:dflash .55s ease-out}
+@keyframes dflash{0%,100%{background:var(--surface-2);border-color:var(--line);color:var(--ink)}25%,60%{background:var(--bad);border-color:var(--bad);color:var(--bad-ink)}}
+.dtools{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dtools.end{justify-content:flex-end}
+.dbox{padding:12px 14px;border-radius:12px;background:var(--quote);border-inline-start:3px solid var(--accent);font-size:.95rem;line-height:1.95}
+.dmask{color:var(--accent);font-weight:700;letter-spacing:1px}
+.dcmp{display:flex;flex-direction:column;gap:8px}
+.dcmp-i{padding:10px 12px;border-radius:12px;border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--surface))}
+.dcmp-i.sib{border-color:var(--line);background:var(--surface-2)}
+.dcmp-t{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:.84rem;line-height:1.7}
+.dcmp-t .chip.pg{margin:0}
+.dcmp-x{margin:4px 0 0;font-size:.92rem;line-height:1.95}
+.dcmp-v{margin:0;font-size:.74rem;color:var(--ink-2)}
+.dsum{font-size:.68rem;color:var(--ink-2);border:1px dashed var(--line);border-radius:999px;padding:0 8px;line-height:1.8}
+mark.dd{background:color-mix(in srgb,var(--mid) 26%,transparent);color:inherit;border-radius:4px;padding:0 2px}
+.dx-box{padding:10px 14px;border-radius:var(--rt);border:1px dashed var(--line)}
+.dx-box summary{cursor:pointer;font-size:.84rem;color:var(--ink-2)}
+.dx-box[open] summary{margin-bottom:8px}
+.dx-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.dx-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:12px;background:var(--surface)}
+.dx-list li span{display:flex;flex-direction:column;min-width:0}
+.dx-list b{font-size:.88rem}
+.dx-list small{font-size:.72rem;color:var(--ink-2)}
+/* مهمة «مراجعة دفتر الأخطاء» في مهام اليوم: علامتها تلقائية */
+.task.kind-nb .tick{cursor:default}
+.task.kind-nb .t-meta{color:var(--accent)}

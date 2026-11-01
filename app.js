@@ -166,6 +166,12 @@
         g += '<section class="group"><div class="g-head"><div class="g-name" style="color:' + textColor(s.key) + '">' + esc(s.name) + '</div><div class="g-left">' + daysAfter(s.left) + '</div></div>';
         gr.tasks.forEach(function (t) {
           var next = !t.done && !nextFound; if (next) nextFound = true;
+          /* مهمة يملكها موقع المادة (kind: extra) كمراجعة دفتر الأخطاء: علامتها من الموقع، فلا تُعلَّم هنا ولا وقت لها */
+          if (t.kind === 'extra') {
+            g += '<div class="task' + (t.done ? ' done' : '') + '"><span class="check' + (t.done ? ' done' : next ? ' next' : '') + '" aria-hidden="true">' + ICON_CHECK + '</span>' +
+              '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' + (next ? '<span class="next-chip">التالي</span>' : '') + '</div>';
+            return;
+          }
           g += '<div class="task' + (t.done ? ' done' : '') + '">' +
             '<button type="button" class="check' + (t.done ? ' done' : next ? ' next' : '') + '" data-act="toggle" data-code="' + esc(t.code) + '" data-lesson="' + esc(t.lesson) + '" data-kind="' + esc(t.kind) + '" data-done="' + (t.done ? 1 : 0) + '" aria-label="' + (t.done ? 'إلغاء إنجاز المهمة' : 'إنجاز المهمة') + '">' + ICON_CHECK + '</button>' +
             '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' +

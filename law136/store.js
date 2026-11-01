@@ -2,12 +2,15 @@
    - يُحفظ في المتصفح أولاً بالمفتاح storageKey من config.js، ثم يُرفع عبر ../sync.js إلى law136/progress.json
      في فرع progress إن كان مفتاح المزامنة مُدخَلاً في هذا الجهاز. وبلا مفتاح يعمل الموقع من المتصفح وحده.
    - التقدم مربوط بالمعرّفات لا بالتواريخ:
-       q[معرّف السؤال]    { n الإجابات، c الصحيحة، m في دفتر الأخطاء، s إجاباته الصحيحة في أيام مختلفة وهو في الدفتر، d يوم آخرها، t }
+       q[معرّف السؤال]    { n الإجابات، c الصحيحة، m في دفتر الأخطاء، s إجاباته الصحيحة في أيام مختلفة وهو في الدفتر، d يوم آخرها، a يوم آخر إجابة (اختيارية)، t }
        k[معرّف البطاقة]   { v: 1 «أعرفها» أو 0، t }
        learn[معرّف الدرس] { v: 1 تعلّمته أو 0، t }
        exit[معرّف الدرس]  { pass اجتاز تسميع الخروج، pct نسبة آخر محاولة، day يوم آخر محاولة، via، t }
        bank[معرّف الفصل]  { r الجولة، cur ما حُلّ فيها {معرّف السؤال: 1 صواب أو 0 خطأ}، prev نتائج الجولة السابقة، last نتيجة آخر جولة، t }
        cell[معرّف الخانة] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لسؤال الخانة، ولا يدخل المستوى ولا دفتر الأخطاء
+       def[معرّف التعريف] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لنوع «التعريفات»، ولا يدخل المستوى ولا دفتر الأخطاء
+       dx[معرّف التعريف]  { v: 1 مستبعد من جولات «التعريفات» أو 0 أُعيد، t }
+     والخانتان def وdx اختياريتان: الحفظ القديم بلاهما يُحمَّل كما هو.
    - بين الجهاز والمستودع يُجمع التقدم مدخلاً مدخلاً بالأحدث، فلا يضيع ما أُنجز في أحدهما.
    - التفضيلات (النهار والليل وما يشبهه) لهذا الجهاز وحده، ولا تُرفع. */
 (function () {
@@ -15,9 +18,9 @@
   var C = window.LAW136_CONFIG || {};
   var KEY = C.storageKey || 'law136-v1';
   var PREFS = KEY + '-prefs';
-  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell'];
+  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell', 'def', 'dx'];
 
-  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {} }; }
+  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {}, def: {}, dx: {} }; }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
   function norm(s) {
     var o = fresh(); if (!isObj(s)) return o;
@@ -53,7 +56,7 @@
     if (!m.last && o.last) m.last = clone(o.last);
     return m;
   }
-  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ };
+  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer };
   function merge(a, b) {
     a = norm(a); b = norm(b);
     if (a.base !== b.base) return clone(b.base > a.base ? b : a); // «البدء من جديد» في جهاز يغلب ما قبله

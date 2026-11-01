@@ -9,6 +9,8 @@
    البنك: objSetup، bankPick، bankMark، closeRound. المقالي: essaySetup، essayMessage، newEssaysRequest.
    دفتر الأخطاء: record، nbHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
    سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
+   التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
+   مهمة دفتر الأخطاء: nbState، reportNb (إلى الجدول بـ extra)، nbRow. اختيار الدروس المتعدد: lesPicker، loadPick، selLabel.
    الخرائط: openMap، drawEdges، mapFit. الإعدادات: openSettings. التنقل: parseHash، route. */
 (function () {
 'use strict';
@@ -46,7 +48,9 @@ var W = {
   card: ['بطاقة واحدة', 'بطاقتان', 'بطاقات', 'بطاقة', 'بطاقتين', 'لا بطاقات'],
   ans: ['إجابة واحدة', 'إجابتان', 'إجابات', 'إجابة', 'إجابتين', 'لا إجابات'],
   day: ['يوم واحد', 'يومان', 'أيام', 'يوماً', 'يومين', 'لا أيام'],
-  cell: ['خانة واحدة', 'خانتان', 'خانات', 'خانة', 'خانتين', 'لا خانات']
+  cell: ['خانة واحدة', 'خانتان', 'خانات', 'خانة', 'خانتين', 'لا خانات'],
+  def: ['تعريف واحد', 'تعريفان', 'تعريفات', 'تعريفاً', 'تعريفين', 'لا تعريفات'],
+  err: ['خطأ واحد', 'خطآن', 'أخطاء', 'خطأً', 'خطأين', 'لا أخطاء']
 };
 function countWord(n, f, gen) {
   n = Math.round(+n || 0);
@@ -117,6 +121,25 @@ var CELLS = [], CBY = {};
     });
   });
 })();
+/* «التعريفات»: نصوصها مقطّعة من data/defs.js (window.LAW136_DEFS) مع أسرها المتشابهة، فإن غاب الملف أو خلا لم يظهر النوع.
+   والنص parts.join(' ')، وأقارب التعريف (sibs) أعضاء كل أسرة هو فيها */
+var DEFS = [], DBY = {}, DLES = {};
+(function buildDefs() {
+  var D = window.LAW136_DEFS;
+  if (!D || typeof D !== 'object') return;
+  arr(D.items).forEach(function (d) {
+    if (!d || !d.id || DBY[d.id] || !d.term || !CH[d.ch] || !LBY[d.les]) return;
+    var parts = arr(d.parts).map(function (p) { return String(p == null ? '' : p).trim(); }).filter(Boolean);
+    if (!parts.length) return;
+    var x = { id: String(d.id), term: String(d.term), ch: CH[d.ch], les: LBY[d.les], pg: String(d.pg || LBY[d.les].pages), sum: d.sum === true,
+      parts: parts, text: parts.join(' '), hide: arr(d.hide).map(String).filter(function (s) { return s.trim(); }), sibs: [] };
+    DEFS.push(x); DBY[x.id] = x; (DLES[x.les.id] = DLES[x.les.id] || []).push(x);
+  });
+  arr(D.fams).forEach(function (f) {
+    var ms = arr(f && f.members).map(function (id) { return DBY[id]; }).filter(Boolean);
+    ms.forEach(function (a) { ms.forEach(function (b) { if (a !== b && a.sibs.indexOf(b) < 0) a.sibs.push(b); }); });
+  });
+})();
 function cellsOf(chId) { return CELLS.filter(function (c) { return c.ch.id === chId; }); }
 function tableCells(tid) { return CELLS.filter(function (c) { return c.t.id === tid; }); }
 function chLabel(c) { return c ? (c.title ? c.title + ': ' : '') + c.name : ''; }
@@ -160,8 +183,8 @@ function unmarkLearned(id) { S.learn[id] = { v: 0, t: now() }; ST.save(); if (pa
 function calibFactor() { var c = INFO && INFO.all && INFO.all.calib && INFO.all.calib[CODE]; return c && +c.factor > 0 ? +c.factor : 1; }
 function lesMin(l) { return Math.max(1, Math.round((+l.minutes || 1) * calibFactor())); }
 function taskMin(k) { return +k.minutes > 0 ? +k.minutes : Math.round((+k.units || 0) * 25); }
-function todayTask(lid) { var t = INFO && INFO.today || [], i; for (i = 0; i < t.length; i++) if (t[i].lesson === lid) return t[i]; return null; }
-function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length) || (screen === 'cells' && CQ && CQ.i < CQ.ids.length); }
+function todayTask(lid) { var t = realTasks(INFO && INFO.today), i; for (i = 0; i < t.length; i++) if (t[i].lesson === lid) return t[i]; return null; }
+function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length) || (screen === 'cells' && CQ && CQ.i < CQ.ids.length) || (screen === 'defs' && DQ && DQ.i < DQ.ids.length); }
 function onInfo(info) { if (!gotSchedule(info)) return; INFO = info; if (!busy()) render(); else updateBadge(); }
 function initSchedule() {
   if (!SCH) return;
@@ -179,7 +202,7 @@ function sendLevel() {
 function inNb(id) { var r = S.q[id]; return !!(r && r.m); }
 function record(id, ok) {
   var r = S.q[id] || {}, t = todayISO(), was = !!r.m, res = { out: false, same: false, inNb: false, enter: false };
-  r = { n: (+r.n || 0) + 1, c: (+r.c || 0) + (ok ? 1 : 0), m: was ? 1 : 0, s: +r.s || 0, d: r.d || '', t: now() };
+  r = { n: (+r.n || 0) + 1, c: (+r.c || 0) + (ok ? 1 : 0), m: was ? 1 : 0, s: +r.s || 0, d: r.d || '', a: t, t: now() }; /* a: يوم آخر إجابة */
   if (ok) {
     if (r.m) {
       if (r.d === t) { res.same = true; res.inNb = true; }
@@ -189,9 +212,29 @@ function record(id, ok) {
   if (!r.d) delete r.d;
   S.q[id] = r;
   bankMark(id, ok);
-  ST.save(); updateBadge(); sendLevel();
+  ST.save(); updateBadge(); sendLevel(); reportNb();
   return res;
 }
+/* مهمة «مراجعة دفتر الأخطاء» في مهام اليوم: تظهر ما دام في الدفتر شيء، وتُنجز حين يُجاب اليوم عن كل ما فيه
+   صواباً أو خطأ، وما بقي خطأ يبقى للغد. وتُبلَّغ إلى الجدول بـ extra فتظهر فيه كذلك */
+function nbState() {
+  var t = todayISO(), list = mistakes(), left = 0, tried = 0;
+  list.forEach(function (q) { var r = S.q[q.id] || {}; if (r.d !== t) left++; if (r.a === t || r.d === t) tried++; });
+  return { n: list.length, left: left, done: list.length > 0 && tried === list.length };
+}
+function reportNb() {
+  if (!SCH || typeof SCH.extra !== 'function') return;
+  var st = nbState();
+  try { SCH.extra(CODE, { id: 'nb', title: 'مراجعة دفتر الأخطاء', link: '#nb', active: st.n > 0, done: st.done }); } catch (e) {}
+}
+function nbRow() {
+  var st = nbState(); if (!st.n) return '';
+  var meta = st.left ? 'لم تُجب صواباً اليوم عن ' + countWord(st.left, W.q, true) : 'أجبت صواباً اليوم عن أسئلته كلها';
+  return '<li class="task kind-nb' + (st.done ? ' is-done' : '') + '"><span class="tick" aria-hidden="true">' + TICK + '</span>' +
+    '<a class="t-main" href="#nb" aria-label="مراجعة دفتر الأخطاء' + (st.done ? '، منجزة اليوم' : '') + '"><span><span class="t-title">مراجعة دفتر الأخطاء</span><span class="t-meta">' + esc(meta) + '</span></span>' + GO + '</a></li>';
+}
+/* مهام الجدول بلا المهام الإضافية (kind: extra)، فمهمة الدفتر يعرضها الموقع بنفسه مرة واحدة ومعها العدد */
+function realTasks(ts) { return arr(ts).filter(function (k) { return k && k.kind !== 'extra'; }); }
 function nbNote(res, ok) {
   if (!res) return '';
   var t = res.out ? 'وخرج من دفتر الأخطاء بعد إجابتين صحيحتين في يومين مختلفين.'
@@ -370,9 +413,9 @@ var DECK = null;   /* { ids, i, flip, title, back, then, les } */
 var CQ = null;     /* سؤال الخانة: { ids, i, picked, res, label, back, src, order } */
 var RSTEP = {};    /* خطوة البطاقات منتهية في هذه الجلسة، لكل مهمة */
 var bankKind = 'obj', objSel = null, objCount = 10, essaySel = null;
-var sumCh = null, revSub = 'cards', cardFilter = { ch: 'all', les: 'all', hideKnown: false };
+var sumCh = null, revSub = 'cards', cardFilter = { hideKnown: false }, cardSel = null; /* cardSel: دروس بطاقات المراجعة {معرّف الدرس: true} */
 var armed = null;
-var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan' };
+var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', defs: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan' };
 
 function render() {
   var tb = TAB_OF[screen] || 'home';
@@ -389,6 +432,7 @@ function render() {
     else if (screen === 'quiz') h = quiz ? runHTML() : bankHTML();
     else if (screen === 'nb') h = nbHTML();
     else if (screen === 'cells') { if (!CQ) bankKind = 'cells'; h = CQ ? cellsHTML() : bankHTML(); }
+    else if (screen === 'defs') { selInit(); if (!DQ && DEFS.length) bankKind = 'defs'; h = DQ ? defsHTML() : bankHTML(); }
     else if (screen === 'deck') h = DECK ? deckHTML() : revHTML();
     else if (screen === 'rev') h = revHTML();
     else h = homeHTML();
@@ -465,17 +509,17 @@ function todayBlock() {
   if (!INFO) {
     return '<section class="block" aria-labelledby="td-h"><div class="block-head"><h2 id="td-h">مهام اليوم</h2></div>' +
       '<div class="empty"><b>افتح الصفحة مع الاتصال ليصلك الجدول</b><br>وإلى أن يصل تستطيع أن تذاكر من قائمة الدروس.</div>' +
-      '<ol class="tasks">' + smallRow() + '</ol>' + lessonsBlock() + '</section>';
+      '<ol class="tasks">' + smallRow() + nbRow() + '</ol>' + lessonsBlock() + '</section>';
   }
-  var t = todayISO(), tasks = INFO.today || [], mins = tasks.reduce(function (s, k) { return s + taskMin(k); }, 0);
+  var t = todayISO(), tasks = realTasks(INFO.today), mins = tasks.reduce(function (s, k) { return s + taskMin(k); }, 0);
   var head = '<div class="block-head"><h2 id="td-h">مهام اليوم · ' + esc(dayLabel(t)) + '</h2>' + (mins ? '<span class="muted small">' + esc(minutesText(mins)) + '</span>' : '') + '</div>';
   if (!tasks.length) {
     var next = (INFO.days || []).filter(function (d) { return d.date > t; })[0], left = daysLeft();
     var msg = left !== null && left <= 0 ? 'لا مهام لهذه المادة بعد موعد الاختبار.' : 'لا مهام لهذه المادة اليوم في الجدول.' + (next ? ' وأقرب مهامها يوم ' + dayLabel(next.date) + '.' : '');
-    return '<section class="block" aria-labelledby="td-h">' + head + '<div class="empty">' + esc(msg) + '</div><ol class="tasks">' + smallRow() + '</ol>' +
+    return '<section class="block" aria-labelledby="td-h">' + head + '<div class="empty">' + esc(msg) + '</div><ol class="tasks">' + smallRow() + nbRow() + '</ol>' +
       '<button type="button" class="link center" data-go="#plan">الخطة كاملة</button></section>';
   }
-  return '<section class="block" aria-labelledby="td-h">' + head + '<ol class="tasks">' + smallRow() + tasks.map(function (k) { return taskRow(k, true); }).join('') + '</ol>' +
+  return '<section class="block" aria-labelledby="td-h">' + head + '<ol class="tasks">' + smallRow() + tasks.map(function (k) { return taskRow(k, true); }).join('') + nbRow() + '</ol>' +
     '<button type="button" class="link center" data-go="#plan">الخطة كاملة</button></section>';
 }
 var KIND = { learn: 'تعلّم', recall: 'تسميع', review: 'مراجعة شاملة', eve: 'ليلة الاختبار' };
@@ -529,7 +573,7 @@ function planHTML() {
   var h = '<div class="block-head"><h2>الخطة من جدول الاختبارات</h2>' + (INFO && INFO.progress ? '<span class="chip">أنجزت ' + (+INFO.progress.pct || 0) + '%</span>' : '') + '</div>' +
     '<p class="muted small p0">يوزّع الجدول الدروس على الأيام مع موادك الأخرى: يمرّ كل درس ثلاث مرات في أيام مختلفة، تعلّماً ثم تسميعين متباعدين، ثم مراجعة شاملة قبل الاختبار بيومين وتسميع ليلته.</p>';
   if (!INFO) return h + '<div class="empty"><b>افتح الصفحة مع الاتصال ليصلك الجدول</b></div>' + lessonsBlock();
-  var t = todayISO(), days = INFO.days || [];
+  var t = todayISO(), days = (INFO.days || []).map(function (d) { return { date: d.date, minutes: d.minutes, tasks: realTasks(d.tasks) }; }).filter(function (d) { return d.tasks.length; });
   days.forEach(function (day) {
     var isToday = day.date === t, load = +day.minutes > 0 ? +day.minutes : day.tasks.reduce(function (s, k) { return s + taskMin(k); }, 0);
     h += '<section class="day" aria-label="' + esc(dayLabel(day.date)) + '"><div class="day-head"><h3>' + esc(dayLabel(day.date)) + (isToday ? ' <span class="chip">اليوم</span>' : '') + '</h3><span class="muted small">' + esc(minutesText(load)) + '</span></div>' +
@@ -754,20 +798,16 @@ function deckStep(d) {
   if (DECK.i >= DECK.ids.length && DECK.then) RSTEP[DECK.then === 'recall' ? 'r' + DECK.les : '_' + DECK.then] = true;
   render();
 }
+/* بطاقات المراجعة: الفصول والدروس باختيار متعدد كبنك الأسئلة، ويُحفظ الاختيار في هذا الجهاز */
+function cardPick() { if (!cardSel) cardSel = loadPick('cardSel', cardsIn); return cardSel; }
 function cardList() {
-  return KL.filter(function (k) {
-    if (cardFilter.ch !== 'all' && k.ch.id !== cardFilter.ch) return false;
-    if (cardFilter.les !== 'all' && k.les.id !== cardFilter.les) return false;
-    return !cardFilter.hideKnown || !known(k.id);
-  });
+  var sel = cardPick();
+  return KL.filter(function (k) { return !!sel[k.les.id] && (!cardFilter.hideKnown || !known(k.id)); });
 }
 function cardsBrowser() {
-  if (cardFilter.ch !== 'all' && !CH[cardFilter.ch]) cardFilter.ch = 'all';
-  var list = cardList(), kn = KL.filter(function (k) { return known(k.id); }).length, c = CH[cardFilter.ch];
+  var list = cardList(), kn = KL.filter(function (k) { return known(k.id); }).length;
   var h = '<p class="muted small p0">تعريفات بنص الكتاب، وأعداد بقوائمها، وقواعد باستثناءاتها. علّم «أعرفها» ما ثبت عندك.</p>' +
-    chBar('card-ch', cardFilter.ch, true);
-  if (c) h += '<div class="pick soft" role="group" aria-label="الدروس"><button type="button" data-act="card-les" data-l="all" aria-pressed="' + (cardFilter.les === 'all') + '"><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>دروس الفصل كلها</span></button>' +
-    c.les.map(function (l) { return '<button type="button" data-act="card-les" data-l="' + l.id + '" aria-pressed="' + (cardFilter.les === l.id) + '"><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ' + countWord(l.cards.length, W.card) + '</small></span></button>'; }).join('') + '</div>';
+    '<div class="field">' + lesPicker(cardPick(), 'cardp', cardsIn, W.card) + '</div>';
   h += '<div class="toggle"><span class="small">أخفِ ما علّمته «أعرفها»</span><button type="button" class="switch" data-act="hide-known" role="switch" aria-checked="' + cardFilter.hideKnown + '" aria-label="إخفاء ما أعرفه"></button></div>' +
     '<button type="button" class="btn wide" data-act="deck-filter"' + (list.length ? '' : ' disabled') + '>ابدأ: ' + (list.length ? countWord(list.length, W.card) : 'لا بطاقات') + '</button>' +
     '<p class="note-line">تعرف ' + kn + ' من ' + countWord(KL.length, W.card, true) + '.</p>';
@@ -793,8 +833,48 @@ function selInit() {
   if (!objSel) { var o = ST.pref('objSel'); objSel = Array.isArray(o) ? o.filter(function (id) { return CH[id]; }) : []; if (!objSel.length) objSel = CHS.map(function (c) { return c.id; }); }
   if (!essaySel) { var e = ST.pref('essaySel'); essaySel = {}; if (Array.isArray(e) && e.length) e.forEach(function (id) { if (LBY[id]) essaySel[id] = 1; }); else LES.forEach(function (l) { essaySel[l.id] = 1; }); }
   var oc = ST.pref('objCount'); if (oc === 10 || oc === 20 || oc === 0) objCount = oc;
-  var bk = ST.pref('bankKind'); if (bk === 'obj' || bk === 'essay' || bk === 'cells') bankKind = bk;
+  if (!selInit.kind) { selInit.kind = 1; var bk = ST.pref('bankKind'); if (bk === 'obj' || bk === 'essay' || bk === 'cells' || bk === 'defs') bankKind = bk; } /* مرة واحدة، ثم يُحفظ كل تغيير */
+  if (bankKind === 'defs' && !DEFS.length) bankKind = 'obj';
 }
+/* اختيار الفصول والدروس، مكوّن واحد في الاختبار المقالي والتعريفات وبطاقات المراجعة: sel {معرّف الدرس: true}،
+   وcnt(l) عدد ما في الدرس، فالدرس الذي لا شيء فيه لا يُختار، و«الفصل كله» و«الكل» على ما يُختار وحده */
+function essIn(l) { return l.essay.length; }
+function cardsIn(l) { return l.cards.length; }
+function defsIn(l) { return (DLES[l.id] || []).length; }
+function pickable(cnt, c) { return (c ? c.les : LES).filter(function (l) { return cnt(l) > 0; }); }
+function allPicked(sel, ls) { return ls.length > 0 && ls.every(function (l) { return sel[l.id]; }); }
+function togPick(sel, ls) { var on = !allPicked(sel, ls); ls.forEach(function (l) { sel[l.id] = on; }); }
+function lesPicker(sel, act, cnt, word) {
+  var every = pickable(cnt);
+  var h = '<div class="les-pick-h"><b>الفصول والدروس</b><button type="button" class="link" data-act="' + act + '-all">' + (allPicked(sel, every) ? 'ألغِ الكل' : 'اختر الكل') + '</button></div>';
+  CHS.forEach(function (c) {
+    if (!c.les.length) return;
+    var all = allPicked(sel, pickable(cnt, c));
+    h += '<div class="les-pick"><div class="les-pick-h"><b>' + esc(chLabel(c)) + '</b><button type="button" class="link" data-act="' + act + '-ch" data-ch="' + c.id + '">' + (all ? 'ألغِ الفصل' : 'الفصل كله') + '</button></div>' +
+      '<div class="pick soft" role="group" aria-label="' + esc(c.title) + '">' + c.les.map(function (l) {
+        var n = cnt(l);
+        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + '</small></span></button>';
+      }).join('') + '</div></div>';
+  });
+  return h;
+}
+/* اسم المختار: درس واحد، أو فصل كامل، أو الفصول كلها، أو أسماء الفصول */
+function selLabel(sel, cnt) {
+  var ls = pickable(cnt).filter(function (l) { return sel[l.id]; });
+  if (ls.length === 1) return ls[0].title;
+  if (allPicked(sel, pickable(cnt))) return 'الفصول كلها';
+  var chs = CHS.filter(function (c) { return c.les.some(function (l) { return sel[l.id] && cnt(l) > 0; }); });
+  if (chs.length === 1) return chs[0].title + (allPicked(sel, pickable(cnt, chs[0])) ? '' : ' (' + countWord(ls.length, W.les) + ')');
+  return 'الفصول: ' + chs.map(chShort).join('، ');
+}
+/* الاختيار المحفوظ في هذا الجهاز: قائمة معرّفات دروس، وإن غاب أو خلا فالدروس كلها */
+function loadPick(key, cnt) {
+  var o = ST.pref(key), sel = {};
+  if (Array.isArray(o)) o.forEach(function (id) { if (LBY[id] && cnt(LBY[id]) > 0) sel[id] = true; });
+  if (!Object.keys(sel).length) pickable(cnt).forEach(function (l) { sel[l.id] = true; });
+  return sel;
+}
+function savePick(key, sel) { ST.setPref(key, Object.keys(sel).filter(function (k) { return sel[k]; })); }
 function saveSel() { ST.setPref('objSel', objSel); ST.setPref('essaySel', Object.keys(essaySel).filter(function (k) { return essaySel[k]; })); ST.setPref('objCount', objCount); ST.setPref('bankKind', bankKind); }
 function roundBanner() {
   var h = '';
@@ -824,14 +904,7 @@ function objSetup() {
 function essaySetup() {
   var ls = pickedLessons(), nq = 0; ls.forEach(function (l) { nq += l.essay.length; });
   var h = '<section class="card"><p class="muted small p0">اختر الدروس، فيُخرج الموقع رسالة واحدة جاهزة تنسخها وتلصقها في محادثة جديدة داخل مشروع المادة، فيختبرك Claude فيها ثلاثة أسئلة في كل مرة ويصحّح لك. لا تصحيح في الموقع، ولا مؤقت، ولا يدخل المقالي دفتر الأخطاء ولا المستوى.</p>';
-  CHS.forEach(function (c) {
-    if (!c.les.length) return;
-    var all = c.les.every(function (l) { return essaySel[l.id]; });
-    h += '<div class="les-pick"><div class="les-pick-h"><b>' + esc(chLabel(c)) + '</b><button type="button" class="link" data-act="ess-ch" data-ch="' + c.id + '">' + (all ? 'ألغِ الفصل' : 'الفصل كله') + '</button></div>' +
-      '<div class="pick soft" role="group" aria-label="' + esc(c.title) + '">' + c.les.map(function (l) {
-        return '<button type="button" data-act="ess-les" data-l="' + l.id + '" aria-pressed="' + !!essaySel[l.id] + '"' + (l.essay.length ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(l.essay.length, W.ess) + '</small></span></button>';
-      }).join('') + '</div></div>';
-  });
+  h += lesPicker(essaySel, 'ess', essIn, W.ess);
   var ok = nq > 0;
   h += '<p class="fin-msg">' + (ok ? 'في الرسالة ' + countWord(nq, W.ess) + ' من ' + countWord(ls.length, W.les) + '، بترتيب الدروس، مع نقاط أجوبتها النموذجية وصفحاتها.' : 'اختر درساً فيه أسئلة مقالية.') + '</p>' +
     '<div class="row"><button type="button" class="btn" data-act="copy-essay"' + (ok ? '' : ' disabled') + '>انسخ رسالة الاختبار المقالي</button>' +
@@ -844,12 +917,14 @@ function bankHTML() {
   selInit();
   var mk = mistakes().length;
   return '<div class="block-head"><h2>بنك الأسئلة</h2><span class="chip">' + countWord(QL.length, W.q) + ' · ' + countWord(EL.length, W.ess) + '</span></div>' +
-    '<div class="seg" role="group" aria-label="نوع الاختبار"><button type="button" data-act="bank-kind" data-k="obj" aria-pressed="' + (bankKind === 'obj') + '">اختبار موضوعي</button><button type="button" data-act="bank-kind" data-k="essay" aria-pressed="' + (bankKind === 'essay') + '">اختبار مقالي</button>' +
-      (CELLS.length ? '<button type="button" data-act="bank-kind" data-k="cells" aria-pressed="' + (bankKind === 'cells') + '">سؤال الخانة</button>' : '') + '</div>' +
+    '<div class="seg' + (CELLS.length && DEFS.length ? ' four' : '') + '" role="group" aria-label="نوع الاختبار"><button type="button" data-act="bank-kind" data-k="obj" aria-pressed="' + (bankKind === 'obj') + '">اختبار موضوعي</button><button type="button" data-act="bank-kind" data-k="essay" aria-pressed="' + (bankKind === 'essay') + '">اختبار مقالي</button>' +
+      (CELLS.length ? '<button type="button" data-act="bank-kind" data-k="cells" aria-pressed="' + (bankKind === 'cells') + '">سؤال الخانة</button>' : '') +
+      (DEFS.length ? '<button type="button" data-act="bank-kind" data-k="defs" aria-pressed="' + (bankKind === 'defs') + '">التعريفات</button>' : '') + '</div>' +
+    (bankKind === 'defs' && DEFS.length ? defsSetup() :
     (bankKind === 'obj' ? '<p class="muted small p0">صح وخطأ، واختيار من متعدد، وضع الكلمة الصحيحة، من فصل واحد أو أكثر.</p>' + roundBanner() + objSetup() +
       '<section class="card"><div class="block-head"><h3>دفتر الأخطاء</h3><span class="chip">' + countWord(mk, W.q) + '</span></div><p class="muted small p0">يدخله كل سؤال موضوعي أخطأت فيه، ويخرج منه بعد إجابتين صحيحتين في يومين مختلفين.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>'
-    : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup());
+    : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup()));
 }
 function cellsSetup() {
   var pool = 0;
@@ -1022,6 +1097,177 @@ function cellsResultHTML() {
     }).join('') + '</ul>' : (n ? '<p class="fin-msg ok">أصبت في الخانات كلها.</p>' : '')) +
     '</section>' +
     '<div class="row"><button type="button" class="btn" data-act="cell-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="cell-quit">رجوع</button></div>';
+}
+
+/* ---------- «التعريفات»: ركّب التعريف من قطعه، أو لمن هذا التعريف؟ ----------
+   سجله في S.def، والمستبعد في S.dx، ولا يدخل دفتر الأخطاء ولا المستوى ولا جولات البنك.
+   ويُقدَّم في الجولة ما أخطأت فيه آخر مرة، ثم ما لم تُسأل عنه، ثم الباقي وأقلّه صواباً أولاً */
+var DQ = null;     /* { ids, i, mode, label, res, cur: { id, i, chips, placed, errs, wrong, gave, ans, opts, picked } } */
+var defsSel = null, defsMode = 'build', defsCount = 10, defsReady = false;
+function defsInit() {
+  if (defsReady) return; defsReady = true;
+  defsSel = loadPick('defsSel', defsIn);
+  var m = ST.pref('defsMode'); if (m === 'build' || m === 'who') defsMode = m;
+  var c = ST.pref('defsCount'); if (c === 10 || c === 20 || c === 0) defsCount = c;
+}
+function defsSave() { savePick('defsSel', defsSel); ST.setPref('defsMode', defsMode); ST.setPref('defsCount', defsCount); }
+function dxOn(id) { var x = S.dx && S.dx[id]; return !!(x && x.v); }
+function setDx(id, on) { if (!S.dx || typeof S.dx !== 'object') S.dx = {}; S.dx[id] = { v: on ? 1 : 0, t: now() }; ST.save(); }
+function defRec(id) { var r = S.def && S.def[id]; return r && typeof r === 'object' ? r : null; }
+function defWeight(d) { var r = defRec(d.id); if (!r) return 1; if (+r.w) return 0; return 2 + (+r.n ? (+r.c || 0) / +r.n : 0); }
+function defRecord(id, ok) {
+  if (!S.def || typeof S.def !== 'object') S.def = {};
+  var r = defRec(id) || {};
+  S.def[id] = { n: (+r.n || 0) + 1, c: (+r.c || 0) + (ok ? 1 : 0), w: ok ? 0 : 1, t: now() };
+  ST.save();
+}
+function defsPool() { return DEFS.filter(function (d) { return defsSel[d.les.id] && !dxOn(d.id); }); }
+/* المقابلة بلا تشكيل ولا ترقيم، والهمزات والتاء المربوطة موحّدة */
+function dnorm(s) {
+  return String(s == null ? '' : s).replace(/[ً-ْٰـ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .replace(/[^ء-يA-Za-z0-9٠-٩]+/g, ' ').trim();
+}
+function dwords(s) { var n = dnorm(s); return n ? n.split(' ') : []; }
+function overlapN(a, b) { var A = {}, seen = {}, n = 0; dwords(a.text).forEach(function (w) { A[w] = 1; }); dwords(b.text).forEach(function (w) { if (A[w] && !seen[w]) { seen[w] = 1; n++; } }); return n; }
+function bySim(d, list) { return list.slice().sort(function (x, y) { return overlapN(d, y) - overlapN(d, x); }); }
+/* القطع: قطع التعريف الصحيحة، ومعها من 2 إلى 4 قطع من أقاربه لا تساوي قطعة صحيحة، والأقرب طولاً أولى.
+   فإن لم يكن له أقارب، أو قلّت قطعهم عن اثنتين، أُكملت من تعريفات فصله، ثم من غيرها */
+function defChips(d) {
+  var own = {}, used = {}, avg = 0, want = d.parts.length <= 3 ? 2 : d.parts.length <= 6 ? 3 : 4, fake = [];
+  d.parts.forEach(function (p) { own[dnorm(p)] = 1; avg += p.length; }); avg /= d.parts.length;
+  function fill(src, upto) {
+    var c = [];
+    src.forEach(function (x) { x.parts.forEach(function (p) { var k = dnorm(p); if (k && !own[k] && !used[k]) { used[k] = 1; c.push(p); } }); });
+    c.sort(function (a, b) { return Math.abs(a.length - avg) - Math.abs(b.length - avg); });
+    var pick = shuffle(c.slice(0, 2 * upto)).slice(0, upto);
+    c.forEach(function (p) { if (pick.indexOf(p) < 0) delete used[dnorm(p)]; });
+    fake = fake.concat(pick);
+  }
+  fill(d.sibs, want);
+  if (fake.length < 2) fill(DEFS.filter(function (x) { return x !== d && x.ch === d.ch && d.sibs.indexOf(x) < 0; }), want - fake.length);
+  if (fake.length < 2) fill(DEFS.filter(function (x) { return x !== d && x.ch !== d.ch && d.sibs.indexOf(x) < 0; }), want - fake.length);
+  return shuffle(d.parts.map(function (p) { return { t: p }; }).concat(fake.map(function (p) { return { t: p, f: 1 }; })));
+}
+/* الخيارات: المصطلح الصحيح وثلاثة من أقاربه على الأكثر، الأشبه تعريفاً أولاً. فإن قلّ أقاربه عن اثنين أُكمل من فصله */
+function defOpts(d) {
+  var seen = {}, opts = [];
+  seen[dnorm(d.term)] = 1;
+  function add(list) { list.forEach(function (x) { var k = dnorm(x.term); if (opts.length < 3 && !seen[k]) { seen[k] = 1; opts.push(x); } }); }
+  add(bySim(d, d.sibs));
+  if (opts.length < 2) add(bySim(d, DEFS.filter(function (x) { return x !== d && x.ch === d.ch; })));
+  if (opts.length < 2) add(bySim(d, DEFS.filter(function (x) { return x !== d; })));
+  return shuffle([d].concat(opts)).map(function (x) { return x.id; });
+}
+/* النص وما يكشف المصطلح فيه مستور */
+function maskHTML(text, hides) {
+  var rs = [], m = [], out = '', pos = 0;
+  hides.forEach(function (h) { var i = h ? text.indexOf(h) : -1; while (i > -1) { rs.push([i, i + h.length]); i = text.indexOf(h, i + h.length); } });
+  rs.sort(function (a, b) { return a[0] - b[0]; });
+  rs.forEach(function (r) { var l = m[m.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else m.push(r.slice()); });
+  m.forEach(function (r) { out += esc(text.slice(pos, r[0])) + '<span class="dmask" aria-label="كلمات محذوفة">ـــــ</span>'; pos = r[1]; });
+  return out + esc(text.slice(pos));
+}
+/* الفرق بين تعريفين كلمةً كلمة: ما ليس في أطول تسلسل مشترك يُظلَّل في كلٍّ منهما */
+function diffHTML(a, b) {
+  var A = a.split(/\s+/), B = b.split(/\s+/), nA = A.map(dnorm), nB = B.map(dnorm), L = [], i, j, kA = {}, kB = {};
+  for (i = 0; i <= A.length; i++) { L.push([]); for (j = 0; j <= B.length; j++) L[i].push(0); }
+  for (i = A.length - 1; i >= 0; i--) for (j = B.length - 1; j >= 0; j--) L[i][j] = nA[i] && nA[i] === nB[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  for (i = 0, j = 0; i < A.length && j < B.length;) {
+    if (nA[i] && nA[i] === nB[j]) { kA[i] = kB[j] = 1; i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
+  }
+  function out(W, keep) { return W.map(function (w, k) { return keep[k] || !dnorm(w) ? esc(w) : '<mark class="dd">' + esc(w) + '</mark>'; }).join(' '); }
+  return [out(A, kA), out(B, kB)];
+}
+function defsStart() {
+  defsInit();
+  var list = shuffle(defsPool()).sort(function (x, y) { return defWeight(x) - defWeight(y); });
+  if (defsCount) list = list.slice(0, defsCount);
+  if (!list.length) { toast('لا تعريفات هنا'); return; }
+  DQ = { ids: list.map(function (d) { return d.id; }), i: 0, mode: defsMode, res: [], cur: null,
+    label: (defsMode === 'who' ? 'لمن هذا التعريف؟' : 'ركّب التعريف') + ' · ' + selLabel(defsSel, defsIn) };
+  go('#defs');
+}
+function dqItem() {
+  var d = DBY[DQ.ids[DQ.i]];
+  if (!DQ.cur || DQ.cur.i !== DQ.i || DQ.cur.id !== d.id) {
+    DQ.cur = { id: d.id, i: DQ.i, chips: DQ.mode === 'build' ? defChips(d) : null, placed: [], errs: 0, wrong: false, gave: false, ans: null,
+      opts: DQ.mode === 'who' ? defOpts(d) : null, picked: null };
+  }
+  return d;
+}
+function defsAnswer(ok) { DQ.cur.ans = !!ok; DQ.res.push(!!ok); defRecord(DQ.cur.id, !!ok); }
+function defsSetup() {
+  defsInit();
+  var pool = defsPool().length, n = defsCount ? Math.min(defsCount, pool) : pool, going = DQ && DQ.i < DQ.ids.length;
+  var xs = DEFS.filter(function (d) { return dxOn(d.id); });
+  return '<p class="muted small p0">في «ركّب التعريف» ترى المصطلح فترتّب قطع تعريفه، وفي «لمن هذا التعريف؟» ترى التعريف فتختار مصطلحه. ثم يُعرض بجوار أقرب تعريف إليه وقد ظُلّل ما يفترقان فيه. ويُقدَّم ما أخطأت فيه في الجولة التالية، ولا يدخل المستوى ولا دفتر الأخطاء.</p>' +
+    (going ? '<section class="card tight"><p class="fin-msg">عندك جولة جارية: ' + esc(DQ.label) + '، أجبت عن ' + DQ.res.length + ' من ' + DQ.ids.length + '.</p><button type="button" class="btn wide" data-go="#defs">أكملها</button></section>' : '') +
+    '<section class="card">' +
+    '<div class="field"><span class="f-l">الطريقة</span><div class="seg" role="group" aria-label="الطريقة">' + [['build', 'ركّب التعريف'], ['who', 'لمن هذا التعريف؟']].map(function (m) {
+      return '<button type="button" data-act="defs-mode" data-m="' + m[0] + '" aria-pressed="' + (defsMode === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div></div>' +
+    '<div class="field"><span class="f-l">عدد التعريفات</span><div class="seg" role="group" aria-label="عدد التعريفات">' +
+      [10, 20, 0].map(function (x) { return '<button type="button" data-act="defs-count" data-n="' + x + '" aria-pressed="' + (defsCount === x) + '">' + (x ? x : 'الكل') + '</button>'; }).join('') + '</div></div>' +
+    '<div class="field">' + lesPicker(defsSel, 'defs', defsIn, W.def) + '</div>' +
+    '<button type="button" class="btn wide" data-act="defs-start"' + (n ? '' : ' disabled') + '>ابدأ: ' + (n ? countWord(n, W.def) : 'اختر درساً فيه تعريفات') + '</button>' +
+    '</section>' +
+    '<details class="dx-box"><summary>المستبعدة (' + xs.length + ')</summary>' + (xs.length ? '<ul class="dx-list">' + xs.map(function (d) {
+      return '<li><span><b>' + esc(d.term) + '</b><small>' + esc(d.ch.title) + ' · ص ' + esc(d.pg) + '</small></span><button type="button" class="btn ghost sm" data-act="defs-back" data-id="' + esc(d.id) + '">أعِد</button></li>';
+    }).join('') + '</ul>' : '<p class="muted small p0">لا تعريفات مستبعدة. وما تستبعده بزر «استبعد» لا يُسأل عنه في الجولات حتى تعيده من هنا.</p>') + '</details>';
+}
+function defBlock(x, html, sib) {
+  return '<div class="dcmp-i' + (sib ? ' sib' : '') + '"><p class="dcmp-t"><b>' + esc(x.term) + '</b>' + pg(x.pg) + (x.sum ? '<span class="dsum">بلفظ الملخص</span>' : '') + '</p>' +
+    '<p class="dcmp-x' + (x.sum ? '' : ' book') + '">' + html + '</p></div>';
+}
+function defsAfter(d, c) {
+  var e = c.errs, v = c.ans ? 'أصبت' : DQ.mode === 'who' ? 'إجابة خاطئة، والصواب: ' + d.term
+    : c.gave ? 'كشفت التعريف، فيُحسب خطأ ويُقدَّم في الجولة التالية'
+    : 'أخطأت في الترتيب ' + (e === 1 ? 'مرة' : e === 2 ? 'مرتين' : e + (e <= 10 ? ' مرات' : ' مرة')) + '، فيُقدَّم في الجولة التالية';
+  var sib = bySim(d, d.sibs)[0] || null, dh = sib ? diffHTML(d.text, sib.text) : [esc(d.text)];
+  return '<p class="verdict ' + (c.ans ? 'ok' : 'bad') + '">' + esc(v) + '</p>' +
+    '<div class="dcmp">' + defBlock(d, dh[0], false) + (sib ? '<p class="dcmp-v">وأقرب تعريف إليه، وقد ظُلّل ما يفترقان فيه</p>' + defBlock(sib, dh[1], true) : '') + '</div>' +
+    '<div class="row"><button type="button" class="btn" data-act="defs-next">' + (DQ.i + 1 < DQ.ids.length ? 'التالي' : 'النتيجة') + '</button>' +
+    '<button type="button" class="btn ghost" data-act="defs-x" data-id="' + esc(d.id) + '">' + (dxOn(d.id) ? 'مستبعد · أعِده' : 'استبعد') + '</button></div>';
+}
+function defsHTML() {
+  if (DQ.i >= DQ.ids.length) return defsResultHTML();
+  if (!DBY[DQ.ids[DQ.i]]) { DQ.ids.splice(DQ.i, 1); return defsHTML(); }
+  var d = dqItem(), c = DQ.cur, n = DQ.ids.length, done = c.ans !== null, build = DQ.mode === 'build';
+  var h = '<div class="block-head"><h2>' + esc(DQ.label) + '</h2><button type="button" class="link" data-act="defs-quit">إنهاء</button></div>' +
+    '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * DQ.i / n) + '%"></div></div><span class="n">' + (DQ.i + 1) + ' من ' + n + '</span></div>' +
+    '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + '</div>';
+  var b = '';
+  if (build) {
+    var put = c.placed.map(function (k) { return '<span>' + esc(c.chips[k].t) + '</span>'; });
+    b += '<p class="dterm">' + esc(d.term) + '</p>' +
+      '<div class="dline' + (done ? ' full' : '') + '" aria-live="polite">' + (put.length ? put.join(' ') : '<span class="dline-ph">اضغط القطع بترتيب التعريف</span>') + '</div>';
+    if (!done) {
+      b += '<div class="dchips">' + c.chips.map(function (x, k) { return c.placed.indexOf(k) > -1 ? '' : '<button type="button" class="dchip" data-act="defs-chip" data-k="' + k + '">' + esc(x.t) + '</button>'; }).join('') + '</div>' +
+        '<div class="dtools"><button type="button" class="link" data-act="defs-show">أظهر التعريف</button>' + (c.errs ? '<span class="small muted">' + countWord(c.errs, W.err) + '</span>' : '') +
+        '<button type="button" class="mini" data-act="defs-x" data-id="' + esc(d.id) + '">استبعد</button></div>';
+    }
+  } else {
+    b += '<p class="q-text">لمن هذا التعريف؟</p><div class="dbox' + (d.sum ? '' : ' book') + '">' + maskHTML(d.text, d.hide) + '</div>' +
+      '<div class="opts">' + c.opts.map(function (id, k) {
+        var cls = 'opt';
+        if (done) { if (id === d.id) cls += ' is-right'; else if (id === c.picked) cls += ' is-wrong'; }
+        return '<button type="button" class="' + cls + '" data-act="defs-pick" data-id="' + esc(id) + '"' + (done ? ' disabled' : '') + '><span class="k">' + 'أبجد'.charAt(k) + '</span><span>' + esc(DBY[id].term) + '</span></button>';
+      }).join('') + '</div>';
+    if (!done) b += '<div class="dtools end"><button type="button" class="mini" data-act="defs-x" data-id="' + esc(d.id) + '">استبعد</button></div>';
+  }
+  if (done) b += defsAfter(d, c);
+  return h + '<section class="card">' + b + '</section>';
+}
+function defsResultHTML() {
+  var n = DQ.res.length, right = DQ.res.filter(Boolean).length;
+  var wrong = DQ.ids.slice(0, n).filter(function (id, i) { return !DQ.res[i] && DBY[id]; }).map(function (id) { return DBY[id]; });
+  return '<div class="block-head"><h2>النتيجة</h2><span class="chip">' + esc(DQ.label) + '</span></div>' +
+    '<section class="card"><div class="score">' + right + ' من ' + n + '</div>' +
+    '<p class="muted p0">' + (n ? 'أصبت في ' + right + ' من ' + countWord(n, W.def, true) : 'لم تجب عن شيء') + (n < DQ.ids.length ? ' (أنهيت قبل آخرها)' : '') + '.</p>' +
+    (wrong.length ? '<p class="sec-title">ما أخطأت فيه، ويُقدَّم في الجولة التالية</p><ul class="cell-miss">' + wrong.map(function (d) {
+      return '<li><span class="cell-asp">' + esc(d.ch.title) + ' · ص ' + esc(d.pg) + '</span><b>' + esc(d.term) + '</b></li>';
+    }).join('') + '</ul>' : (n ? '<p class="fin-msg ok">أصبت فيها كلها.</p>' : '')) +
+    '</section>' +
+    '<div class="row"><button type="button" class="btn" data-act="defs-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="defs-quit">رجوع</button></div>';
 }
 
 /* دفتر الأخطاء */
@@ -1328,7 +1574,7 @@ sheet.addEventListener('click', function (e) {
   var a = b.getAttribute('data-act');
   if (a === 'new-round') { var c = CH[b.getAttribute('data-ch')]; armOr('round-' + c.id, function () { closeRound(c, true); ST.save(); toast('بدأت جولة جديدة في ' + c.title); render(); }); }
   else if (a === 'reset-known') armOr('known', function () { Object.keys(S.k).forEach(function (id) { if (known(id)) S.k[id] = { v: 0, t: now() }; }); ST.save(); toast('مُحيت علامات «أعرفها»'); render(); });
-  else if (a === 'reset-all') armOr('all', function () { ST.reset(); S = ST.state(); quiz = null; DECK = null; toast('بدأت من جديد'); closeSettings(); render(); });
+  else if (a === 'reset-all') armOr('all', function () { ST.reset(); S = ST.state(); quiz = null; DECK = null; DQ = null; reportNb(); toast('بدأت من جديد'); closeSettings(); render(); });
 });
 document.getElementById('setBtn').addEventListener('click', openSettings);
 
@@ -1336,7 +1582,7 @@ document.getElementById('setBtn').addEventListener('click', openSettings);
 function parseHash() {
   var h = (location.hash || '').replace(/^#/, ''), m;
   if (!h || h === 'home') return ['home'];
-  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells'].indexOf(h) > -1) return [h];
+  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells', 'defs'].indexOf(h) > -1) return [h];
   if ((m = /^l-(\d+)$/.exec(h))) return ['lesson', +m[1]];
   if ((m = /^r-(\d+)$/.exec(h))) return ['recall', +m[1]];
   if (h === 'deck') return [DECK ? 'deck' : 'rev'];
@@ -1348,6 +1594,7 @@ function route() {
   /* اختبار انتهى: يُعرض بعده البنك لا النتيجة القديمة */
   if (quiz && quiz.i >= quiz.ids.length) quiz = null;
   if (CQ && screen !== 'cells' && CQ.i >= CQ.ids.length) CQ = null;
+  if (DQ && screen !== 'defs' && DQ.i >= DQ.ids.length) DQ = null;
   render(); window.scrollTo(0, 0);
 }
 function go(h) { if (location.hash === h) route(); else location.hash = h; }
@@ -1406,9 +1653,59 @@ view.addEventListener('click', function (e) {
     case 'deck-know': { var cid = DECK.ids[DECK.i]; S.k[cid] = { v: known(cid) ? 0 : 1, t: now() }; ST.save(); var fl = DECK.flip; render(); if (fl) { var f2 = view.querySelector('.fc'); if (f2) f2.classList.add('flipped'); } return; }
     case 'deck-again': DECK.i = 0; DECK.flip = false; render(); return;
     case 'deck-quit': { var back = DECK ? DECK.back : '#rev'; DECK = null; go(back); return; }
-    case 'deck-filter': { var c0 = CH[cardFilter.ch], l0 = LBY[cardFilter.les]; openDeck(cardList().map(function (k) { return k.id; }), l0 ? 'بطاقات: ' + l0.title : (c0 ? 'بطاقات ' + c0.title : 'البطاقات كلها'), '#rev'); return; }
-    case 'card-ch': cardFilter.ch = ch; cardFilter.les = 'all'; render(); return;
-    case 'card-les': cardFilter.les = el.getAttribute('data-l'); render(); return;
+    case 'deck-filter': { var cl = selLabel(cardPick(), cardsIn); openDeck(cardList().map(function (k) { return k.id; }), cl === 'الفصول كلها' ? 'البطاقات كلها' : 'بطاقات: ' + cl, '#rev'); return; }
+    case 'cardp-les': case 'cardp-ch': case 'cardp-all':
+    case 'defs-les': case 'defs-ch': case 'defs-all':
+    case 'ess-les': case 'ess-ch': case 'ess-all': {
+      var pk = act.split('-'), cnt = pk[0] === 'ess' ? essIn : pk[0] === 'defs' ? defsIn : cardsIn;
+      if (pk[0] === 'defs') defsInit(); else if (pk[0] === 'ess') selInit();
+      var sl = pk[0] === 'ess' ? essaySel : pk[0] === 'defs' ? defsSel : cardPick();
+      if (pk[1] === 'les') { var lid2 = el.getAttribute('data-l'); sl[lid2] = !sl[lid2]; }
+      else togPick(sl, pickable(cnt, pk[1] === 'ch' ? CH[ch] : null));
+      if (pk[0] === 'ess') saveSel(); else if (pk[0] === 'defs') defsSave(); else savePick('cardSel', sl);
+      render(); return;
+    }
+    case 'defs-mode': defsInit(); defsMode = el.getAttribute('data-m') === 'who' ? 'who' : 'build'; defsSave(); render(); return;
+    case 'defs-count': defsInit(); defsCount = +el.getAttribute('data-n'); defsSave(); render(); return;
+    case 'defs-start': defsStart(); return;
+    case 'defs-again': { defsInit(); var dPrev = DQ ? DQ.mode : defsMode; if (DQ) defsMode = dPrev; DQ = null; defsStart(); return; }
+    case 'defs-quit': DQ = null; bankKind = 'defs'; go('#quiz'); return;
+    case 'defs-back': setDx(el.getAttribute('data-id'), false); toast('أُعيد إلى الجولات'); render(); return;
+    case 'defs-x': {
+      var xid = el.getAttribute('data-id'), xon = !dxOn(xid);
+      setDx(xid, xon); toast(xon ? 'استُبعد، فلا يُسأل عنه حتى تعيده من «المستبعدة»' : 'أُعيد إلى الجولات');
+      /* استبعاد السؤال الجاري: يُترك ويُعرض ما بعده، ولا يُحسب له صواب ولا خطأ */
+      if (xon && DQ && DQ.cur && DQ.cur.id === xid && DQ.cur.ans === null && DQ.i < DQ.ids.length) { DQ.ids.splice(DQ.i, 1); DQ.cur = null; window.scrollTo(0, 0); }
+      render(); return;
+    }
+    case 'defs-chip': {
+      if (!DQ || !DQ.cur || DQ.cur.ans !== null) return;
+      var dc = DQ.cur, dd = DBY[dc.id], k3 = +el.getAttribute('data-k'), chip = dc.chips[k3];
+      if (!chip || dc.placed.indexOf(k3) > -1) return;
+      if (!chip.f && dnorm(chip.t) === dnorm(dd.parts[dc.placed.length])) {
+        dc.placed.push(k3);
+        if (dc.placed.length === dd.parts.length) defsAnswer(!dc.wrong);
+        render();
+      } else {
+        dc.errs++; dc.wrong = true;
+        el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad');
+        var tl = view.querySelector('.dtools .small'); if (tl) tl.textContent = countWord(dc.errs, W.err); else render();
+      }
+      return;
+    }
+    case 'defs-show': {
+      if (!DQ || !DQ.cur || DQ.cur.ans !== null) return;
+      var ds = DQ.cur, dd2 = DBY[ds.id]; ds.gave = true; ds.wrong = true;
+      ds.placed = dd2.parts.map(function (p) { for (var z = 0; z < ds.chips.length; z++) if (!ds.chips[z].f && ds.chips[z].t === p && ds.placed.indexOf(z) < 0) return z; return -1; }).filter(function (z) { return z > -1; });
+      defsAnswer(false); render(); return;
+    }
+    case 'defs-pick': {
+      if (!DQ || !DQ.cur || DQ.cur.ans !== null) return;
+      DQ.cur.picked = el.getAttribute('data-id'); defsAnswer(DQ.cur.picked === DQ.cur.id); render();
+      var dv = view.querySelector('.verdict'); if (dv && dv.getBoundingClientRect().bottom > window.innerHeight - 70) dv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    case 'defs-next': if (DQ) { DQ.i++; DQ.cur = null; } render(); window.scrollTo(0, 0); return;
     case 'hide-known': cardFilter.hideKnown = !cardFilter.hideKnown; render(); return;
     case 'map': openMap(ch); return;
     case 'sum-ch': sumCh = ch; ST.setPref('sumCh', ch); render(); window.scrollTo(0, 0); return;
@@ -1422,8 +1719,6 @@ view.addEventListener('click', function (e) {
       ids = bankPick(chs.map(function (c) { return c.id; }), objCount);
       startQuiz(ids, 'اختبار موضوعي: ' + chs.map(function (c) { return c.title; }).join('، '), 'bank'); return;
     }
-    case 'ess-les': { var el2 = el.getAttribute('data-l'); essaySel[el2] = !essaySel[el2]; saveSel(); render(); return; }
-    case 'ess-ch': { var cc = CH[ch], all = cc.les.every(function (x) { return essaySel[x.id]; }); cc.les.forEach(function (x) { essaySel[x.id] = !all; }); saveSel(); render(); return; }
     case 'copy-essay': { var ls = pickedLessons().filter(function (x) { return x.essay.length; }); if (ls.length) copyText(essayMessage(ls), 'نُسخت الرسالة. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
     case 'copy-new': { var ls2 = pickedLessons(); if (ls2.length) copyText(newEssaysRequest(ls2), 'نُسخ الطلب. الصقه في محادثة جديدة داخل مشروع المادة.'); return; }
     case 'answer': {
@@ -1549,9 +1844,10 @@ document.getElementById('brandSub').title = [CFG.part, CFG.scope].filter(Boolean
 (function () { var rs = ST.pref('revSub'); if (rs) revSub = rs; })();
 var topEl = document.getElementById('top');
 window.addEventListener('scroll', function () { topEl.classList.toggle('scrolled', window.scrollY > 4); }, { passive: true });
-ST.onRemote(function () { S = ST.state(); if (!busy()) render(); else updateBadge(); });
+ST.onRemote(function () { S = ST.state(); reportNb(); if (!busy()) render(); else updateBadge(); });
 initSchedule();
+reportNb();
 route();
 var lastDay = todayISO();
-setInterval(function () { var t = todayISO(); if (t !== lastDay) { lastDay = t; if (!busy()) render(); } }, 60000);
+setInterval(function () { var t = todayISO(); if (t !== lastDay) { lastDay = t; reportNb(); if (!busy()) render(); } }, 60000);
 })();

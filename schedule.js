@@ -180,6 +180,12 @@
       Object.keys(m).forEach(function (k) { if (!out.marks[k] || (m[k].t || 0) >= (out.marks[k].t || 0)) out.marks[k] = m[k]; });
     });
     var la = a.level, lb = b.level; out.level = !la ? lb || null : !lb ? la : ((lb.t || 0) >= (la.t || 0) ? lb : la);
+    if (a.extra || b.extra) { // مهام الموقع الإضافية (extra): كل مهمة بآخر بلاغ عنها
+      out.extra = {};
+      [a.extra || {}, b.extra || {}].forEach(function (m) {
+        Object.keys(m).forEach(function (k) { if (m[k] && (!out.extra[k] || (m[k].t || 0) >= (out.extra[k].t || 0))) out.extra[k] = m[k]; });
+      });
+    }
     return out;
   }
 
@@ -592,6 +598,20 @@
       progress[c] = { pct: need ? Math.round(got / need * 100) : 0, learned: learned, total: lessonList[c].length, level: levels[c] };
     });
 
+    // مهام الموقع الإضافية (extra، انظر واجهة extra): تُلحق بمهام اليوم وحده بعد التوزيع وجمع الجلسات، فلا تمسّ
+    // التوزيع ولا السقف ولا الدقائق ولا القياس ولا التقدم، ولا تظهر لمادة اختبارها اليوم أو مضى. والمادة التي
+    // لم تبلّغ بمهمة لا يتغير فيها شيء. وبلاغ يوم سابق ما زال قائماً، لكنه غير منجز اليوم.
+    exams.forEach(function (e) {
+      var xs = e.code && e.date && diffDays(today, e.date) > 0 && marksBy[e.code] && marksBy[e.code].extra;
+      if (!xs) return;
+      Object.keys(xs).sort().forEach(function (id) {
+        var r = xs[id]; if (!r || !r.active || !r.title) return;
+        if (!todayPlan) { todayPlan = { date: today, tasks: [], minutes: 0, load: 0, sessions: 0 }; plan.days.unshift(todayPlan); }
+        todayPlan.tasks.push({ code: e.code, lesson: '_' + id, kind: 'extra', id: id, title: String(r.title), pages: '',
+          link: BASE + e.code + '/' + (r.link || ''), minutes: 0, units: 0, done: !!r.done && r.day === today });
+      });
+    });
+
     return {
       today: today, cap: cap, capMinutes: cap * SESSION, exams: exams, source: source,
       overrideExpired: !!(ov && ov.basis !== examsBasis(exams)),
@@ -691,6 +711,21 @@
     /* مستوى المادة من بنك الأسئلة: النسبة وعدد الإجابات */
     level: function (code, pct, answered) {
       var p = marksStore(code).put({ v: 1, marks: {}, level: { pct: Math.round(pct), n: answered | 0, t: Date.now() } });
+      refreshFromLocal(); return p;
+    },
+    /* مهمة يومية إضافية يملكها موقع المادة، مثل «مراجعة دفتر الأخطاء»:
+       extra(code, { id: 'nb', title: 'مراجعة دفتر الأخطاء', link: '#nb', active: true, done: false })
+       يستدعيها الموقع عند فتحه وكلما تغيّرت حالتها. ويُحفظ البلاغ بيوم الجدول في <المجلد>/_passes.json (خانة extra)
+       فيصل الأجهزة كلها، ولا يُكتب إلا إن تغيّر. وإن كان active ظهرت في مهام اليوم وحده (kind: 'extra') بعنوانها
+       ورابطها وعلامة إنجازها كما يبلّغ بها الموقع، ولا تُسجَّل بـ done ولا undo. */
+    extra: function (code, x) {
+      if (!code || !x || !x.id) return Promise.resolve();
+      var day = todayISO(), cur = ((marksStore(code).local() || {}).extra || {})[x.id];
+      var v = { title: String(x.title || ''), link: String(x.link || ''), active: x.active ? 1 : 0, done: x.active && x.done ? 1 : 0, day: day };
+      if (cur && cur.title === v.title && cur.link === v.link && cur.active === v.active && cur.done === v.done && cur.day === v.day) return Promise.resolve();
+      v.t = Date.now();
+      var rec = { v: 1, marks: {}, extra: {} }; rec.extra[x.id] = v;
+      var p = marksStore(code).put(rec);
       refreshFromLocal(); return p;
     },
 
@@ -799,7 +834,7 @@
       }
       look(EXAMS_PATH, function () { return 1; });
       knownCodes().forEach(function (c) {
-        look(c + '/_passes.json', function (p) { return Object.keys(p.marks || {}).length + (p.level ? 1 : 0); });
+        look(c + '/_passes.json', function (p) { return Object.keys(p.marks || {}).length + (p.level ? 1 : 0) + Object.keys(p.extra || {}).length; });
       });
       return { token: !!token(), pending: pending, lastSaved: lastSaved, busy: syncBusy > 0, failed: syncFailed && pending > 0, failedAt: syncFailedAt };
     },
