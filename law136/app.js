@@ -1128,34 +1128,62 @@ function dnorm(s) {
     .replace(/[^ء-يA-Za-z0-9٠-٩]+/g, ' ').trim();
 }
 function dwords(s) { var n = dnorm(s); return n ? n.split(' ') : []; }
-function overlapN(a, b) { var A = {}, seen = {}, n = 0; dwords(a.text).forEach(function (w) { A[w] = 1; }); dwords(b.text).forEach(function (w) { if (A[w] && !seen[w]) { seen[w] = 1; n++; } }); return n; }
-function bySim(d, list) { return list.slice().sort(function (x, y) { return overlapN(d, y) - overlapN(d, x); }); }
-/* القطع: قطع التعريف الصحيحة، ومعها من 2 إلى 4 قطع من أقاربه لا تساوي قطعة صحيحة، والأقرب طولاً أولى.
-   فإن لم يكن له أقارب، أو قلّت قطعهم عن اثنتين، أُكملت من تعريفات فصله، ثم من غيرها */
+/* كلمات المعنى: بلا حروف المعاني الشائعة، وكل كلمة مرة */
+var DSTOP = {};
+'و في من على عن إلى أو ثم أن إن التي الذي هي هو ما لا قد كل بين مع حيث ذلك هذه هذا تلك يتم كما إذا عند به بها له لها فيه فيها منه منها'.split(' ').forEach(function (w) { DSTOP[dnorm(w)] = 1; });
+function cwords(d) {
+  if (!d._cw) { var seen = {}; d._cw = dwords(d.text).filter(function (w) { if (DSTOP[w] || seen[w]) return false; seen[w] = 1; return true; }); }
+  return d._cw;
+}
+/* نسبة الكلمات المشتركة إلى كلمات أقصر التعريفين */
+function simRatio(a, b) {
+  var A = cwords(a), B = cwords(b), m = Math.min(A.length, B.length), set = {}, n = 0;
+  if (!m) return 0;
+  A.forEach(function (w) { set[w] = 1; }); B.forEach(function (w) { if (set[w]) n++; });
+  return n / m;
+}
+function bySim(d, list) { return list.slice().sort(function (x, y) { return simRatio(d, y) - simRatio(d, x); }); }
+/* المصطلح بلا ما بين قوسين: «الإقليم (ص57)» و«الإقليم (ص179)» مصطلح واحد */
+function baseTerm(d) { return dnorm(String(d.term).replace(/\s*\([^()]*\)/g, '')); }
+/* شبيهه الحقيقي للمقارنة بعد الإجابة: تعريف آخر للمصطلح نفسه، وإلا تعريف تشترك معه نصف كلمات أقصرهما على الأقل،
+   والأشبه أولى، وأقاربه في الأسر أولى عند التساوي. فإن لم يكن له شبيه عُرض وحده */
+function lookAlike(d) {
+  var bt = baseTerm(d), best = null, bs = -1;
+  DEFS.forEach(function (x) {
+    if (x === d) return;
+    var same = !!bt && baseTerm(x) === bt, r = simRatio(d, x);
+    if (!same && r < 0.5) return;
+    var s = (same ? 10 : 0) + r + (d.sibs.indexOf(x) > -1 ? 0.001 : 0);
+    if (s > bs) { bs = s; best = x; }
+  });
+  return best;
+}
+/* القطع: قطع التعريف الصحيحة، ومعها بعددها قطع دخيلة، ست على الأقل وأربع عشرة على الأكثر: من قطع أقاربه في أسره
+   أولاً، ثم من تعريفات فصله، ثم من أي تعريف، وبترتيب عشوائي في كل طبقة. ولا دخيلة تساوي قطعة صحيحة، ولا قطعتان مكررتان */
 function defChips(d) {
-  var own = {}, used = {}, avg = 0, want = d.parts.length <= 3 ? 2 : d.parts.length <= 6 ? 3 : 4, fake = [];
-  d.parts.forEach(function (p) { own[dnorm(p)] = 1; avg += p.length; }); avg /= d.parts.length;
-  function fill(src, upto) {
+  var used = {}, want = clamp(d.parts.length, 6, 14), fake = [];
+  d.parts.forEach(function (p) { used[dnorm(p)] = 1; });
+  function fill(src) {
     var c = [];
-    src.forEach(function (x) { x.parts.forEach(function (p) { var k = dnorm(p); if (k && !own[k] && !used[k]) { used[k] = 1; c.push(p); } }); });
-    c.sort(function (a, b) { return Math.abs(a.length - avg) - Math.abs(b.length - avg); });
-    var pick = shuffle(c.slice(0, 2 * upto)).slice(0, upto);
-    c.forEach(function (p) { if (pick.indexOf(p) < 0) delete used[dnorm(p)]; });
+    src.forEach(function (x) { x.parts.forEach(function (p) { var k = dnorm(p); if (k && !used[k]) { used[k] = 1; c.push(p); } }); });
+    c = shuffle(c);
+    var pick = c.slice(0, want - fake.length);
+    c.slice(pick.length).forEach(function (p) { delete used[dnorm(p)]; });
     fake = fake.concat(pick);
   }
-  fill(d.sibs, want);
-  if (fake.length < 2) fill(DEFS.filter(function (x) { return x !== d && x.ch === d.ch && d.sibs.indexOf(x) < 0; }), want - fake.length);
-  if (fake.length < 2) fill(DEFS.filter(function (x) { return x !== d && x.ch !== d.ch && d.sibs.indexOf(x) < 0; }), want - fake.length);
+  fill(d.sibs);
+  if (fake.length < want) fill(DEFS.filter(function (x) { return x !== d && x.ch === d.ch && d.sibs.indexOf(x) < 0; }));
+  if (fake.length < want) fill(DEFS.filter(function (x) { return x !== d && x.ch !== d.ch && d.sibs.indexOf(x) < 0; }));
   return shuffle(d.parts.map(function (p) { return { t: p }; }).concat(fake.map(function (p) { return { t: p, f: 1 }; })));
 }
-/* الخيارات: المصطلح الصحيح وثلاثة من أقاربه على الأكثر، الأشبه تعريفاً أولاً. فإن قلّ أقاربه عن اثنين أُكمل من فصله */
+/* الخيارات: ستة، المصطلح الصحيح وأشبه أقاربه تعريفاً، ثم مصطلحات فصله، ثم أي مصطلح، بلا تكرار */
 function defOpts(d) {
   var seen = {}, opts = [];
   seen[dnorm(d.term)] = 1;
-  function add(list) { list.forEach(function (x) { var k = dnorm(x.term); if (opts.length < 3 && !seen[k]) { seen[k] = 1; opts.push(x); } }); }
+  function add(list) { list.forEach(function (x) { var k = dnorm(x.term); if (opts.length < 5 && !seen[k]) { seen[k] = 1; opts.push(x); } }); }
   add(bySim(d, d.sibs));
-  if (opts.length < 2) add(bySim(d, DEFS.filter(function (x) { return x !== d && x.ch === d.ch; })));
-  if (opts.length < 2) add(bySim(d, DEFS.filter(function (x) { return x !== d; })));
+  if (opts.length < 5) add(bySim(d, DEFS.filter(function (x) { return x !== d && x.ch === d.ch; })));
+  if (opts.length < 5) add(bySim(d, DEFS.filter(function (x) { return x !== d; })));
   return shuffle([d].concat(opts)).map(function (x) { return x.id; });
 }
 /* النص وما يكشف المصطلح فيه مستور */
@@ -1222,9 +1250,9 @@ function defsAfter(d, c) {
   var e = c.errs, v = c.ans ? 'أصبت' : DQ.mode === 'who' ? 'إجابة خاطئة، والصواب: ' + d.term
     : c.gave ? 'كشفت التعريف، فيُحسب خطأ ويُقدَّم في الجولة التالية'
     : 'أخطأت في الترتيب ' + (e === 1 ? 'مرة' : e === 2 ? 'مرتين' : e + (e <= 10 ? ' مرات' : ' مرة')) + '، فيُقدَّم في الجولة التالية';
-  var sib = bySim(d, d.sibs)[0] || null, dh = sib ? diffHTML(d.text, sib.text) : [esc(d.text)];
+  var sib = lookAlike(d), dh = sib ? diffHTML(d.text, sib.text) : [esc(d.text)];
   return '<p class="verdict ' + (c.ans ? 'ok' : 'bad') + '">' + esc(v) + '</p>' +
-    '<div class="dcmp">' + defBlock(d, dh[0], false) + (sib ? '<p class="dcmp-v">وأقرب تعريف إليه، وقد ظُلّل ما يفترقان فيه</p>' + defBlock(sib, dh[1], true) : '') + '</div>' +
+    '<div class="dcmp">' + defBlock(d, dh[0], false) + (sib ? '<p class="dcmp-v">ويشبهه هذا التعريف، وقد ظُلّل ما يفترقان فيه</p>' + defBlock(sib, dh[1], true) : '') + '</div>' +
     '<div class="row"><button type="button" class="btn" data-act="defs-next">' + (DQ.i + 1 < DQ.ids.length ? 'التالي' : 'النتيجة') + '</button>' +
     '<button type="button" class="btn ghost" data-act="defs-x" data-id="' + esc(d.id) + '">' + (dxOn(d.id) ? 'مستبعد · أعِده' : 'استبعد') + '</button></div>';
 }
@@ -1250,7 +1278,7 @@ function defsHTML() {
       '<div class="opts">' + c.opts.map(function (id, k) {
         var cls = 'opt';
         if (done) { if (id === d.id) cls += ' is-right'; else if (id === c.picked) cls += ' is-wrong'; }
-        return '<button type="button" class="' + cls + '" data-act="defs-pick" data-id="' + esc(id) + '"' + (done ? ' disabled' : '') + '><span class="k">' + 'أبجد'.charAt(k) + '</span><span>' + esc(DBY[id].term) + '</span></button>';
+        return '<button type="button" class="' + cls + '" data-act="defs-pick" data-id="' + esc(id) + '"' + (done ? ' disabled' : '') + '><span class="k">' + 'أبجدهو'.charAt(k) + '</span><span>' + esc(DBY[id].term) + '</span></button>';
       }).join('') + '</div>';
     if (!done) b += '<div class="dtools end"><button type="button" class="mini" data-act="defs-x" data-id="' + esc(d.id) + '">استبعد</button></div>';
   }
