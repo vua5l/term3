@@ -10,7 +10,8 @@
        cell[معرّف الخانة] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لسؤال الخانة، ولا يدخل المستوى ولا دفتر الأخطاء
        def[معرّف التعريف] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لنوع «التعريفات»، ولا يدخل المستوى ولا دفتر الأخطاء
        dx[معرّف التعريف]  { v: 1 مستبعد من جولات «التعريفات» أو 0 أُعيد، t }
-     والخانتان def وdx اختياريتان: الحفظ القديم بلاهما يُحمَّل كما هو.
+       dv[معرّف التعريف]  { v: 1 مُرّ به في طريقة «اطّلاع» أو 0 أُعيد إليها، t }، ولا يمسّ طريقتي الاختبار
+     والخانات def وdx وdv اختيارية: الحفظ القديم بلاها يُحمَّل كما هو.
    - بين الجهاز والمستودع يُجمع التقدم مدخلاً مدخلاً بالأحدث، فلا يضيع ما أُنجز في أحدهما.
    - التفضيلات (النهار والليل وما يشبهه) لهذا الجهاز وحده، ولا تُرفع. */
 (function () {
@@ -18,9 +19,9 @@
   var C = window.LAW136_CONFIG || {};
   var KEY = C.storageKey || 'law136-v1';
   var PREFS = KEY + '-prefs';
-  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell', 'def', 'dx'];
+  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell', 'def', 'dx', 'dv'];
 
-  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {}, def: {}, dx: {} }; }
+  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {}, def: {}, dx: {}, dv: {} }; }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
   function norm(s) {
     var o = fresh(); if (!isObj(s)) return o;
@@ -56,7 +57,7 @@
     if (!m.last && o.last) m.last = clone(o.last);
     return m;
   }
-  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer };
+  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer, dv: newer };
   function merge(a, b) {
     a = norm(a); b = norm(b);
     if (a.base !== b.base) return clone(b.base > a.base ? b : a); // «البدء من جديد» في جهاز يغلب ما قبله

@@ -10,6 +10,7 @@
    دفتر الأخطاء: record، nbHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
    سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
    التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
+   طريقة «اطّلاع» في التعريفات: viewHTML، viewCard، viewBar، viewStep، viewEndHTML، setDv.
    مهمة دفتر الأخطاء: nbState، reportNb (إلى الجدول بـ extra)، nbRow. اختيار الدروس المتعدد: lesPicker، loadPick، selLabel.
    الخرائط: openMap، drawEdges، mapFit. الإعدادات: openSettings. التنقل: parseHash، route. */
 (function () {
@@ -1099,20 +1100,25 @@ function cellsResultHTML() {
     '<div class="row"><button type="button" class="btn" data-act="cell-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="cell-quit">رجوع</button></div>';
 }
 
-/* ---------- «التعريفات»: ركّب التعريف من قطعه، أو لمن هذا التعريف؟ ----------
-   سجله في S.def، والمستبعد في S.dx، ولا يدخل دفتر الأخطاء ولا المستوى ولا جولات البنك.
+/* ---------- «التعريفات»: ركّب التعريف من قطعه، أو لمن هذا التعريف؟ أو «اطّلاع» بلا اختبار ----------
+   سجله في S.def، والمستبعد في S.dx، وما مُرّ به في «اطّلاع» في S.dv، ولا يدخل دفتر الأخطاء ولا المستوى ولا جولات البنك.
    ويُقدَّم في الجولة ما أخطأت فيه آخر مرة، ثم ما لم تُسأل عنه، ثم الباقي وأقلّه صواباً أولاً */
-var DQ = null;     /* { ids, i, mode, label, res, cur: { id, i, chips, placed, errs, wrong, gave, ans, opts, picked } } */
-var defsSel = null, defsMode = 'build', defsCount = 10, defsReady = false;
+var DQ = null;     /* { ids, i, mode, label, res, cur: { id, i, chips, placed, errs, wrong, gave, ans, opts, picked, open, cmp } } */
+var defsSel = null, defsMode = 'build', defsCount = 10, defsVCount = 10, defsCmp = true, defsReady = false;
+var dvArm = false, dvArmT = null;
 function defsInit() {
   if (defsReady) return; defsReady = true;
   defsSel = loadPick('defsSel', defsIn);
-  var m = ST.pref('defsMode'); if (m === 'build' || m === 'who') defsMode = m;
+  var m = ST.pref('defsMode'); if (m === 'build' || m === 'who' || m === 'view') defsMode = m;
   var c = ST.pref('defsCount'); if (c === 10 || c === 20 || c === 0) defsCount = c;
+  var v = ST.pref('defsVCount'); if (v === 10 || v === 15 || v === 20) defsVCount = v;
+  if (ST.pref('defsCmp') === false) defsCmp = false;
 }
-function defsSave() { savePick('defsSel', defsSel); ST.setPref('defsMode', defsMode); ST.setPref('defsCount', defsCount); }
+function defsSave() { savePick('defsSel', defsSel); ST.setPref('defsMode', defsMode); ST.setPref('defsCount', defsCount); ST.setPref('defsVCount', defsVCount); ST.setPref('defsCmp', defsCmp); }
 function dxOn(id) { var x = S.dx && S.dx[id]; return !!(x && x.v); }
 function setDx(id, on) { if (!S.dx || typeof S.dx !== 'object') S.dx = {}; S.dx[id] = { v: on ? 1 : 0, t: now() }; ST.save(); }
+function dvOn(id) { var x = S.dv && S.dv[id]; return !!(x && x.v); }
+function setDv(id, on) { if (!S.dv || typeof S.dv !== 'object') S.dv = {}; if (dvOn(id) === !!on) return; S.dv[id] = { v: on ? 1 : 0, t: now() }; ST.save(); }
 function defRec(id) { var r = S.def && S.def[id]; return r && typeof r === 'object' ? r : null; }
 function defWeight(d) { var r = defRec(d.id); if (!r) return 1; if (+r.w) return 0; return 2 + (+r.n ? (+r.c || 0) / +r.n : 0); }
 function defRecord(id, ok) {
@@ -1122,6 +1128,13 @@ function defRecord(id, ok) {
   ST.save();
 }
 function defsPool() { return DEFS.filter(function (d) { return defsSel[d.les.id] && !dxOn(d.id); }); }
+function viewPool() { return defsPool().filter(function (d) { return !dvOn(d.id); }); }
+/* ترتيب الكتاب: بالدرس ثم بالصفحة، فما تجاور في الكتاب يتجاور في البطاقات */
+function bookSort(list) {
+  return list.map(function (d, i) { return { d: d, i: i, p: parseInt(d.pg, 10) || 0 }; })
+    .sort(function (a, b) { return (a.d.les.no - b.d.les.no) || (a.p - b.p) || (a.i - b.i); })
+    .map(function (x) { return x.d; });
+}
 /* المقابلة بلا تشكيل ولا ترقيم، والهمزات والتاء المربوطة موحّدة */
 function dnorm(s) {
   return String(s == null ? '' : s).replace(/[ً-ْٰـ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
@@ -1208,6 +1221,12 @@ function diffHTML(a, b) {
 }
 function defsStart() {
   defsInit();
+  if (defsMode === 'view') {
+    var vl = bookSort(viewPool()).slice(0, defsVCount);
+    if (!vl.length) { toast('لا تعريفات هنا'); return; }
+    DQ = { ids: vl.map(function (d) { return d.id; }), i: 0, mode: 'view', res: [], cur: null, label: 'اطّلاع · ' + selLabel(defsSel, defsIn) };
+    go('#defs'); return;
+  }
   var list = shuffle(defsPool()).sort(function (x, y) { return defWeight(x) - defWeight(y); });
   if (defsCount) list = list.slice(0, defsCount);
   if (!list.length) { toast('لا تعريفات هنا'); return; }
@@ -1219,24 +1238,39 @@ function dqItem() {
   var d = DBY[DQ.ids[DQ.i]];
   if (!DQ.cur || DQ.cur.i !== DQ.i || DQ.cur.id !== d.id) {
     DQ.cur = { id: d.id, i: DQ.i, chips: DQ.mode === 'build' ? defChips(d) : null, placed: [], errs: 0, wrong: false, gave: false, ans: null,
-      opts: DQ.mode === 'who' ? defOpts(d) : null, picked: null };
+      opts: DQ.mode === 'who' ? defOpts(d) : null, picked: null, open: false, cmp: false };
   }
   return d;
 }
 function defsAnswer(ok) { DQ.cur.ans = !!ok; DQ.res.push(!!ok); defRecord(DQ.cur.id, !!ok); }
+/* أسفل إعداد «اطّلاع»: العدّاد، وزر البدء، و«ابدأ من جديد» فيما اختير. ولا يُؤكَّد البدء من جديد إلا إن بقي شيء لم يُمرّ به */
+function viewSetupEnd(left, n) {
+  var all = DEFS.filter(function (d) { return !dxOn(d.id); }), seen = all.filter(function (d) { return dvOn(d.id); }).length;
+  var sel = defsPool().length, every = allPicked(defsSel, pickable(defsIn));
+  var h = '<p class="note-line">اطّلعت على ' + seen + ' من ' + countWord(all.length, W.def, true) + (every || !sel ? '' : '، وبقي فيما اخترت ' + (left ? countWord(left, W.def) : 'لا شيء')) + '.</p>';
+  if (sel && !left) return h + '<p class="fin-msg ok">اطّلعت على كل ما اخترت.</p><button type="button" class="btn wide" data-act="defs-vreset">ابدأ من جديد</button>';
+  h += '<button type="button" class="btn wide" data-act="defs-start"' + (n ? '' : ' disabled') + '>ابدأ: ' + (n ? countWord(n, W.card) : 'اختر درساً فيه تعريفات') + '</button>';
+  if (sel > left) h += '<button type="button" class="link" data-act="defs-vreset">' + (dvArm ? 'اضغط ثانية ليعود إليك ما مررت به' : every ? 'ابدأ من جديد' : 'ابدأ من جديد في هذا الاختيار') + '</button>';
+  return h;
+}
 function defsSetup() {
   defsInit();
-  var pool = defsPool().length, n = defsCount ? Math.min(defsCount, pool) : pool, going = DQ && DQ.i < DQ.ids.length;
+  var isV = defsMode === 'view', left = isV ? viewPool().length : 0, pool = isV ? left : defsPool().length, lim = isV ? defsVCount : defsCount;
+  var n = lim ? Math.min(lim, pool) : pool, going = DQ && DQ.i < DQ.ids.length;
   var xs = DEFS.filter(function (d) { return dxOn(d.id); });
-  return '<p class="muted small p0">في «ركّب التعريف» ترى المصطلح فترتّب قطع تعريفه، وفي «لمن هذا التعريف؟» ترى التعريف فتختار مصطلحه. ثم يُعرض بجوار أقرب تعريف إليه وقد ظُلّل ما يفترقان فيه. ويُقدَّم ما أخطأت فيه في الجولة التالية، ولا يدخل المستوى ولا دفتر الأخطاء.</p>' +
-    (going ? '<section class="card tight"><p class="fin-msg">عندك جولة جارية: ' + esc(DQ.label) + '، أجبت عن ' + DQ.res.length + ' من ' + DQ.ids.length + '.</p><button type="button" class="btn wide" data-go="#defs">أكملها</button></section>' : '') +
+  return '<p class="muted small p0">' + (isV ? 'في «اطّلاع» ترى المصطلح ثم تضغط فيظهر تعريفه، بلا سؤال ولا نتيجة. وما تجاوزته لا يعود إليك فيها إلا إن ضغطت «أعدها لي»، ويبقى يُسأل عنه في طريقتي الاختبار.' :
+      'في «ركّب التعريف» ترى المصطلح فترتّب قطع تعريفه، وفي «لمن هذا التعريف؟» ترى التعريف فتختار مصطلحه. ثم يُعرض بجوار أقرب تعريف إليه وقد ظُلّل ما يفترقان فيه. ويُقدَّم ما أخطأت فيه في الجولة التالية، ولا يدخل المستوى ولا دفتر الأخطاء.') + '</p>' +
+    (going ? '<section class="card tight"><p class="fin-msg">عندك جولة جارية: ' + esc(DQ.label) + '، ' + (DQ.mode === 'view' ? 'مررت بـ' + DQ.i : 'أجبت عن ' + DQ.res.length) + ' من ' + DQ.ids.length + '.</p><button type="button" class="btn wide" data-go="#defs">أكملها</button></section>' : '') +
     '<section class="card">' +
-    '<div class="field"><span class="f-l">الطريقة</span><div class="seg" role="group" aria-label="الطريقة">' + [['build', 'ركّب التعريف'], ['who', 'لمن هذا التعريف؟']].map(function (m) {
+    '<div class="field"><span class="f-l">الطريقة</span><div class="seg" role="group" aria-label="الطريقة">' + [['build', 'ركّب التعريف'], ['who', 'لمن هذا التعريف؟'], ['view', 'اطّلاع']].map(function (m) {
       return '<button type="button" data-act="defs-mode" data-m="' + m[0] + '" aria-pressed="' + (defsMode === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div></div>' +
-    '<div class="field"><span class="f-l">عدد التعريفات</span><div class="seg" role="group" aria-label="عدد التعريفات">' +
-      [10, 20, 0].map(function (x) { return '<button type="button" data-act="defs-count" data-n="' + x + '" aria-pressed="' + (defsCount === x) + '">' + (x ? x : 'الكل') + '</button>'; }).join('') + '</div></div>' +
+    '<div class="field"><span class="f-l">' + (isV ? 'عدد البطاقات' : 'عدد التعريفات') + '</span><div class="seg" role="group" aria-label="' + (isV ? 'عدد البطاقات' : 'عدد التعريفات') + '">' +
+      (isV ? [10, 15, 20] : [10, 20, 0]).map(function (x) { return '<button type="button" data-act="defs-count" data-n="' + x + '" aria-pressed="' + (lim === x) + '">' + (x ? x : 'الكل') + '</button>'; }).join('') + '</div></div>' +
+    (isV ? '<div class="toggle"><span class="small">زر «قارنه بشبيهه» على البطاقات</span><button type="button" class="switch" data-act="defs-cmp" role="switch" aria-checked="' + defsCmp + '" aria-label="زر المقارنة بالشبيه"></button></div>' : '') +
+    (isV ? viewSetupEnd(left, n) : '') +
     '<div class="field">' + lesPicker(defsSel, 'defs', defsIn, W.def) + '</div>' +
-    '<button type="button" class="btn wide" data-act="defs-start"' + (n ? '' : ' disabled') + '>ابدأ: ' + (n ? countWord(n, W.def) : 'اختر درساً فيه تعريفات') + '</button>' +
+    (isV ? (n ? '<button type="button" class="btn wide" data-act="defs-start">ابدأ: ' + countWord(n, W.card) + '</button>' : '') :
+      '<button type="button" class="btn wide" data-act="defs-start"' + (n ? '' : ' disabled') + '>ابدأ: ' + (n ? countWord(n, W.def) : 'اختر درساً فيه تعريفات') + '</button>') +
     '</section>' +
     '<details class="dx-box"><summary>المستبعدة (' + xs.length + ')</summary>' + (xs.length ? '<ul class="dx-list">' + xs.map(function (d) {
       return '<li><span><b>' + esc(d.term) + '</b><small>' + esc(d.ch.title) + ' · ص ' + esc(d.pg) + '</small></span><button type="button" class="btn ghost sm" data-act="defs-back" data-id="' + esc(d.id) + '">أعِد</button></li>';
@@ -1260,6 +1294,7 @@ function defsHTML() {
   if (DQ.i >= DQ.ids.length) return defsResultHTML();
   if (!DBY[DQ.ids[DQ.i]]) { DQ.ids.splice(DQ.i, 1); return defsHTML(); }
   var d = dqItem(), c = DQ.cur, n = DQ.ids.length, done = c.ans !== null, build = DQ.mode === 'build';
+  if (DQ.mode === 'view') return viewHTML(d, c);
   var h = '<div class="block-head"><h2>' + esc(DQ.label) + '</h2><button type="button" class="link" data-act="defs-quit">إنهاء</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * DQ.i / n) + '%"></div></div><span class="n">' + (DQ.i + 1) + ' من ' + n + '</span></div>' +
     '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + '</div>';
@@ -1285,7 +1320,55 @@ function defsHTML() {
   if (done) b += defsAfter(d, c);
   return h + '<section class="card">' + b + '</section>';
 }
+/* «اطّلاع»: وجه البطاقة المصطلح وظهرها التعريف بنصه الحرفي، ولا جواب فيها ولا نتيجة */
+function viewCard(d, open) {
+  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + esc(ref) + '</span></span>';
+  return '<button type="button" class="fc t-def' + (open ? ' flipped' : '') + '" data-act="defs-flip" aria-label="' + (open ? 'اعرض المصطلح' : 'أظهر التعريف') + '">' +
+    '<span class="fc-inner">' +
+      '<span class="face front" aria-hidden="' + !!open + '">' + top + '<span class="fc-body"><p class="fc-q">' + esc(d.term) + '</p><p class="fc-hint">اضغط ليظهر التعريف</p><span class="reveal">أظهر التعريف</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
+      '<span class="face back" aria-hidden="' + !open + '">' + top + '<span class="fc-body"><p class="fc-lead">' + esc(d.term) + '</p><p class="book fc-text">«' + esc(d.text) + '»</p></span></span>' +
+    '</span></button>';
+}
+function viewBar(d, c) {
+  var sib = c.open && defsCmp ? lookAlike(d) : null, dh = sib && c.cmp ? diffHTML(d.text, sib.text) : null;
+  return '<div class="deck-nav"><button type="button" class="btn ghost" data-act="defs-vprev"' + (DQ.i ? '' : ' disabled') + '>السابقة</button>' +
+      (c.open ? '<button type="button" class="know" data-act="defs-vkeep">أعدها لي</button>' : '<span></span>') +
+      '<button type="button" class="btn" data-act="defs-vnext">' + (!c.open ? 'أظهر التعريف' : DQ.i + 1 < DQ.ids.length ? 'التالية' : 'إنهاء') + '</button></div>' +
+    '<div class="dtools' + (sib ? '' : ' end') + '">' + (sib ? '<button type="button" class="mini" data-act="defs-vcmp" aria-pressed="' + !!c.cmp + '">' + (c.cmp ? 'أغلق المقارنة' : 'قارنه بشبيهه') + '</button>' : '') +
+      '<button type="button" class="mini" data-act="defs-x" data-id="' + esc(d.id) + '">استبعد</button></div>' +
+    (dh ? '<div class="dcmp">' + defBlock(d, dh[0], false) + '<p class="dcmp-v">ويشبهه هذا التعريف، وقد ظُلّل ما يفترقان فيه</p>' + defBlock(sib, dh[1], true) + '</div>' : '');
+}
+function viewHTML(d, c) {
+  var n = DQ.ids.length;
+  return '<div class="block-head"><h2>' + esc(DQ.label) + '</h2><button type="button" class="link" data-act="defs-quit">إنهاء</button></div>' +
+    '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * DQ.i / n) + '%"></div></div><span class="n">' + (DQ.i + 1) + ' من ' + n + '</span></div>' +
+    '<p class="eyebrow">' + esc('الدرس ' + d.les.no + ': ' + d.les.title) + '</p>' +
+    '<div class="deck-wrap"><div class="deck">' + viewCard(d, c.open) + '</div><div class="deck-wrap" id="vbar">' + viewBar(d, c) + '</div></div>';
+}
+/* يُحدَّث ما تحت البطاقة وحده عند قلبها، فتبقى حركة القلب */
+function viewPaint() {
+  var c = DQ.cur, fc = view.querySelector('.fc'), bar = document.getElementById('vbar');
+  if (fc) { fc.classList.toggle('flipped', c.open); fc.setAttribute('aria-label', c.open ? 'اعرض المصطلح' : 'أظهر التعريف'); fc.querySelector('.front').setAttribute('aria-hidden', c.open); fc.querySelector('.back').setAttribute('aria-hidden', !c.open); }
+  if (bar) bar.innerHTML = viewBar(DBY[c.id], c);
+}
+function viewOn() { return screen === 'defs' && !!DQ && DQ.mode === 'view' && DQ.i < DQ.ids.length; }
+function viewFlip(on) { DQ.cur.open = on; if (!on) DQ.cur.cmp = false; viewPaint(); }
+function viewMove() { DQ.i++; DQ.cur = null; render(); window.scrollTo(0, 0); }
+/* إلى الأمام: يُظهر التعريف أولاً، ثم يحفظ البطاقة ويمضي. وإلى الخلف: تعود البطاقة مكشوفة، و«أعدها لي» يرفع عنها الحفظ */
+function viewStep(dir) {
+  if (!viewOn() || !DQ.cur) return;
+  if (dir < 0) { if (!DQ.i) return; DQ.i--; DQ.cur = null; dqItem(); DQ.cur.open = true; render(); window.scrollTo(0, 0); return; }
+  if (!DQ.cur.open) { viewFlip(true); return; }
+  setDv(DQ.cur.id, true); viewMove();
+}
+function viewEndHTML() {
+  var ids = DQ.ids.filter(function (id) { return DBY[id]; }), seen = ids.filter(function (id) { return dvOn(id); }).length, left = viewPool().length;
+  return '<div class="block-head"><h2>انتهت الجولة</h2><span class="chip">' + esc(DQ.label) + '</span></div>' +
+    '<section class="card deck-end"><div class="score">' + seen + '</div><p class="muted p0">' + (seen === 1 ? 'بطاقة مررت بها' : seen ? 'مررت بـ' + countWord(seen, W.card) : 'لم تمرّ ببطاقة') + '، ' + (left ? 'وبقي فيما اخترت ' + countWord(left, W.def) : 'وفرغت من كل ما اخترت') + '.</p></section>' +
+    '<div class="row">' + (left ? '<button type="button" class="btn" data-act="defs-again">جولة أخرى</button>' : '') + '<button type="button" class="btn ghost" data-act="defs-quit">رجوع</button></div>';
+}
 function defsResultHTML() {
+  if (DQ.mode === 'view') return viewEndHTML();
   var n = DQ.res.length, right = DQ.res.filter(Boolean).length;
   var wrong = DQ.ids.slice(0, n).filter(function (id, i) { return !DQ.res[i] && DBY[id]; }).map(function (id) { return DBY[id]; });
   return '<div class="block-head"><h2>النتيجة</h2><span class="chip">' + esc(DQ.label) + '</span></div>' +
@@ -1693,8 +1776,27 @@ view.addEventListener('click', function (e) {
       if (pk[0] === 'ess') saveSel(); else if (pk[0] === 'defs') defsSave(); else savePick('cardSel', sl);
       render(); return;
     }
-    case 'defs-mode': defsInit(); defsMode = el.getAttribute('data-m') === 'who' ? 'who' : 'build'; defsSave(); render(); return;
-    case 'defs-count': defsInit(); defsCount = +el.getAttribute('data-n'); defsSave(); render(); return;
+    case 'defs-mode': { defsInit(); var dm = el.getAttribute('data-m'); defsMode = dm === 'who' || dm === 'view' ? dm : 'build'; defsSave(); render(); return; }
+    case 'defs-count': defsInit(); if (defsMode === 'view') defsVCount = +el.getAttribute('data-n'); else defsCount = +el.getAttribute('data-n'); defsSave(); render(); return;
+    case 'defs-cmp': defsInit(); defsCmp = !defsCmp; defsSave(); render(); return;
+    case 'defs-flip': if (viewOn() && DQ.cur) viewFlip(!DQ.cur.open); return;
+    case 'defs-vnext': viewStep(1); return;
+    case 'defs-vprev': viewStep(-1); return;
+    case 'defs-vkeep': if (viewOn() && DQ.cur) { setDv(DQ.cur.id, false); toast('تعود إليك في جولة لاحقة'); viewMove(); } return;
+    case 'defs-vcmp':
+      if (viewOn() && DQ.cur) {
+        DQ.cur.cmp = !DQ.cur.cmp; viewPaint();
+        var vc = DQ.cur.cmp ? view.querySelector('.dcmp') : null; if (vc) vc.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    case 'defs-vreset': {
+      clearTimeout(dvArmT);
+      if (viewPool().length && !dvArm) { dvArm = true; dvArmT = setTimeout(function () { dvArm = false; if (!busy()) render(); }, 4000); render(); return; }
+      dvArm = false;
+      var vt = now(); if (!S.dv || typeof S.dv !== 'object') S.dv = {};
+      defsPool().forEach(function (d) { if (dvOn(d.id)) S.dv[d.id] = { v: 0, t: vt }; });
+      ST.save(); toast('عادت إليك البطاقات من أولها'); render(); return;
+    }
     case 'defs-start': defsStart(); return;
     case 'defs-again': { defsInit(); var dPrev = DQ ? DQ.mode : defsMode; if (DQ) defsMode = dPrev; DQ = null; defsStart(); return; }
     case 'defs-quit': DQ = null; bankKind = 'defs'; go('#quiz'); return;
@@ -1825,7 +1927,7 @@ function tdist(ts) { var dx = ts[0].clientX - ts[1].clientX, dy = ts[0].clientY 
 view.addEventListener('touchstart', function (e) {
   var f = e.target.closest && e.target.closest('.zf');
   if (f && e.touches.length === 2) { pinch = { f: f, d: tdist(e.touches), z: f._z || 1 }; sw = null; return; }
-  if (screen === 'deck' && e.touches.length === 1 && e.target.closest('.fc')) sw = { x: e.touches[0].clientX, y: e.touches[0].clientY }; else sw = null;
+  if ((screen === 'deck' || viewOn()) && e.touches.length === 1 && e.target.closest('.fc')) sw = { x: e.touches[0].clientX, y: e.touches[0].clientY }; else sw = null;
 }, { passive: true });
 view.addEventListener('touchmove', function (e) {
   if (!pinch || e.touches.length !== 2) return;
@@ -1837,7 +1939,7 @@ view.addEventListener('touchend', function (e) {
   if (e.touches.length < 2) pinch = null;
   if (sw && e.changedTouches.length) {
     var dx = e.changedTouches[0].clientX - sw.x, dy = e.changedTouches[0].clientY - sw.y; sw = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) { e.preventDefault(); deckStep(dx < 0 ? 1 : -1); }
+    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) { e.preventDefault(); if (screen === 'deck') deckStep(dx < 0 ? 1 : -1); else viewStep(dx < 0 ? 1 : -1); }
   }
 });
 var fitT = null;
