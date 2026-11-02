@@ -53,7 +53,7 @@ D.items.forEach((it, i) => {
   else { ids.add(it.id); byId[it.id] = it; }
   if (!Number.isInteger(it.n)) E(w + ': n must be an integer');
   else {
-    if (it.n !== prevN + 1) E(w + ': n ' + it.n + ' breaks the sequence (expected ' + (prevN + 1) + ')');
+    if (it.n <= prevN) E(w + ': n ' + it.n + ' must increase (after ' + prevN + ')');
     if (it.id !== 'd' + it.n) E(w + ': id must be "d' + it.n + '"');
     prevN = it.n;
   }
