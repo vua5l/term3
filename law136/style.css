@@ -494,6 +494,12 @@ html.map-open,html.map-open body{overflow:hidden}
 .dcmp-v{margin:0;font-size:.74rem;color:var(--ink-2)}
 .dsum{font-size:.68rem;color:var(--ink-2);border:1px dashed var(--line);border-radius:999px;padding:0 8px;line-height:1.8}
 mark.dd{background:color-mix(in srgb,var(--mid) 26%,transparent);color:inherit;border-radius:4px;padding:0 2px}
+/* «اطّلاع»: زرّا السير ثابتان فوق شريط الأقسام، فموضعهما واحد في كل بطاقة طالت أو قصرت */
+.deck-nav.two{grid-template-columns:1fr 1fr;position:fixed;inset-inline:0;bottom:calc(68px + env(safe-area-inset-bottom,0px));z-index:4;max-width:600px;margin-inline:auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--bg)}
+#vbar{padding-bottom:64px}
+.deck-wrap .dtools .mini{padding:7px 14px;font-size:.8rem}
+.toast{pointer-events:none}
+body:has(.deck-nav.two) .toast{bottom:calc(136px + env(safe-area-inset-bottom,0px))}
 .dx-box{padding:10px 14px;border-radius:var(--rt);border:1px dashed var(--line)}
 .dx-box summary{cursor:pointer;font-size:.84rem;color:var(--ink-2)}
 .dx-box[open] summary{margin-bottom:8px}

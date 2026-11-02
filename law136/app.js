@@ -1224,7 +1224,7 @@ function defsStart() {
   if (defsMode === 'view') {
     var vl = bookSort(viewPool()).slice(0, defsVCount);
     if (!vl.length) { toast('لا تعريفات هنا'); return; }
-    DQ = { ids: vl.map(function (d) { return d.id; }), i: 0, mode: 'view', res: [], cur: null, label: 'اطّلاع · ' + selLabel(defsSel, defsIn) };
+    DQ = { ids: vl.map(function (d) { return d.id; }), i: 0, mode: 'view', res: [], cur: null, kept: {}, label: 'اطّلاع · ' + selLabel(defsSel, defsIn) };
     go('#defs'); return;
   }
   var list = shuffle(defsPool()).sort(function (x, y) { return defWeight(x) - defWeight(y); });
@@ -1329,12 +1329,13 @@ function viewCard(d, open) {
       '<span class="face back" aria-hidden="' + !open + '">' + top + '<span class="fc-body"><p class="fc-lead">' + esc(d.term) + '</p><p class="book fc-text">«' + esc(d.text) + '»</p></span></span>' +
     '</span></button>';
 }
+/* الزر الرئيس لا يتحرك من موضعه بعد الكشف، فالضغط في الموضع نفسه يكشف ثم يمضي، و«أعدها لي» في صف الأدوات تحته لا يمضي بنفسه */
 function viewBar(d, c) {
-  var sib = c.open && defsCmp ? lookAlike(d) : null, dh = sib && c.cmp ? diffHTML(d.text, sib.text) : null;
-  return '<div class="deck-nav"><button type="button" class="btn ghost" data-act="defs-vprev"' + (DQ.i ? '' : ' disabled') + '>السابقة</button>' +
-      (c.open ? '<button type="button" class="know" data-act="defs-vkeep">أعدها لي</button>' : '<span></span>') +
+  var sib = c.open && defsCmp ? lookAlike(d) : null, dh = sib && c.cmp ? diffHTML(d.text, sib.text) : null, kept = !!DQ.kept[d.id];
+  return '<div class="deck-nav two"><button type="button" class="btn ghost" data-act="defs-vprev"' + (DQ.i ? '' : ' disabled') + '>السابقة</button>' +
       '<button type="button" class="btn" data-act="defs-vnext">' + (!c.open ? 'أظهر التعريف' : DQ.i + 1 < DQ.ids.length ? 'التالية' : 'إنهاء') + '</button></div>' +
-    '<div class="dtools' + (sib ? '' : ' end') + '">' + (sib ? '<button type="button" class="mini" data-act="defs-vcmp" aria-pressed="' + !!c.cmp + '">' + (c.cmp ? 'أغلق المقارنة' : 'قارنه بشبيهه') + '</button>' : '') +
+    '<div class="dtools"><div class="row">' + (c.open ? '<button type="button" class="mini" data-act="defs-vkeep" aria-pressed="' + kept + '">' + (kept ? 'تعود إليك' : 'أعدها لي') + '</button>' : '') +
+      (sib ? '<button type="button" class="mini" data-act="defs-vcmp" aria-pressed="' + !!c.cmp + '">' + (c.cmp ? 'أغلق المقارنة' : 'قارنه بشبيهه') + '</button>' : '') + '</div>' +
       '<button type="button" class="mini" data-act="defs-x" data-id="' + esc(d.id) + '">استبعد</button></div>' +
     (dh ? '<div class="dcmp">' + defBlock(d, dh[0], false) + '<p class="dcmp-v">ويشبهه هذا التعريف، وقد ظُلّل ما يفترقان فيه</p>' + defBlock(sib, dh[1], true) + '</div>' : '');
 }
@@ -1354,17 +1355,18 @@ function viewPaint() {
 function viewOn() { return screen === 'defs' && !!DQ && DQ.mode === 'view' && DQ.i < DQ.ids.length; }
 function viewFlip(on) { DQ.cur.open = on; if (!on) DQ.cur.cmp = false; viewPaint(); }
 function viewMove() { DQ.i++; DQ.cur = null; render(); window.scrollTo(0, 0); }
-/* إلى الأمام: يُظهر التعريف أولاً، ثم يحفظ البطاقة ويمضي. وإلى الخلف: تعود البطاقة مكشوفة، و«أعدها لي» يرفع عنها الحفظ */
+/* إلى الأمام: يُظهر التعريف أولاً، ثم يحفظ البطاقة ويمضي، إلا ما عُلّم «أعدها لي». وإلى الخلف: تعود البطاقة مكشوفة */
 function viewStep(dir) {
   if (!viewOn() || !DQ.cur) return;
   if (dir < 0) { if (!DQ.i) return; DQ.i--; DQ.cur = null; dqItem(); DQ.cur.open = true; render(); window.scrollTo(0, 0); return; }
   if (!DQ.cur.open) { viewFlip(true); return; }
-  setDv(DQ.cur.id, true); viewMove();
+  if (!DQ.kept[DQ.cur.id]) setDv(DQ.cur.id, true);
+  viewMove();
 }
 function viewEndHTML() {
-  var ids = DQ.ids.filter(function (id) { return DBY[id]; }), seen = ids.filter(function (id) { return dvOn(id); }).length, left = viewPool().length;
+  var ids = DQ.ids.filter(function (id) { return DBY[id]; }), n = ids.length, kept = ids.filter(function (id) { return !dvOn(id); }).length, left = viewPool().length;
   return '<div class="block-head"><h2>انتهت الجولة</h2><span class="chip">' + esc(DQ.label) + '</span></div>' +
-    '<section class="card deck-end"><div class="score">' + seen + '</div><p class="muted p0">' + (seen === 1 ? 'بطاقة مررت بها' : seen ? 'مررت بـ' + countWord(seen, W.card) : 'لم تمرّ ببطاقة') + '، ' + (left ? 'وبقي فيما اخترت ' + countWord(left, W.def) : 'وفرغت من كل ما اخترت') + '.</p></section>' +
+    '<section class="card deck-end"><div class="score">' + n + '</div><p class="muted p0">' + (n === 1 ? 'بطاقة مررت بها' : n ? 'مررت بـ' + countWord(n, W.card) : 'لم تمرّ ببطاقة') + (kept ? '، تعود إليك منها ' + countWord(kept, W.card) : '') + '، ' + (left ? 'وبقي فيما اخترت ' + countWord(left, W.def) : 'وفرغت من كل ما اخترت') + '.</p></section>' +
     '<div class="row">' + (left ? '<button type="button" class="btn" data-act="defs-again">جولة أخرى</button>' : '') + '<button type="button" class="btn ghost" data-act="defs-quit">رجوع</button></div>';
 }
 function defsResultHTML() {
@@ -1782,7 +1784,13 @@ view.addEventListener('click', function (e) {
     case 'defs-flip': if (viewOn() && DQ.cur) viewFlip(!DQ.cur.open); return;
     case 'defs-vnext': viewStep(1); return;
     case 'defs-vprev': viewStep(-1); return;
-    case 'defs-vkeep': if (viewOn() && DQ.cur) { setDv(DQ.cur.id, false); toast('تعود إليك في جولة لاحقة'); viewMove(); } return;
+    case 'defs-vkeep':
+      if (viewOn() && DQ.cur) {
+        var kid = DQ.cur.id;
+        if (DQ.kept[kid]) delete DQ.kept[kid]; else { DQ.kept[kid] = 1; setDv(kid, false); }
+        viewPaint();
+      }
+      return;
     case 'defs-vcmp':
       if (viewOn() && DQ.cur) {
         DQ.cur.cmp = !DQ.cur.cmp; viewPaint();
