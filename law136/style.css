@@ -12,7 +12,7 @@ body{
   --f-book:"Noto Naskh Arabic","Amiri","Traditional Arabic",serif;
   --bk:1.08rem; --r:18px; --rh:24px; --rt:16px;
   --bg:#ECEAE4;--glow:#f7f5ef;--surface:#f9f7f2;--surface-2:#f1eee6;--line:#d8d2c6;--ink:#1a2030;--ink-2:#596071;
-  --panel:#1e2a44;--panel-2:#2c3b5c;--panel-ink:#f3efe4;--panel-ink-2:#b8bfd0;--accent:#8c5e16;--gold:#d6a85a;
+  --imp:#b0502a;--panel:#1e2a44;--panel-2:#2c3b5c;--panel-ink:#f3efe4;--panel-ink-2:#b8bfd0;--accent:#8c5e16;--gold:#d6a85a;
   --pill:#1b2438;--pill-ink:#f5f1e6;--quote:#f4f0e6;--nav:#f6f4ee;
   --ok:#2b7856;--ok-ink:#f4f8f5;--bad:#a6473b;--bad-ink:#fbf3f1;--mid:#8a6312;--mid-ink:#fbf6ea;--noise:.045;
   --b1:#3f5b8c;--b2:#8c5e16;--b3:#4c7a58;--b4:#2f6e72;--b5:#6d5170;--b6:#7a6a2e;
@@ -23,7 +23,7 @@ body{
 @media (prefers-color-scheme: dark){
   body:not([data-mode="day"]){
     --bg:#121726;--glow:#1b2236;--surface:#1a2132;--surface-2:#232b40;--line:#2f3850;--ink:#e8e3d6;--ink-2:#9ba2b4;
-    --panel:#d9cfb8;--panel-2:#c8bca1;--panel-ink:#1a2030;--panel-ink-2:#5d5745;--accent:#d9ad62;--gold:#8c5e16;
+    --imp:#e9a581;--panel:#d9cfb8;--panel-2:#c8bca1;--panel-ink:#1a2030;--panel-ink-2:#5d5745;--accent:#d9ad62;--gold:#8c5e16;
     --pill:#e8e3d6;--pill-ink:#141a2a;--quote:#171e2e;--nav:#161c2c;
     --ok:#6fc093;--ok-ink:#0f2219;--bad:#da8473;--bad-ink:#26120e;--mid:#d8b264;--mid-ink:#241b07;--noise:.06;
     --b1:#93abd6;--b2:#d9ad62;--b3:#8fbf98;--b4:#7cbcbc;--b5:#c39dc4;--b6:#cdbb7a;
@@ -32,7 +32,7 @@ body{
 }
 body[data-mode="night"]{
   --bg:#121726;--glow:#1b2236;--surface:#1a2132;--surface-2:#232b40;--line:#2f3850;--ink:#e8e3d6;--ink-2:#9ba2b4;
-  --panel:#d9cfb8;--panel-2:#c8bca1;--panel-ink:#1a2030;--panel-ink-2:#5d5745;--accent:#d9ad62;--gold:#8c5e16;
+  --imp:#e9a581;--panel:#d9cfb8;--panel-2:#c8bca1;--panel-ink:#1a2030;--panel-ink-2:#5d5745;--accent:#d9ad62;--gold:#8c5e16;
   --pill:#e8e3d6;--pill-ink:#141a2a;--quote:#171e2e;--nav:#161c2c;
   --ok:#6fc093;--ok-ink:#0f2219;--bad:#da8473;--bad-ink:#26120e;--mid:#d8b264;--mid-ink:#241b07;--noise:.06;
   --b1:#93abd6;--b2:#d9ad62;--b3:#8fbf98;--b4:#7cbcbc;--b5:#c39dc4;--b6:#cdbb7a;
@@ -66,7 +66,7 @@ a{color:inherit}
 
 /* ---------- bottom tabs ---------- */
 .tabs{position:fixed;inset:auto 0 0;z-index:6;background:var(--nav);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);transition:background-color .3s}
-.tabs-in{max-width:600px;margin-inline:auto;padding:0 8px;display:grid;grid-template-columns:repeat(5,1fr)}
+.tabs-in{max-width:600px;margin-inline:auto;padding:0 8px;display:grid;grid-template-columns:repeat(6,1fr)}
 .tab{border:0;background:none;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-2);font-size:.7rem;cursor:pointer;text-decoration:none}
 .tab svg{width:21px;height:21px}
 .tab-ic{width:44px;height:28px;border-radius:999px;display:grid;place-items:center;transition:background-color .2s}
@@ -85,7 +85,13 @@ a{color:inherit}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;border:1px solid var(--line);font-size:.74rem;color:var(--ink-2);white-space:nowrap;line-height:1.7;font-variant-numeric:tabular-nums}
 .chip.pg{padding:0 8px;font-size:.7rem;vertical-align:1px;margin-inline-start:4px}
 .chip.ok{border-color:var(--ok);color:var(--ok)}
-.chip.exp{border-color:var(--accent);color:var(--accent);font-weight:700}
+.chip.exp{border-color:var(--imp);background:var(--imp);color:var(--surface);font-weight:700}
+.chip.exp.lv2{background:transparent;color:var(--imp)}
+.imp-b{border-inline-start:3px solid var(--imp);padding-inline-start:11px}
+.imp-b.lv2{border-inline-start-style:dashed}
+.quote.imp-b{padding-inline-start:14px}
+.sum-note.imp-b{padding-inline-start:12px}
+.imp-leg{align-self:center;font-size:.74rem;color:var(--ink-2)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:999px;border:0;background:var(--pill);color:var(--pill-ink);font-weight:700;font-size:.9rem;line-height:1.5;cursor:pointer;text-decoration:none;text-align:center}
 .btn.ghost{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);font-weight:400}

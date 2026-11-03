@@ -12,7 +12,8 @@
    التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
    طريقة «اطّلاع» في التعريفات: viewHTML، viewCard، viewBar، viewStep، viewEndHTML، setDv.
    مهمة دفتر الأخطاء: nbState، reportNb (إلى الجدول بـ extra)، nbRow. اختيار الدروس المتعدد: lesPicker، loadPick، selLabel.
-   الخرائط: openMap، drawEdges، mapFit. الإعدادات: openSettings. التنقل: parseHash، route. */
+   الخرائط: openMap، drawEdges، mapFit. الإعدادات: openSettings. التنقل: parseHash، route.
+   الوسم (data/imp.js): buildImp، expChip، lesChip، impAttr. خانة المهم: impHTML، impGroupHTML، impStart، impContinue، impNext، impCardsHTML، icStep، impRevHTML، irStep. */
 (function () {
 'use strict';
 var CFG = window.LAW136_CONFIG || {};
@@ -29,7 +30,12 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function
 /* ما بين «» في النصوص يُعرض بخط الكتاب */
 function rich(s) { return esc(s).replace(/«([^«»]+)»/g, '«<span class="q-in">$1</span>»'); }
 function pg(p) { return p ? '<span class="chip pg">ص ' + esc(p) + '</span>' : ''; }
-function expChip(x) { return x && x.exp === true ? '<span class="chip exp">متوقع</span>' : ''; }
+/* الوسم: 1 «الأهم» و2 «مهم» */
+var IMPW = { 1: 'الأهم', 2: 'مهم' };
+function expChip(x) { return x && x.imp ? '<span class="chip exp' + (x.imp === 2 ? ' lv2' : '') + '">' + IMPW[x.imp] + '</span>' : ''; }
+function lesChip(l) { return l && l.imp ? '<span class="chip exp' + (l.imp === 2 ? ' lv2' : '') + '">' + IMPW[l.imp] + (l.imp === 1 ? ' · ' + l.rank : '') + '</span>' : ''; }
+/* كتلة الملخص الموسومة يميزها خط جانبي، فلا تتكرر الشارة في كل فقرة */
+function impAttr(b, base) { var c = (base || '') + (b && b.imp ? ' imp-b' + (b.imp === 2 ? ' lv2' : '') : ''); return c ? ' class="' + c.trim() + '"' : ''; }
 function arr(x) { return Array.isArray(x) ? x : []; }
 function num(id) { return +String(id == null ? '' : id).replace(/\D/g, '') || 0; }
 function now() { return Date.now(); }
@@ -141,6 +147,39 @@ var DEFS = [], DBY = {}, DLES = {};
     ms.forEach(function (a) { ms.forEach(function (b) { if (a !== b && a.sibs.indexOf(b) < 0) a.sibs.push(b); }); });
   });
 })();
+/* «المهم»: الوسم والمجموعات من data/imp.js (window.LAW136_IMP)، فإن غاب الملف لم تظهر الخانة ولا الوسم.
+   البند الموسوم يحمل درجته في x.imp (1 «الأهم»، 2 «مهم»)، والمجموعة فيها بنودها cards وobj وrev. والأولى مجموعة الفخاخ */
+var IMP = [], IMPN = [], TBID = {};
+(function buildImp() {
+  var D = window.LAW136_IMP;
+  TB.forEach(function (t) { TBID[t.id] = t; });
+  if (!D || typeof D !== 'object' || !arr(D.groups).length) return;
+  /* تعريف لا بطاقة له: يُعرض في الخانة ببطاقة، ولا يدخل بطاقات المراجعة */
+  function cardId(id) {
+    if (K[id]) return true;
+    var d = DBY[id]; if (!d) return false;
+    K[id] = { id: id, type: 'def', front: d.term, back: d.text, bk: !d.sum, pg: d.pg, les: d.les, ch: d.ch };
+    return true;
+  }
+  IMPN = arr(D.notes).filter(function (x) { return x && x.x; });
+  if (IMPN.length) IMP.push({ idx: 0, lv: 1, no: 0, note: true, les: [], cards: [], obj: [], rev: IMPN.map(function (_, i) { return 'n' + i; }) });
+  Object.keys(D.defs || {}).forEach(function (id) { if (DBY[id]) DBY[id].imp = +D.defs[id]; });
+  var no = 0;
+  arr(D.groups).forEach(function (g) {
+    var ls = arr(g && g.les).map(function (id) { return LBY[id]; }).filter(Boolean), lv = +g.lv || 0; if (!ls.length) return;
+    var night = arr(g.n).filter(function (k) { var m = String(k).split(':'); return CH[m[0]] && CH[m[0]].night[+m[1]]; });
+    var x = { idx: IMP.length, lv: lv, no: lv ? ++no : 0, les: ls, cards: arr(g.c).filter(cardId), obj: arr(g.o).filter(function (id) { return Q[id]; }),
+      rev: arr(g.t).filter(function (id) { return TBID[id]; }).concat(night) };
+    IMP.push(x);
+    if (!lv) return;
+    x.cards.forEach(function (id) { K[id].imp = lv; });
+    x.obj.forEach(function (id) { Q[id].imp = lv; });
+    arr(g.t).forEach(function (id) { if (TBID[id]) TBID[id].imp = lv; });
+    night.forEach(function (k) { var m = String(k).split(':'); CH[m[0]].night[+m[1]].imp = lv; });
+    Object.keys(g.s || {}).forEach(function (lid) { var l = LBY[lid]; if (l) arr(g.s[lid]).forEach(function (i) { if (l.summary[i]) l.summary[i].imp = lv; }); });
+    ls.forEach(function (l) { l.imp = lv; l.rank = x.no; });
+  });
+})();
 function cellsOf(chId) { return CELLS.filter(function (c) { return c.ch.id === chId; }); }
 function tableCells(tid) { return CELLS.filter(function (c) { return c.t.id === tid; }); }
 function chLabel(c) { return c ? (c.title ? c.title + ': ' : '') + c.name : ''; }
@@ -185,7 +224,7 @@ function calibFactor() { var c = INFO && INFO.all && INFO.all.calib && INFO.all.
 function lesMin(l) { return Math.max(1, Math.round((+l.minutes || 1) * calibFactor())); }
 function taskMin(k) { return +k.minutes > 0 ? +k.minutes : Math.round((+k.units || 0) * 25); }
 function todayTask(lid) { var t = realTasks(INFO && INFO.today), i; for (i = 0; i < t.length; i++) if (t[i].lesson === lid) return t[i]; return null; }
-function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length) || (screen === 'cells' && CQ && CQ.i < CQ.ids.length) || (screen === 'defs' && DQ && DQ.i < DQ.ids.length); }
+function busy() { return (screen === 'quiz' && quiz && quiz.i < quiz.ids.length) || (screen === 'deck' && DECK && DECK.i < DECK.ids.length) || (screen === 'cells' && CQ && CQ.i < CQ.ids.length) || (screen === 'defs' && DQ && DQ.i < DQ.ids.length) || (screen === 'impc' && IC && IC.i < IC.ids.length) || (screen === 'impr' && IR && IR.i < IR.seq.length); }
 function onInfo(info) { if (!gotSchedule(info)) return; INFO = info; if (!busy()) render(); else updateBadge(); }
 function initSchedule() {
   if (!SCH) return;
@@ -416,10 +455,11 @@ var RSTEP = {};    /* خطوة البطاقات منتهية في هذه الج�
 var bankKind = 'obj', objSel = null, objCount = 10, essaySel = null;
 var sumCh = null, revSub = 'cards', cardFilter = { hideKnown: false }, cardSel = null; /* cardSel: دروس بطاقات المراجعة {معرّف الدرس: true} */
 var armed = null;
-var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', defs: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan' };
+var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', defs: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan', imp: 'imp', impg: 'imp', impc: 'imp', impr: 'imp' };
 
 function render() {
   var tb = TAB_OF[screen] || 'home';
+  if (screen === 'quiz' && quiz && quiz.mode === 'imp') tb = 'imp';
   document.querySelectorAll('.tab').forEach(function (b) { if (b.getAttribute('data-tab') === tb) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   updateBadge();
   var h;
@@ -435,6 +475,10 @@ function render() {
     else if (screen === 'cells') { if (!CQ) bankKind = 'cells'; h = CQ ? cellsHTML() : bankHTML(); }
     else if (screen === 'defs') { selInit(); if (!DQ && DEFS.length) bankKind = 'defs'; h = DQ ? defsHTML() : bankHTML(); }
     else if (screen === 'deck') h = DECK ? deckHTML() : revHTML();
+    else if (screen === 'imp') h = impHTML();
+    else if (screen === 'impg') h = impGroupHTML(arg);
+    else if (screen === 'impc') h = IC ? impCardsHTML() : impHTML();
+    else if (screen === 'impr') h = IR ? impRevHTML() : impHTML();
     else if (screen === 'rev') h = revHTML();
     else h = homeHTML();
   } catch (e) {
@@ -493,7 +537,7 @@ function levelsHTML() {
 }
 function homeHTML() {
   var mk = mistakes().length;
-  return heroHTML() + levelsHTML() + todayBlock() +
+  return heroHTML() + impHomeHTML() + levelsHTML() + todayBlock() +
     '<section class="block"><div class="row">' +
       '<button type="button" class="btn" data-go="#quiz">اختبر نفسك من البنك</button>' +
       '<button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>' +
@@ -563,7 +607,7 @@ function lessonsBlock() {
     h += '<p class="eyebrow">' + esc(chLabel(c)) + ' · ص ' + esc(c.pages) + '</p><ol class="les-list">' + c.les.map(function (l) {
       var st = lesStatus(l);
       return '<li><a class="les-row" href="#l-' + l.n + '"><span class="les-no">' + l.no + '</span><span class="les-tx"><b>' + esc(l.title) + '</b><span>ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</span></span>' +
-        '<span class="les-st"><span class="pill ' + st[0] + '">' + st[1] + '</span>' + (exitFlag(l) ? '<span class="flag">ينقصه تسميع الخروج</span>' : '') + '</span></a></li>';
+        '<span class="les-st">' + lesChip(l) + '<span class="pill ' + st[0] + '">' + st[1] + '</span>' + (exitFlag(l) ? '<span class="flag">ينقصه تسميع الخروج</span>' : '') + '</span></a></li>';
     }).join('') + '</ol>';
   });
   return h;
@@ -589,17 +633,17 @@ function planHTML() {
 /* ---------- الملخص: كتل الدرس، وكل عنوان يبدأ بطاقة ---------- */
 function blockHTML(b) {
   if (!b || !b.t) return '';
-  if (b.t === 'p') return '<p>' + esc(b.x) + pg(b.pg) + expChip(b) + '</p>';
-  if (b.t === 'q') return '<blockquote class="quote book">«' + esc(b.x) + '»<cite>' + (b.label ? esc(b.label) + ' · ' : '') + 'نص الكتاب' + pg(b.pg) + expChip(b) + '</cite></blockquote>';
+  if (b.t === 'p') return '<p' + impAttr(b) + '>' + esc(b.x) + pg(b.pg) + '</p>';
+  if (b.t === 'q') return '<blockquote' + impAttr(b, 'quote book') + '>«' + esc(b.x) + '»<cite>' + (b.label ? esc(b.label) + ' · ' : '') + 'نص الكتاب' + pg(b.pg) + '</cite></blockquote>';
   if (b.t === 'list') {
     var tag = b.ordered ? 'ol' : 'ul';
-    return '<div class="sum-list">' + (b.lead ? '<p class="lead">' + esc(b.lead) + pg(b.pg) + expChip(b) + '</p>' : '') +
+    return '<div' + impAttr(b, 'sum-list') + '>' + (b.lead ? '<p class="lead">' + esc(b.lead) + pg(b.pg) + '</p>' : '') +
       '<' + tag + ' class="points' + (b.ordered ? ' ordered' : '') + '">' + arr(b.items).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</' + tag + '>' +
       (!b.lead && b.pg ? '<p class="p0">' + pg(b.pg) + '</p>' : '') + '</div>';
   }
-  if (b.t === 'note') return '<p class="sum-note"><b>تنبيه</b>' + esc(b.x) + pg(b.pg) + '</p>';
+  if (b.t === 'note') return '<p' + impAttr(b, 'sum-note') + '><b>تنبيه</b>' + esc(b.x) + pg(b.pg) + '</p>';
   if (b.t === 'h') return '';
-  return b.x ? '<p>' + esc(b.x) + pg(b.pg) + '</p>' : '';
+  return b.x ? '<p' + impAttr(b) + '>' + esc(b.x) + pg(b.pg) + '</p>' : '';
 }
 function summaryHTML(l) {
   var groups = [], cur = null;
@@ -651,6 +695,7 @@ function lessonHTML(n) {
   var i = LES.indexOf(l), prev = LES[i - 1], next = LES[i + 1], tbs = lesTables(l);
   var h = '<div class="block-head"><button type="button" class="link" data-go="#sum">الملخصات</button><span class="chip">الدرس ' + l.no + ' من ' + LES.length + '</span></div>' +
     '<section class="les-head"><p class="eyebrow">' + esc(chLabel(l.ch)) + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</p><h2>' + esc(l.title) + '</h2>' +
+    (l.imp ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">الخط الجانبي يعلّم الفقرات الموسومة</span></div>' : '') +
     (exitFlag(l) ? '<p class="p0"><span class="flag solo">ينقصه تسميع الخروج</span></p>' : '') +
     (todayTask(l.id) && todayTask(l.id).kind === 'recall' ? '<p class="fin-msg">مهمتك اليوم في هذا الدرس تسميع بلا كتاب. <a href="#r-' + l.n + '">ابدأ التسميع</a></p>' : '') +
     '<div class="les-quick">' + (l.cards.length ? '<button type="button" class="btn ghost sm" data-act="deck-lesson" data-n="' + l.n + '">بطاقاته (' + l.cards.length + ')</button>' : '') +
@@ -673,7 +718,7 @@ function sumHTML() {
     '<div class="les-quick">' + (hasMap(c) ? '<button type="button" class="btn ghost sm" data-act="map" data-ch="' + c.id + '">الخريطة الذهنية</button>' : '') +
     (c.qs.length ? '<button type="button" class="btn ghost sm" data-act="go-bank" data-ch="' + c.id + '">اختبر نفسك في الفصل</button>' : '') + '</div></section>';
   c.les.forEach(function (l) {
-    h += '<div class="ch-head" id="les-' + l.n + '"><p class="eyebrow">الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</p>' +
+    h += '<div class="ch-head" id="les-' + l.n + '"><p class="eyebrow">الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + ' ' + lesChip(l) + '</p>' +
       '<div class="block-head"><h3>' + esc(l.title) + flagHTML(l) + '</h3><a class="link" href="#l-' + l.n + '">صفحة الدرس</a></div></div>' + summaryHTML(l);
   });
   if (c.tables.length) h += '<p class="sec-title">جداول المقارنة</p>' + c.tables.map(cmpHTML).join('');
@@ -750,7 +795,7 @@ function cardHTML(k, flipped) {
   var ty = KLBL[k.type] || 'بطاقة', ref = 'ص ' + (k.pg || k.les.pages);
   return '<button type="button" class="fc t-' + esc(k.type) + (flipped ? ' flipped' : '') + '" data-act="flip" aria-label="' + (flipped ? 'اعرض الوجه' : 'اقلب البطاقة') + '">' +
     '<span class="fc-inner">' +
-      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (k.exp === true ? 'متوقع · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
+      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (k.imp ? IMPW[k.imp] + ' · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
       '<span class="face back" aria-hidden="' + !flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + esc(ref) + '</span></span><span class="fc-body">' + backHTML(k) + '</span></span>' +
     '</span></button>';
 }
@@ -854,7 +899,7 @@ function lesPicker(sel, act, cnt, word) {
     h += '<div class="les-pick"><div class="les-pick-h"><b>' + esc(chLabel(c)) + '</b><button type="button" class="link" data-act="' + act + '-ch" data-ch="' + c.id + '">' + (all ? 'ألغِ الفصل' : 'الفصل كله') + '</button></div>' +
       '<div class="pick soft" role="group" aria-label="' + esc(c.title) + '">' + c.les.map(function (l) {
         var n = cnt(l);
-        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + '</small></span></button>';
+        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + (l.imp ? ' · ' + IMPW[l.imp] : '') + '</small></span></button>';
       }).join('') + '</div></div>';
   });
   return h;
@@ -1021,6 +1066,9 @@ function finishQuiz(partial) {
   } else if (quiz.mode === 'review') {
     if (!passedToday('_review')) schDone('_review', 'review');
     quiz.finMsg = { ok: true, t: 'سُجّلت المراجعة الشاملة في الجدول.' };
+  } else if (quiz.mode === 'imp') {
+    var back = quiz.ids.filter(function (id) { return !impDone(id); }).length;
+    quiz.finMsg = { ok: !back, t: back ? 'حُفظ ما أصبت فيه، وبقي لك ' + countWord(back, W.q) + ' تعود إليك.' : 'حُفظت كلها.' };
   }
 }
 function resultHTML() {
@@ -1033,6 +1081,7 @@ function resultHTML() {
   var mk = mistakes().length, l = LBY[quiz.les], nav;
   if (quiz.mode === 'exit' && l) { var nx = LES[LES.indexOf(l) + 1]; nav = '<a class="btn" href="#l-' + l.n + '">إلى الدرس</a>' + (nx ? '<a class="btn ghost" href="#l-' + nx.n + '">الدرس التالي</a>' : ''); }
   else if (quiz.mode === 'recall' || quiz.mode === 'review') nav = '<a class="btn" href="#home">الرئيسية</a><button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>';
+  else if (quiz.mode === 'imp') nav = '<button type="button" class="btn" data-act="imp-go">تابع المهم</button><a class="btn ghost" href="#imp-' + (quiz.gid || 1) + '">إلى المجموعة</a>';
   else nav = '<button type="button" class="btn" data-act="new-quiz">اختبار جديد</button><button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>';
   return '<div class="block-head"><h2>النتيجة</h2><span class="chip">' + esc(quiz.label) + '</span></div><section class="card"><div class="score">' + pct + '%</div>' +
     '<p class="muted p0">' + right + ' صحيحة من ' + (quiz.mode === 'exit' ? total : n) + (n < total && quiz.mode !== 'exit' ? ' (أنهيت قبل آخر الأسئلة)' : '') + '</p>' +
@@ -1064,7 +1113,7 @@ function cellsHTML() {
   if (!CQ.order[c.id]) CQ.order[c.id] = shuffle(cols.map(function (_, i) { return i; }).slice(1));
   var h = '<div class="block-head"><h2>' + esc(CQ.label) + '</h2><button type="button" class="link" data-act="cell-quit">إنهاء</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * CQ.i / n) + '%"></div></div><span class="n">' + (CQ.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">سؤال الخانة</span><span class="chip">' + esc(c.ch.title) + '</span>' + pg(t.pg) + '</div>';
+    '<div class="chips"><span class="chip">سؤال الخانة</span><span class="chip">' + esc(c.ch.title) + '</span>' + pg(t.pg) + expChip(t) + '</div>';
   var b = '<p class="cell-tbl">' + esc(t.title) + '</p>' +
     '<div class="cell-box"><span class="cell-asp">' + esc(c.aspect) + '</span><p class="cell-x">' + esc(c.x) + '</p></div>' +
     '<p class="q-text">لأيّها هذه الخانة؟</p>' +
@@ -1297,7 +1346,7 @@ function defsHTML() {
   if (DQ.mode === 'view') return viewHTML(d, c);
   var h = '<div class="block-head"><h2>' + esc(DQ.label) + '</h2><button type="button" class="link" data-act="defs-quit">إنهاء</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * DQ.i / n) + '%"></div></div><span class="n">' + (DQ.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + '</div>';
+    '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + expChip(d) + '</div>';
   var b = '';
   if (build) {
     var put = c.placed.map(function (k) { return '<span>' + esc(c.chips[k].t) + '</span>'; });
@@ -1322,7 +1371,7 @@ function defsHTML() {
 }
 /* «اطّلاع»: وجه البطاقة المصطلح وظهرها التعريف بنصه الحرفي، ولا جواب فيها ولا نتيجة */
 function viewCard(d, open) {
-  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + esc(ref) + '</span></span>';
+  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + (d.imp ? IMPW[d.imp] + ' · ' : '') + esc(ref) + '</span></span>';
   return '<button type="button" class="fc t-def' + (open ? ' flipped' : '') + '" data-act="defs-flip" aria-label="' + (open ? 'اعرض المصطلح' : 'أظهر التعريف') + '">' +
     '<span class="fc-inner">' +
       '<span class="face front" aria-hidden="' + !!open + '">' + top + '<span class="fc-body"><p class="fc-q">' + esc(d.term) + '</p><p class="fc-hint">اضغط ليظهر التعريف</p><span class="reveal">أظهر التعريف</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
@@ -1383,6 +1432,198 @@ function defsResultHTML() {
     '<div class="row"><button type="button" class="btn" data-act="defs-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="defs-quit">رجوع</button></div>';
 }
 
+/* ---------- خانة «المهم»: مجموعات بترتيب المراجعة، وما رُوجع فيها يُحفظ في S.imp من الصفر، ثم باقي التحديد ---------- */
+var IC = null;     /* جولة البطاقات: { g, ids, i, open, kept } */
+var IR = null;     /* جولة المراجعة: { g, seq, i } */
+var impSkip = ST.pref('impSkip') === true, impType = ST.pref('impType') || 'all', impRest = false, impArm = null, impArmT = null;
+var IMPST = { cards: 'البطاقات والتعريفات', obj: 'الأسئلة الموضوعية', rev: 'المقارنات وورقة الليلة' };
+var IMPSH = { cards: 'البطاقات', obj: 'الأسئلة', rev: 'المقارنات' };
+var IMPSEC = { cards: 15, obj: 30, rev: 25 };   /* تقدير الثواني لكل بند */
+function impOn(id) { var x = S.imp && S.imp[id]; return !!(x && x.v); }
+function impSet(id, on) { if (!S.imp || typeof S.imp !== 'object') S.imp = {}; if (impOn(id) === !!on) return; S.imp[id] = { v: on ? 1 : 0, t: now() }; ST.save(); }
+/* مفتاح التخطي: ما أصبت فيه كلما أجبت عنه من قبل، وما علّمته «أعرفها»، ولا يُكتب شيء في السجل */
+function impPrior(id) {
+  if (!impSkip) return false;
+  if (Q[id]) { var r = S.q[id]; return !!r && +r.n > 0 && +r.c === +r.n; }
+  return !!K[id] && known(id);
+}
+function impDone(id) { return impOn(id) || impPrior(id); }
+function impLeft(ids) { return ids.filter(function (id) { return !impDone(id); }); }
+function impStages(g) { return ['cards', 'obj', 'rev'].filter(function (st) { return g[st].length; }); }
+function impTally(g) {
+  var n = 0, d = 0;
+  impStages(g).forEach(function (st) { var a = g[st]; n += a.length; d += a.length - impLeft(a).length; });
+  return { n: n, d: d };
+}
+/* lv: الدرجة، وبلا درجة فالدرجتان معاً */
+function impStats(lv) {
+  var n = 0, d = 0, sec = 0;
+  IMP.forEach(function (g) {
+    if (lv === undefined ? !g.lv : g.lv !== lv) return;
+    impStages(g).forEach(function (st) { var a = g[st], left = impLeft(a).length; n += a.length; d += a.length - left; sec += left * IMPSEC[st]; });
+  });
+  return { n: n, d: d, sec: sec };
+}
+function impNext() {
+  var sts = impType === 'all' ? ['cards', 'obj', 'rev'] : [impType], i, j;
+  for (i = 0; i < IMP.length; i++) for (j = 0; j < sts.length; j++) if (impLeft(IMP[i][sts[j]]).length) return { g: IMP[i], st: sts[j] };
+  return null;
+}
+function hoursText(m) {
+  m = Math.round(+m || 0); if (m < 60) return minutesText(Math.max(1, m));
+  var u = Math.round(m / 30), h = Math.floor(u / 2);
+  return (h === 1 ? 'ساعة' : h === 2 ? 'ساعتان' : h <= 10 ? h + ' ساعات' : h + ' ساعة') + (u % 2 ? ' ونصف' : '');
+}
+function impLesWord(g) {
+  var n = g.les.map(function (l) { return l.no; });
+  return n.length === 1 ? 'الدرس ' + n[0] : (n.length === 2 ? 'الدرسان ' : 'الدروس ') + n.join(' و');
+}
+function impName(g) { return g.note ? 'الفخاخ وما نبّه عليه الدكتور' : g.les.map(function (l) { return l.title; }).join(' · '); }
+function impShort(g) { return g.note ? 'قبل أن تبدأ' : impLesWord(g); }
+function impGoName(nx) { return nx.g.note ? impName(nx.g) : impShort(nx.g) + ' · ' + IMPSH[nx.st]; }
+function impBar(p) { return '<div class="qbar"><div class="track"><div class="fill" style="width:' + clamp(p, 0, 100) + '%"></div></div><span class="n">' + p + '%</span></div>'; }
+function impPct(d, n) { return n ? Math.floor(100 * d / n) : 0; }
+function impHomeHTML() {
+  if (!IMP.length) return '';
+  var a = impStats(1), b = impStats(2), n = a.n + b.n, d = a.d + b.d;
+  return '<section class="card tight"><div class="block-head"><h3>خانة المهم</h3><span class="chip">راجعت ' + d + ' من ' + n + '</span></div>' + impBar(impPct(d, n)) +
+    '<button type="button" class="btn wide" data-go="#imp">' + (d ? 'تابع مراجعة المهم' : 'ابدأ مراجعة المهم') + '</button></section>';
+}
+function impRow(g) {
+  var t = impTally(g), left = t.n - t.d;
+  return '<li><a class="les-row" href="#imp-' + (g.idx + 1) + '"><span class="les-no">' + (g.note ? '!' : g.no || g.les[0].no) + '</span><span class="les-tx"><b>' + esc(impName(g)) + '</b><span>' + esc((g.note ? '' : impLesWord(g) + ' · ') + 'راجعت ' + t.d + ' من ' + t.n) + '</span></span>' +
+    '<span class="les-st"><span class="pill ' + (left ? (t.d ? 'mid' : 'none') : 'top') + '">' + (left ? impPct(t.d, t.n) + '%' : 'أتممتها') + '</span></span></a></li>';
+}
+function impSecHTML(lv, title, note) {
+  var gs = IMP.filter(function (g) { return g.lv === lv; }); if (!gs.length) return '';
+  var st = impStats(lv);
+  note = [note, st.sec ? 'بقي نحو ' + hoursText(st.sec / 60) + '.' : ''].filter(Boolean).join(' ');
+  return '<section class="block"><div class="block-head"><h3>' + esc(title) + '</h3><span class="chip">' + st.d + ' من ' + st.n + '</span></div>' +
+    (note ? '<p class="muted small p0">' + esc(note) + '</p>' : '') + '<ol class="les-list">' + gs.map(impRow).join('') + '</ol></section>';
+}
+function impHTML() {
+  if (!IMP.length) return '<div class="empty"><b>لم يصل ملف الوسم</b><br>أعد فتح الصفحة بعد قليل.</div>';
+  var a = impStats(1), b = impStats(2), c = impStats(0), n = a.n + b.n, d = a.d + b.d, over = d >= n, nx = impNext();
+  var h = '<div class="block-head"><h2>خانة المهم</h2><span class="chip">راجعت ' + d + ' من ' + n + '</span></div>' + impBar(impPct(d, n)) +
+    '<p class="muted small p0">مرتبة من الأهم إلى ما دونه. ما تراجعه هنا يُحفظ فلا يعود، ويُزامَن بين أجهزتك، والسؤال الذي تخطئ فيه يبقى لك حتى تصيبه ويدخل دفتر الأخطاء كالمعتاد.</p>' +
+    '<div class="seg four" role="group" aria-label="نوع المراجعة">' + [['all', 'الكل'], ['cards', 'البطاقات'], ['obj', 'الموضوعي'], ['rev', 'المقارنات']].map(function (t) {
+      return '<button type="button" data-act="imp-type" data-k="' + t[0] + '" aria-pressed="' + (impType === t[0]) + '">' + t[1] + '</button>';
+    }).join('') + '</div>' +
+    '<div class="toggle"><span class="small">تخطَّ ما أصبت فيه دائماً من قبل، وما علّمته «أعرفها»</span><button type="button" class="switch" data-act="imp-skip" role="switch" aria-checked="' + impSkip + '" aria-label="تخطي ما أصبت فيه من قبل"></button></div>';
+  if (over) h += '<p class="fin-msg ok">أتممت المهم كله، فأكمل باقي التحديد.</p>';
+  h += nx ? '<button type="button" class="btn wide" data-act="imp-go">' + esc((d ? 'تابع: ' : 'ابدأ: ') + impGoName(nx)) + '</button>'
+    : '<p class="fin-msg ok">' + (impType === 'all' ? 'أتممت كل ما في الخانة.' : 'أتممت هذا النوع كله، فاختر نوعاً غيره.') + '</p>';
+  h += impSecHTML(1, 'الأهم', '') + impSecHTML(2, 'مهم', '');
+  if (c.n) {
+    if (over || impRest) h += impSecHTML(0, 'باقي التحديد', 'ما لم يذكره المهم، ولا يتكرر فيه ما راجعته.');
+    else h += '<button type="button" class="btn ghost wide" data-act="imp-rest">اعرض باقي التحديد: ' + c.d + ' من ' + c.n + '</button>';
+  }
+  return h;
+}
+function impGroupHTML(n) {
+  var g = IMP[n - 1];
+  if (!g) return '<div class="empty">لا توجد هذه المجموعة.</div><button type="button" class="btn ghost" data-go="#imp">خانة المهم</button>';
+  var nxG = IMP[n], tag = g.lv ? '<span class="chip exp' + (g.lv === 2 ? ' lv2' : '') + '">' + IMPW[g.lv] + '</span>' : '<span class="chip">باقي التحديد</span>';
+  var h = '<div class="block-head"><button type="button" class="link" data-go="#imp">خانة المهم</button>' + tag + '</div>' +
+    '<section class="les-head"><p class="eyebrow">' + esc(impShort(g)) + '</p><h2>' + esc(impName(g)) + '</h2></section>' +
+    stepsHTML(impStages(g).map(function (st) {
+      var a = g[st], left = impLeft(a).length, d = a.length - left;
+      return { t: g.note ? 'راجعها مرة قبل أن تبدأ' : IMPST[st], m: 'راجعت ' + d + ' من ' + a.length, done: !left,
+        btn: '<button type="button" class="btn' + (left ? '' : ' ghost') + '" data-act="imp-start" data-g="' + g.idx + '" data-st="' + st + '">' + (left ? (d ? 'تابع' : 'ابدأ') : 'أعدها') + '</button>' };
+    }));
+  if (g.les.length) {
+    h += '<p class="sec-title">الملخص</p><p class="muted small p0">افتحه إن أردت القراءة، فالخط الجانبي فيه يعلّم الفقرات الموسومة.</p><ol class="les-list">' + g.les.map(function (l) {
+      return '<li><a class="les-row" href="#l-' + l.n + '"><span class="les-no">' + l.no + '</span><span class="les-tx"><b>' + esc(l.title) + '</b><span>ص ' + esc(l.pages) + '</span></span>' + GO + '</a></li>';
+    }).join('') + '</ol>';
+  }
+  h += '<div class="row">' + (nxG ? '<a class="btn ghost" href="#imp-' + (n + 1) + '">المجموعة التالية</a>' : '') + '</div>' +
+    '<button type="button" class="link center" data-act="imp-reset" data-g="' + g.idx + '">' + (impArm === g.idx ? 'اضغط مرة أخرى للتأكيد' : 'أعد هذه المجموعة من أولها') + '</button>';
+  return h;
+}
+function impStart(g, st) {
+  if (!g || !g[st] || !g[st].length) return;
+  var left = impLeft(g[st]), ids = left.length ? left : g[st].slice();
+  if (st === 'cards') { IC = { g: g, ids: ids, i: 0, open: false, kept: {} }; go('#impc'); return; }
+  if (st === 'obj') {
+    startQuiz(prioritized(ids.map(function (id) { return Q[id]; })).map(function (x) { return x.id; }), 'المهم: ' + impShort(g), 'imp');
+    if (quiz) quiz.gid = g.idx + 1;
+    return;
+  }
+  var seq = [], lines = [];
+  ids.forEach(function (id) { if (TBID[id]) seq.push({ t: TBID[id], ids: [id] }); else lines.push(id); });
+  if (lines.length) seq.push({ lines: lines, ids: lines });
+  IR = { g: g, seq: seq, i: 0 }; go('#impr');
+}
+function impContinue() {
+  IC = null; IR = null; if (quiz && quiz.i >= quiz.ids.length) quiz = null;
+  var nx = impNext();
+  if (nx) impStart(nx.g, nx.st); else go('#imp');
+}
+function impEnd(g, score, msg) {
+  var nx = impNext();
+  return '<div class="block-head"><h2>انتهت الجولة</h2><span class="chip">' + esc(impShort(g)) + '</span></div>' +
+    '<section class="card deck-end"><div class="score">' + esc(score) + '</div><p class="muted p0">' + esc(msg) + '</p></section>' +
+    '<div class="row">' + (nx ? '<button type="button" class="btn" data-act="imp-go">' + esc('تابع: ' + impGoName(nx)) + '</button>' : '') +
+    '<a class="btn ghost" href="#imp-' + (g.idx + 1) + '">إلى المجموعة</a></div>';
+}
+/* جولة البطاقات: الزر الرئيس لا يتحرك، يكشف ثم يحفظ البطاقة ويمضي، و«أعدها لي» يُبقيها لك */
+function icBar() {
+  var id = IC.ids[IC.i], kept = !!IC.kept[id];
+  return '<div class="deck-nav two"><button type="button" class="btn ghost" data-act="ic-prev"' + (IC.i ? '' : ' disabled') + '>السابقة</button>' +
+    '<button type="button" class="btn" data-act="ic-next">' + (!IC.open ? 'اكشف الجواب' : IC.i + 1 < IC.ids.length ? 'التالية' : 'إنهاء') + '</button></div>' +
+    (IC.open ? '<div class="dtools"><div class="row"><button type="button" class="mini" data-act="ic-keep" aria-pressed="' + kept + '">' + (kept ? 'تعود إليك' : 'أعدها لي') + '</button></div></div>' : '');
+}
+function impCardsHTML() {
+  var n = IC.ids.length;
+  if (IC.i >= n) {
+    var back = IC.ids.filter(function (id) { return !impDone(id); }).length;
+    return impEnd(IC.g, String(n), (n === 1 ? 'بطاقة مررت بها' : 'مررت بـ' + countWord(n, W.card)) + (back ? '، وتعود إليك منها ' + countWord(back, W.card) : '، وحُفظت كلها') + '.');
+  }
+  var k = K[IC.ids[IC.i]];
+  return '<div class="block-head"><h2>' + esc('المهم: ' + impShort(IC.g)) + '</h2><button type="button" class="link" data-act="ic-quit">إنهاء</button></div>' +
+    '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * IC.i / n) + '%"></div></div><span class="n">' + (IC.i + 1) + ' من ' + n + '</span></div>' +
+    '<p class="eyebrow">' + esc('الدرس ' + k.les.no + ': ' + k.les.title) + '</p>' +
+    '<div class="deck-wrap"><div class="deck">' + cardHTML(k, IC.open) + '</div><div class="deck-wrap" id="vbar">' + icBar() + '</div></div>';
+}
+function icPaint() {
+  var fc = view.querySelector('.fc'), bar = document.getElementById('vbar');
+  if (fc) { fc.classList.toggle('flipped', IC.open); fc.setAttribute('aria-label', IC.open ? 'اعرض الوجه' : 'اقلب البطاقة'); fc.querySelector('.front').setAttribute('aria-hidden', IC.open); fc.querySelector('.back').setAttribute('aria-hidden', !IC.open); }
+  if (bar) bar.innerHTML = icBar();
+}
+function icOn() { return screen === 'impc' && !!IC && IC.i < IC.ids.length; }
+function icStep(dir) {
+  if (!icOn()) return;
+  if (dir < 0) { if (!IC.i) return; IC.i--; IC.open = true; render(); window.scrollTo(0, 0); return; }
+  if (!IC.open) { IC.open = true; icPaint(); return; }
+  var id = IC.ids[IC.i]; impSet(id, !IC.kept[id]);
+  IC.i++; IC.open = false; render(); window.scrollTo(0, 0);
+}
+/* جولة المراجعة: كل جدول في صفحة، ثم أسطر ورقة الليلة أو الفخاخ معاً */
+function impLine(id) {
+  var m = /^(c\d+):(\d+)$/.exec(id);
+  if (m) return CH[m[1]] ? CH[m[1]].night[+m[2]] : null;
+  m = /^n(\d+)$/.exec(id);
+  return m ? IMPN[+m[1]] : null;
+}
+function impRevHTML() {
+  var n = IR.seq.length, s = IR.seq[IR.i];
+  if (IR.i >= n) return impEnd(IR.g, 'تم', 'حُفظت مراجعتك لهذه المجموعة.');
+  var more = IR.i + 1 < n;
+  return '<div class="block-head"><h2>' + esc('المهم: ' + impShort(IR.g)) + '</h2><button type="button" class="link" data-act="ir-quit">إنهاء</button></div>' +
+    '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * IR.i / n) + '%"></div></div><span class="n">' + (IR.i + 1) + ' من ' + n + '</span></div>' +
+    (s.t ? '<p class="muted small p0">املأ الجدول من ذاكرتك بزر «اختبر نفسي»، ثم انتقل.</p>' + cmpHTML(s.t)
+      : '<p class="muted small p0">اقرأها سطراً سطراً، ثم انتقل.</p><ol class="night-list">' + s.lines.map(function (id) { var x = impLine(id); return x ? '<li>' + rich(x.x) + pg(x.pg) + '</li>' : ''; }).join('') + '</ol>') +
+    '<div id="vbar"><div class="deck-nav two"><button type="button" class="btn ghost" data-act="ir-prev"' + (IR.i ? '' : ' disabled') + '>السابقة</button>' +
+    '<button type="button" class="btn" data-act="ir-next">' + (more ? 'راجعته، التالي' : 'راجعته، إنهاء') + '</button></div></div>';
+}
+function irStep(dir) {
+  if (!IR) return;
+  if (dir < 0) { if (IR.i) { IR.i--; render(); window.scrollTo(0, 0); } return; }
+  var s = IR.seq[IR.i]; if (!s) return;
+  s.ids.forEach(function (id) { impSet(id, true); });
+  IR.i++; render(); window.scrollTo(0, 0);
+}
+
 /* دفتر الأخطاء */
 var nbCh = 'all';
 function nbHTML() {
@@ -1394,7 +1635,7 @@ function nbHTML() {
   if (!list.length) return h + '<div class="empty"><b>الدفتر فارغ</b><br>' + (Object.keys(S.q).length ? 'أتقنت ما أخطأت فيه هنا.' : 'حين تخطئ في سؤال يظهر هنا لتعيده.') + '</div>';
   return h + list.map(function (q) {
     var r = S.q[q.id] || {}, ri = rightIndex(q), ans = q.k === 'tf' ? (q.a ? 'صح' : 'خطأ') : (ri > -1 ? q.opts[ri] : q.a);
-    return '<article class="art"><div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + '</div>' +
+    return '<article class="art"><div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + '</div>' +
       '<p class="p0 strong">' + esc(q.q) + '</p><p class="p0 small">الصواب: <b>' + esc(ans) + '</b></p>' + (q.why ? '<p class="why small">' + rich(q.why) + '</p>' : '') +
       '<p class="nb-note">' + (+r.s ? 'أصبت فيه مرة في يوم سابق، وبقيت إجابة صحيحة في يوم آخر.' : 'يخرج بإجابتين صحيحتين في يومين مختلفين.') + ' أخطأت فيه ' + ((+r.n || 0) - (+r.c || 0) === 1 ? 'مرة' : ((+r.n || 0) - (+r.c || 0) === 2 ? 'مرتين' : ((+r.n || 0) - (+r.c || 0)) + ' مرات')) + '.</p></article>';
   }).join('');
@@ -1687,7 +1928,7 @@ sheet.addEventListener('click', function (e) {
   var a = b.getAttribute('data-act');
   if (a === 'new-round') { var c = CH[b.getAttribute('data-ch')]; armOr('round-' + c.id, function () { closeRound(c, true); ST.save(); toast('بدأت جولة جديدة في ' + c.title); render(); }); }
   else if (a === 'reset-known') armOr('known', function () { Object.keys(S.k).forEach(function (id) { if (known(id)) S.k[id] = { v: 0, t: now() }; }); ST.save(); toast('مُحيت علامات «أعرفها»'); render(); });
-  else if (a === 'reset-all') armOr('all', function () { ST.reset(); S = ST.state(); quiz = null; DECK = null; DQ = null; reportNb(); toast('بدأت من جديد'); closeSettings(); render(); });
+  else if (a === 'reset-all') armOr('all', function () { ST.reset(); S = ST.state(); quiz = null; DECK = null; DQ = null; IC = null; IR = null; reportNb(); toast('بدأت من جديد'); closeSettings(); render(); });
 });
 document.getElementById('setBtn').addEventListener('click', openSettings);
 
@@ -1695,7 +1936,10 @@ document.getElementById('setBtn').addEventListener('click', openSettings);
 function parseHash() {
   var h = (location.hash || '').replace(/^#/, ''), m;
   if (!h || h === 'home') return ['home'];
-  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells', 'defs'].indexOf(h) > -1) return [h];
+  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells', 'defs', 'imp'].indexOf(h) > -1) return [h];
+  if ((m = /^imp-(\d+)$/.exec(h))) return ['impg', +m[1]];
+  if (h === 'impc') return [IC ? 'impc' : 'imp'];
+  if (h === 'impr') return [IR ? 'impr' : 'imp'];
   if ((m = /^l-(\d+)$/.exec(h))) return ['lesson', +m[1]];
   if ((m = /^r-(\d+)$/.exec(h))) return ['recall', +m[1]];
   if (h === 'deck') return [DECK ? 'deck' : 'rev'];
@@ -1708,6 +1952,8 @@ function route() {
   if (quiz && quiz.i >= quiz.ids.length) quiz = null;
   if (CQ && screen !== 'cells' && CQ.i >= CQ.ids.length) CQ = null;
   if (DQ && screen !== 'defs' && DQ.i >= DQ.ids.length) DQ = null;
+  if (IC && screen !== 'impc' && IC.i >= IC.ids.length) IC = null;
+  if (IR && screen !== 'impr' && IR.i >= IR.seq.length) IR = null;
   render(); window.scrollTo(0, 0);
 }
 function go(h) { if (location.hash === h) route(); else location.hash = h; }
@@ -1756,6 +2002,7 @@ view.addEventListener('click', function (e) {
     case 'deck-eve': { var u2 = unknownCards(), k2 = KL.filter(function (k) { return known(k.id); }); openDeck(u2.concat(k2).map(function (k) { return k.id; }), 'ليلة الاختبار: البطاقات', '#eve', 'eve'); return; }
     case 'eve-mark': schDone('_eve', 'eve'); render(); toast('تصبح على خير، وفقك الله'); return;
     case 'flip': {
+      if (icOn()) { IC.open = !IC.open; icPaint(); return; }
       if (!DECK) return; DECK.flip = !DECK.flip;
       var fc = view.querySelector('.fc');
       if (fc) { fc.classList.toggle('flipped', DECK.flip); fc.setAttribute('aria-label', DECK.flip ? 'اعرض الوجه' : 'اقلب البطاقة'); fc.querySelector('.front').setAttribute('aria-hidden', DECK.flip); fc.querySelector('.back').setAttribute('aria-hidden', !DECK.flip); }
@@ -1863,6 +2110,7 @@ view.addEventListener('click', function (e) {
       if (!quiz || quiz.picked !== null) return;
       q = Q[quiz.ids[quiz.i]]; var v = +el.getAttribute('data-v'), ok = isRight(q, v);
       quiz.picked = v; quiz.results.push(ok); quiz.lastRes = record(q.id, ok);
+      if (quiz.mode === 'imp') impSet(q.id, ok);
       /* محاولة تسميع الخروج تُحسب من أول إجابة، فتُحفظ نسبتها على أسئلة الدرس كلها كلما أجاب */
       if (quiz.mode === 'exit') saveExit(quiz.les, Math.round(100 * quiz.results.filter(Boolean).length / quiz.ids.length), 'exit');
       quiz.rounds = roundNotes.splice(0).map(function (id) { return roundText(CH[id]); });
@@ -1877,9 +2125,29 @@ view.addEventListener('click', function (e) {
         if (!quiz.quitArmed) { quiz.quitArmed = true; render(); return; }
         finishQuiz(true); quiz.i = quiz.ids.length; quiz.picked = null; render(); window.scrollTo(0, 0); return;
       }
-      var md = quiz.mode, ql = LBY[quiz.les]; quiz = null; go(quitDest(md, ql)); return;
+      var md = quiz.mode, ql = LBY[quiz.les], qg = quiz.gid; quiz = null; go(md === 'imp' ? '#imp-' + (qg || 1) : quitDest(md, ql)); return;
     }
     case 'new-quiz': quiz = null; render(); window.scrollTo(0, 0); return;
+    case 'imp-go': impContinue(); return;
+    case 'imp-start': impStart(IMP[+el.getAttribute('data-g')], el.getAttribute('data-st')); return;
+    case 'imp-type': impType = el.getAttribute('data-k'); ST.setPref('impType', impType); render(); return;
+    case 'imp-skip': impSkip = !impSkip; ST.setPref('impSkip', impSkip); render(); return;
+    case 'imp-rest': impRest = true; render(); return;
+    case 'imp-reset': {
+      var rg = IMP[+el.getAttribute('data-g')]; if (!rg) return;
+      clearTimeout(impArmT);
+      if (impArm !== rg.idx) { impArm = rg.idx; impArmT = setTimeout(function () { impArm = null; if (!busy()) render(); }, 4000); render(); return; }
+      impArm = null;
+      impStages(rg).forEach(function (st) { rg[st].forEach(function (id) { impSet(id, false); }); });
+      toast('عادت هذه المجموعة من أولها'); render(); return;
+    }
+    case 'ic-next': icStep(1); return;
+    case 'ic-prev': icStep(-1); return;
+    case 'ic-keep': if (icOn()) { var ick = IC.ids[IC.i]; IC.kept[ick] = !IC.kept[ick]; icPaint(); } return;
+    case 'ic-quit': { var icg = IC ? IC.g.idx + 1 : 0; IC = null; go(icg ? '#imp-' + icg : '#imp'); return; }
+    case 'ir-next': irStep(1); return;
+    case 'ir-prev': irStep(-1); return;
+    case 'ir-quit': { var irg = IR ? IR.g.idx + 1 : 0; IR = null; go(irg ? '#imp-' + irg : '#imp'); return; }
     case 'cells-start': {
       var cChs = CHS.filter(function (x) { return objSel.indexOf(x.id) > -1 && cellsOf(x.id).length; });
       var cPool = CELLS.filter(function (x) { return cChs.some(function (y) { return y.id === x.ch.id; }); });
@@ -1935,7 +2203,7 @@ function tdist(ts) { var dx = ts[0].clientX - ts[1].clientX, dy = ts[0].clientY 
 view.addEventListener('touchstart', function (e) {
   var f = e.target.closest && e.target.closest('.zf');
   if (f && e.touches.length === 2) { pinch = { f: f, d: tdist(e.touches), z: f._z || 1 }; sw = null; return; }
-  if ((screen === 'deck' || viewOn()) && e.touches.length === 1 && e.target.closest('.fc')) sw = { x: e.touches[0].clientX, y: e.touches[0].clientY }; else sw = null;
+  if ((screen === 'deck' || viewOn() || icOn()) && e.touches.length === 1 && e.target.closest('.fc')) sw = { x: e.touches[0].clientX, y: e.touches[0].clientY }; else sw = null;
 }, { passive: true });
 view.addEventListener('touchmove', function (e) {
   if (!pinch || e.touches.length !== 2) return;
@@ -1947,7 +2215,7 @@ view.addEventListener('touchend', function (e) {
   if (e.touches.length < 2) pinch = null;
   if (sw && e.changedTouches.length) {
     var dx = e.changedTouches[0].clientX - sw.x, dy = e.changedTouches[0].clientY - sw.y; sw = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) { e.preventDefault(); if (screen === 'deck') deckStep(dx < 0 ? 1 : -1); else viewStep(dx < 0 ? 1 : -1); }
+    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) { e.preventDefault(); if (screen === 'deck') deckStep(dx < 0 ? 1 : -1); else if (icOn()) icStep(dx < 0 ? 1 : -1); else viewStep(dx < 0 ? 1 : -1); }
   }
 });
 var fitT = null;

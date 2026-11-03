@@ -11,7 +11,8 @@
        def[معرّف التعريف] { n الإجابات، c الصحيحة، w أخطأ في آخرها 1 أو 0، t } لنوع «التعريفات»، ولا يدخل المستوى ولا دفتر الأخطاء
        dx[معرّف التعريف]  { v: 1 مستبعد من جولات «التعريفات» أو 0 أُعيد، t }
        dv[معرّف التعريف]  { v: 1 مُرّ به في طريقة «اطّلاع» أو 0 أُعيد إليها، t }، ولا يمسّ طريقتي الاختبار
-     والخانات def وdx وdv اختيارية: الحفظ القديم بلاها يُحمَّل كما هو.
+       imp[معرّف البند]   { v: 1 رُوجع في خانة «المهم» أو 0 لم يُراجع، t }: بطاقة أو تعريف أو سؤال موضوعي أو جدول أو سطر ليلة، مستقل عن k وq
+     والخانات def وdx وdv وimp اختيارية: الحفظ القديم بلاها يُحمَّل كما هو.
    - بين الجهاز والمستودع يُجمع التقدم مدخلاً مدخلاً بالأحدث، فلا يضيع ما أُنجز في أحدهما.
    - التفضيلات (النهار والليل وما يشبهه) لهذا الجهاز وحده، ولا تُرفع. */
 (function () {
@@ -19,9 +20,9 @@
   var C = window.LAW136_CONFIG || {};
   var KEY = C.storageKey || 'law136-v1';
   var PREFS = KEY + '-prefs';
-  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell', 'def', 'dx', 'dv'];
+  var FIELDS = ['q', 'k', 'learn', 'exit', 'bank', 'cell', 'def', 'dx', 'dv', 'imp'];
 
-  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {}, def: {}, dx: {}, dv: {} }; }
+  function fresh() { return { v: 1, base: 0, updatedAt: 0, q: {}, k: {}, learn: {}, exit: {}, bank: {}, cell: {}, def: {}, dx: {}, dv: {}, imp: {} }; }
   function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
   function norm(s) {
     var o = fresh(); if (!isObj(s)) return o;
@@ -57,7 +58,7 @@
     if (!m.last && o.last) m.last = clone(o.last);
     return m;
   }
-  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer, dv: newer };
+  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer, dv: newer, imp: newer };
   function merge(a, b) {
     a = norm(a); b = norm(b);
     if (a.base !== b.base) return clone(b.base > a.base ? b : a); // «البدء من جديد» في جهاز يغلب ما قبله

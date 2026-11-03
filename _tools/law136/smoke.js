@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
     page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR|api\.github|githubusercontent|401|403|404/.test(m.text())) errs.push('console: ' + m.text()); });
     await page.goto(base, { waitUntil: 'load' });
     await page.waitForTimeout(1200);
-    const routes = ['#home', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'];
+    const routes = ['#home', '#imp', '#imp-1', '#imp-2', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'];
     for (let n = first; n <= last; n++) routes.push('#l-' + n, '#r-' + n);
     for (const r of routes) {
       await page.evaluate((h) => { location.hash = h; }, r);
