@@ -1550,8 +1550,8 @@ function defChips(d){
 /* six options: the right term and its closest relatives, then its chapter's terms, then any */
 function defOpts(d){
   var seen = {}, opts = [];
-  seen[dnorm(d.term)] = 1;
-  function add(list){ list.forEach(function(x){ var k = dnorm(x.term); if (opts.length < 5 && !seen[k]){ seen[k] = 1; opts.push(x); } }); }
+  seen[baseTerm(d)] = 1; /* a term defined twice is one answer, so its other definition is never a wrong option */
+  function add(list){ list.forEach(function(x){ var k = baseTerm(x); if (opts.length < 5 && !seen[k]){ seen[k] = 1; opts.push(x); } }); }
   add(bySim(d, d.sibs));
   if (opts.length < 5) add(bySim(d, DEFS.filter(function(x){ return x !== d && x.ch === d.ch; })));
   if (opts.length < 5) add(bySim(d, DEFS.filter(function(x){ return x !== d; })));
