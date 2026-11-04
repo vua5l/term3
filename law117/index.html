@@ -447,6 +447,15 @@ mark.dd{background:color-mix(in srgb,var(--mid) 26%,transparent);color:inherit;b
 .dx-list li span{display:flex;flex-direction:column;min-width:0}
 .dx-list b{font-size:.88rem}
 .dx-list small{font-size:.72rem;color:var(--ink-2)}
+
+/* ---- side tasks ---- */
+.side-list{display:flex;flex-direction:column;gap:10px}
+.side-t{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.side-t.done{border-color:var(--ok)}
+.side-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.side-h b{font-size:.98rem;font-weight:600}
+.side-h span{font-size:.8rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.side-t p{margin:0;font-size:.82rem;color:var(--ink-2);line-height:1.7}
 </style>
 
 <div class="app" dir="rtl" lang="ar">
@@ -619,8 +628,8 @@ var DEFS = [], DBY = {}, DLES = {};
 
 /* ---------- state: this device first, then the account copy ---------- */
 var KEY = 'ahkam-alusra-v1';
-function fresh(){ return { v:1, updatedAt:0, q:{}, k:{}, learn:{}, exit:{}, bank:{}, cell:{}, def:{}, dx:{}, dv:{} }; }
-function norm(s){ ['q','k','learn','exit','bank','cell','def','dx','dv'].forEach(function(k){ if (!s[k] || typeof s[k] !== 'object') s[k] = {}; }); delete s.plan; return s; }
+function fresh(){ return { v:1, updatedAt:0, q:{}, k:{}, learn:{}, exit:{}, bank:{}, cell:{}, def:{}, dx:{}, dv:{}, side:{} }; }
+function norm(s){ ['q','k','learn','exit','bank','cell','def','dx','dv','side'].forEach(function(k){ if (!s[k] || typeof s[k] !== 'object') s[k] = {}; }); delete s.plan; return s; }
 var S = fresh();
 try { var raw = localStorage.getItem(KEY); if (raw) { var p = JSON.parse(raw); if (p && p.v === 1) S = norm(p); } } catch (e) {}
 var remoteRef = null, writing = false, again = false, timer = null, syncNote = 'يُحفظ تقدمك على هذا الجهاز.';
@@ -915,7 +924,7 @@ var DQ = null; /* the definitions run: {ids, i, mode, label, res, cur, kept} */
 var DECK = null; /* {ids, i, flip, title, back, then, n} */
 var RSTEP = {};  /* cards step finished this session, per lesson */
 var cardFilter = { hideKnown:false };
-var TAB_OF = { home:'home', plan:'plan', sum:'sum', quiz:'quiz', rev:'rev', lesson:'sum', recall:'plan', review:'plan', eve:'plan', deck:'rev', nb:'quiz', cells:'quiz', defs:'quiz' };
+var TAB_OF = { home:'home', plan:'plan', sum:'sum', quiz:'quiz', rev:'rev', lesson:'sum', recall:'plan', review:'plan', eve:'plan', deck:'rev', nb:'quiz', cells:'quiz', defs:'quiz', side:'home' };
 
 function render(){
   var tb = TAB_OF[screen] || 'home';
@@ -926,6 +935,7 @@ function render(){
   else if (screen === 'sum') h = sumHTML();
   else if (screen === 'quiz') h = quiz ? runHTML() : bankHTML();
   else if (screen === 'nb') h = nbHTML();
+  else if (screen === 'side') h = sideHTML();
   else if (screen === 'cells') h = CQ ? cellsHTML() : bankHTML();
   else if (screen === 'defs') h = DQ ? defsHTML() : bankHTML();
   else if (screen === 'rev') h = revHTML();
@@ -960,7 +970,7 @@ function homeHTML(){
     '<div class="split" role="img" aria-label="أنجزت ' + pct + ' بالمئة من الخطة"><span class="done">أنجزت ' + pct + '% من الخطة</span><span class="rest">بقي ' + (100 - pct) + '%</span></div>' +
     '<p class="hero-foot">مستواك العام: <b>' + (overall.n >= 10 ? ol.label + ' ' + overall.pct + '%' : 'لم يُقَس بعد') + '</b>' + (overall.n ? ' · ' + overall.n + ' إجابة' : '') + '</p>' +
   '</section>' +
-  todayBlock() +
+  todayBlock() + sideBlock() +
   '<section class="card" aria-labelledby="lv-h"><div class="block-head"><h2 id="lv-h">مستواك في كل فصل</h2></div><div class="levels">' + rows + '</div>' + insight + '</section>' +
   '<section class="block"><div class="q-nav">' +
     '<button type="button" class="btn" data-go="#quiz">ابدأ اختبارًا</button>' +
@@ -1704,6 +1714,48 @@ function defsResultHTML(){
     '<div class="q-nav"><button type="button" class="btn" data-act="defs-again">جولة أخرى</button><button type="button" class="btn ghost" data-act="defs-quit">رجوع</button></div>';
 }
 
+/* ---------- side tasks: what the schedule does not hand out, shown and counted on this site only.
+   They never reach the schedule, its percent or its daily cap. What the site can see counts by itself;
+   what happens elsewhere (the essay chat) or leaves no record is ticked lesson by lesson ---------- */
+function sideOn(k, lid){ var m = S.side[k], x = m && m[lid]; return !!(x && x.v); }
+function sideTog(k, lid){ if (!S.side[k] || typeof S.side[k] !== 'object') S.side[k] = {}; S.side[k][lid] = { v:sideOn(k, lid) ? 0 : 1, t:now() }; save(); }
+function sideIn(k, l){
+  if (k === 'ess') return essIn(l) > 0;
+  if (k === 'cmp') return (l.cmp || []).length > 0;
+  return D.numbers.some(function(x){ var n = refArt(x.ref); return n != null && lessonOfArt(n) === l; });
+}
+function sideLes(k){ return LES.filter(function(l){ return sideIn(k, l); }); }
+function sideTicked(k){ return sideLes(k).filter(function(l){ return sideOn(k, l.id); }).length; }
+function sideTasks(){
+  var ds = DEFS.filter(function(d){ return !dxOn(d.id); });
+  var list = [
+    { k:'ess', t:'الاختبار المقالي', m:'بالرسالة الجاهزة في محادثة داخل مشروع المادة، ثم علّم الدروس التي أنهيتها.', tick:1, n:sideTicked('ess'), of:sideLes('ess').length },
+    { k:'cell', t:'سؤال الخانة', m:'يُعدّ ما أجبت عنه من خانات جداول المقارنة.', n:CELLS.filter(function(c){ return cellRec(c.id); }).length, of:CELLS.length },
+    { k:'card', t:'البطاقات', m:'يُعدّ ما علّمته «أعرفها».', n:CARDS.filter(function(c){ return S.k[c.id]; }).length, of:CARDS.length },
+    { k:'num', t:'الأعداد والمدد', m:'أخفِ الأعداد واختبر نفسك، ثم علّم الدروس التي أنهيتها.', tick:1, n:sideTicked('num'), of:sideLes('num').length },
+    { k:'cmp', t:'جداول المقارنة', m:'بزر «اختبر نفسي» في كل جدول، ثم علّم الدروس التي أنهيتها.', tick:1, n:sideTicked('cmp'), of:sideLes('cmp').length }
+  ];
+  if (DEFS.length) list.splice(1, 0, { k:'def', t:'التعريفات', m:'يُعدّ ما أجبت عنه، وتكفي طريقة «ركّب التعريف».', n:ds.filter(function(d){ var r = defRec(d.id); return r && +r.n > 0; }).length, of:ds.length });
+  return list;
+}
+function sideDone(ts){ return ts.filter(function(x){ return x.of && x.n >= x.of; }).length; }
+function sideBlock(){
+  var ts = sideTasks();
+  return '<section class="card" aria-labelledby="sd-h"><div class="block-head"><h2 id="sd-h">المهام الجانبية</h2><a class="link" href="#side">افتحها</a></div><div class="levels">' +
+    ts.map(function(x){ var ok = x.n >= x.of; return '<div class="lvl-row"><div class="nm">' + esc(x.t) + '</div><span class="ct">' + x.n + ' من ' + x.of + '</span><span class="pill ' + (ok ? 'top' : x.n ? 'mid' : 'none') + '">' + (ok ? 'أنجزتها' : x.n ? 'جارية' : 'لم تبدأ') + '</span></div>'; }).join('') +
+    '</div><p class="insight">أنجزت <b>' + sideDone(ts) + ' من ' + ts.length + '</b>. وهي في الموقع وحده، ولا تدخل الجدول ولا نسبة الخطة.</p></section>';
+}
+function sideHTML(){
+  var ts = sideTasks(), h = '<div class="block-head"><h2>المهام الجانبية</h2><span class="chip">أنجزت ' + sideDone(ts) + ' من ' + ts.length + '</span></div>' +
+    '<p class="muted small" style="margin:0">ما لا يضعه الجدول في مهامك، وعليك أن تأتيه بنفسك. وهي في الموقع وحده، ولا تدخل الجدول ولا نسبة الخطة.</p><div class="side-list">';
+  ts.forEach(function(x){
+    h += '<section class="side-t' + (x.n >= x.of ? ' done' : '') + '"><div class="side-h"><b>' + esc(x.t) + '</b><span>' + x.n + ' من ' + x.of + '</span></div><p>' + esc(x.m) + '</p>' +
+      (x.tick ? '<div class="pick" role="group" aria-label="' + esc(x.t) + '">' + sideLes(x.k).map(function(l){ return '<button type="button" data-act="side-les" data-k="' + x.k + '" data-l="' + l.id + '" aria-pressed="' + sideOn(x.k, l.id) + '" title="' + esc(l.t) + '">الدرس ' + l.no + '</button>'; }).join('') + '</div>' : '') +
+      '<button type="button" class="btn ghost" data-act="side-open" data-k="' + x.k + '">افتح</button></section>';
+  });
+  return h + '</div>';
+}
+
 /* the mistakes notebook */
 function nbHTML(){
   var list = mistakes(), n = list.length;
@@ -1785,7 +1837,7 @@ document.getElementById('setBtn').addEventListener('click', openSettings);
 function parseHash(){
   var h = (location.hash || '').replace(/^#/, ''), m;
   if (!h || h === 'home') return ['home'];
-  if (['plan','sum','quiz','rev','review','eve','nb'].indexOf(h) > -1) return [h];
+  if (['plan','sum','quiz','rev','review','eve','nb','side'].indexOf(h) > -1) return [h];
   if (h === 'cells') return [CQ ? 'cells' : 'quiz'];
   if (h === 'defs') return [DQ ? 'defs' : 'quiz'];
   if ((m = /^l-(\d+)$/.exec(h))) return ['lesson', +m[1]];
@@ -1870,6 +1922,12 @@ view.addEventListener('click', function(e){
     var md = quiz.mode, ql = LBY[quiz.les]; quiz = null;
     if (md === 'exit' && ql) go('#l-' + ql.no); else if (md === 'recall' && ql) go('#r-' + ql.no); else if (md === 'review') go('#review'); else if (md === 'mist') go('#nb'); else { render(); window.scrollTo(0, 0); }
     return;
+  }
+  if (act === 'side-les'){ sideTog(el.getAttribute('data-k'), el.getAttribute('data-l')); render(); return; }
+  if (act === 'side-open'){
+    var sk = el.getAttribute('data-k');
+    if (sk === 'card' || sk === 'num' || sk === 'cmp'){ revSub = { card:'cards', num:'nums', cmp:'cmp' }[sk]; go('#rev'); return; }
+    selInit(); bankKind = { ess:'essay', def:'defs', cell:'cells' }[sk]; saveSel(); if (quiz && quiz.i >= quiz.ids.length) quiz = null; go('#quiz'); return;
   }
   var pk = /^(obj|cell|ess|defs|cardp)-(les|ch|all)$/.exec(act);
   if (pk){
