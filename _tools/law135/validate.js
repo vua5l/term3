@@ -61,19 +61,27 @@ function norm(s) {
     .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
     .replace(/[^ء-يA-Za-z0-9٠-٩]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
-let SRC = null;
+let SRC = null, SRC2 = null;
 if (srcFile) {
   const raw = fs.readFileSync(srcFile, 'utf8')
     .replace(/^===\s*ص\s*[0-9٠-٩]+\s*===\s*$/gm, ' ')   // علامات الصفحات
     .replace(/^#+\s*/gm, ' ').replace(/\*\*/g, ' ').replace(/^حواشي:\s*$/gm, ' ')
     .replace(/\[هامش[^\]]*\]/g, ' ');
   SRC = norm(raw);
+  /* نسخة ثانية بالمتن وحده: تُحذف الحواشي حتى علامة الصفحة التالية، فيتصل نص يعبر من صفحة إلى التي بعدها */
+  let inFn = false;
+  const body = fs.readFileSync(srcFile, 'utf8').split('\n').filter((ln) => {
+    if (/^===\s*ص\s*[0-9٠-٩]+\s*===\s*$/.test(ln)) { inFn = false; return false; }
+    if (/^حواشي:\s*$/.test(ln)) { inFn = true; return false; }
+    return !inFn;
+  }).join('\n').replace(/^#+\s*/gm, ' ').replace(/\*\*/g, ' ');
+  SRC2 = norm(body);
 }
 function verbatim(where, text) {
   if (!SRC || !isStr(text)) return;
   const parts = text.replace(/\s*\[[^\]]+\]/g, '').split(   /* ما بين معقوفين تصحيح للخطأ الطباعي من الموقع، لا من الكتاب */
     /\(\s*\.\.\.\s*\)|\(\s*…\s*\)|…|\.\.\./).map((x) => norm(x)).filter(Boolean);
-  const miss = parts.filter((p) => SRC.indexOf(p) < 0);
+  const miss = parts.filter((p) => SRC.indexOf(p) < 0 && !(SRC2 && SRC2.indexOf(p) >= 0));
   if (miss.length) W(where + ': verbatim text not found in the source transcription -> check against the page image: «' + text.slice(0, 90) + (text.length > 90 ? '…' : '') + '»');
 }
 

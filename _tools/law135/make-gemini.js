@@ -33,7 +33,19 @@ const brief = [
   '— نسخة المراجعة —',
   ''
 ].join('\n');
-const all = brief + review;
+/* تُقسم النسخة على أجزاء عند حدود الدروس، كل جزء في رسالة مستقلة إلى جيمني، لأن الرسالة الطويلة جداً تثقل عليه وعلى اللصق من الجوال */
+const LIMIT = 70000;
+const chunks = review.split(/(?=^## )/m);
+const parts = [];
+let cur = '';
+for (const c of chunks) {
+  if (cur && (cur.length + c.length) > LIMIT) { parts.push(cur); cur = ''; }
+  cur += c;
+}
+if (cur) parts.push(cur);
+const M = parts.length;
+const intro = M > 1 ? 'ستصلك نسخة المراجعة على ' + M + ' أجزاء في رسائل متتالية. راجع كل جزء حين يصلك واكتب تقريره بالصيغة المطلوبة، ولا تنتظر بقية الأجزاء.\n\n' : '';
+const msgs = parts.map((x, i) => i === 0 ? intro + brief + x : '— الجزء ' + (i + 1) + ' من ' + M + ' من نسخة المراجعة. راجعه بالقواعد نفسها، واكتب تقريره بالصيغة نفسها. —\n\n' + x);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 process.stdout.write(`<!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -51,20 +63,24 @@ p{color:var(--sec);font-size:15px}
 .btn{width:100%;padding:15px;border-radius:99px;border:0;background:var(--hero);color:var(--hero-ink);font:inherit;font-weight:700;font-size:16px;cursor:pointer}
 .btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .ok{color:var(--ok);font-weight:600;min-height:1.7em}
+.wrap > textarea{margin-top:-6px}
 textarea{width:100%;height:50vh;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);padding:12px;font:inherit;font-size:13px;line-height:1.7}
 </style></head><body><div class="wrap">
 <h1>نسخة جيمني: الدفعة ${esc(batch || '')}</h1>
 <p>${esc(lessons || '')}</p>
-<p>اضغط الزر، والصق النص كله في محادثة جديدة مع جيمني، ثم انسخ تقريره وأرسله لي.</p>
-<button type="button" class="btn" id="copy">انسخ التعليمات والنسخة كلها</button>
+<p>${M > 1 ? 'النسخة على ' + M + ' رسائل. افتح محادثة جديدة مع جيمني، والصق الرسالة الأولى، وبعد كل رد الصق التي بعدها. ثم انسخ ردوده كلها وأرسلها لي.' : 'اضغط الزر، والصق النص كله في محادثة جديدة مع جيمني، ثم انسخ تقريره وأرسله لي.'}</p>
+${msgs.map((m, i) => `<button type="button" class="btn" data-copy="t${i}">انسخ الرسالة ${i + 1}${M > 1 ? ' من ' + M : ''}</button>
+<textarea id="t${i}" readonly aria-label="الرسالة ${i + 1}" style="height:${M > 1 ? '14vh' : '50vh'}">${esc(m)}</textarea>`).join('\n')}
 <p class="ok" id="msg" role="status"></p>
-<textarea id="txt" readonly aria-label="نص المراجعة">${esc(all)}</textarea>
 </div>
 <script>
-document.getElementById('copy').addEventListener('click', function () {
-  var t = document.getElementById('txt'), m = document.getElementById('msg');
-  function fallback() { t.focus(); t.select(); try { document.execCommand('copy'); m.textContent = 'نُسخ النص. الصقه في جيمني.'; } catch (e) { m.textContent = 'حدّد النص في المربع وانسخه بيدك.'; } }
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(function () { m.textContent = 'نُسخ النص. الصقه في جيمني.'; }, fallback); else fallback();
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = document.getElementById(b.getAttribute('data-copy')), m = document.getElementById('msg');
+    function ok() { m.textContent = 'نُسخت ' + b.textContent.replace('انسخ ', '') + '. الصقها في جيمني.'; }
+    function fallback() { t.focus(); t.select(); try { document.execCommand('copy') ? ok() : (m.textContent = 'حدّد النص في المربع وانسخه بيدك.'); } catch (e) { m.textContent = 'حدّد النص في المربع وانسخه بيدك.'; } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(ok, fallback); else fallback();
+  });
 });
 </script></body></html>
 `);

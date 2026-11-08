@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
     page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR|api\.github|githubusercontent|401|403|404/.test(m.text())) errs.push('console: ' + m.text()); });
     await page.goto(base, { waitUntil: 'load' });
     await page.waitForTimeout(1200);
-    const routes = ['#home', '#imp', '#imp-1', '#imp-2', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'];
+    const routes = ['#home', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'];
     for (let n = first; n <= last; n++) routes.push('#l-' + n, '#r-' + n);
     for (const r of routes) {
       await page.evaluate((h) => { location.hash = h; }, r);
@@ -48,14 +48,14 @@ const server = http.createServer((req, res) => {
     if (label === 'phone-light') {
       await page.evaluate(() => { location.hash = '#home'; });
       await page.waitForTimeout(300);
-      await page.screenshot({ path: '/home/claude/work/tools/shot-home.png' });
+      await page.screenshot({ path: '/tmp/smoke-home.png' });
       await page.evaluate((h) => { location.hash = h; }, '#l-' + first);
       await page.waitForTimeout(300);
-      await page.screenshot({ path: '/home/claude/work/tools/shot-lesson.png' });
+      await page.screenshot({ path: '/tmp/smoke-lesson.png' });
       await page.evaluate(() => { location.hash = '#quiz'; });
       await page.waitForTimeout(300);
       const quizText = await page.evaluate(() => (document.querySelector('main') || document.body).innerText);
-      out.push('#quiz mentions chapters: ' + ['الفصل الأول', 'الفصل الخامس', 'الفصل السادس', 'الفصل السابع', 'الفصل الثامن', 'الفصل التاسع', 'الفصل العاشر'].filter((c) => quizText.indexOf(c) > -1).join('، '));
+      out.push('#quiz first 160 chars: ' + quizText.slice(0, 160).replace(/\s+/g, ' '));
       await page.evaluate(() => { location.hash = '#sum'; });
       await page.waitForTimeout(300);
       const sumText = await page.evaluate(() => (document.querySelector('main') || document.body).innerText);

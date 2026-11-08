@@ -23,11 +23,17 @@ const items = [], famMap = {};
 chs.forEach((c) => {
   (c.defs || []).forEach((d) => {
     const s = span(d.pg) || span(c.pages);
-    const les = c.lessons.find((l) => { const x = span(l.pages); return x && s && s[0] >= x[0] && s[0] <= x[1]; }) || c.lessons[0];
+    /* بطاقة التعريف الحرفية مصدره، ودرسه درسها؛ فإن لم توجد فالدرس الذي تقع فيه صفحته */
+    const txt = norm((d.parts || []).join(' '));
+    let card = null, les = null;
+    c.lessons.forEach((l) => (l.cards || []).forEach((k) => {
+      if (card || k.type !== 'def' || !k.bk) return;
+      if (norm(k.front) === norm(d.term) || (txt && norm(k.back) === txt)) { card = k; les = l; }
+    }));
+    if (!les) les = c.lessons.find((l) => { const x = span(l.pages); return x && s && s[0] >= x[0] && s[0] <= x[1]; }) || c.lessons[0];
     const key = c.id + '|' + norm(d.term) + '|' + d.pg;
     if (!known[key]) known[key] = 'd' + next++;
     const id = known[key];
-    const card = les.cards.find((k) => k.type === 'def' && k.bk && norm(k.front) === norm(d.term));
     items.push({ id, n: items.length + 1, term: d.term, ch: c.id, les: les.id, pg: String(d.pg), from: card ? card.id : 'book', sum: false, parts: d.parts, hide: d.hide || [] });
     if (d.fam) (famMap[d.fam] = famMap[d.fam] || []).push(id);
   });

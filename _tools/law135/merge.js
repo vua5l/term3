@@ -24,7 +24,7 @@ function load(f) {
 }
 
 const chs = parts.map(load);
-const lessons = [], tables = [], mapC = [], night = [];
+const lessons = [], tables = [], mapC = [], night = [], defs = [];
 let mapT = null;
 const seen = new Set();
 for (const c of chs) {
@@ -35,6 +35,7 @@ for (const c of chs) {
   for (const t of c.tables || []) tables.push(t);
   if (c.map) { if (!mapT) mapT = c.map.t; for (const n of c.map.c || []) mapC.push(n); }
   for (const n of c.night || []) night.push(n);
+  for (const d of c.defs || []) defs.push(d);
 }
 tables.forEach((t, i) => { t.id = id + 't' + (i + 1); });
 const renamed = [];
@@ -61,7 +62,7 @@ const L = [];
 const P = (s) => L.push(s);
 const items = (arr, ind, fn) => arr.forEach((x, i) => P(ind + fn(x) + (i < arr.length - 1 ? ',' : '')));
 
-P('/* القانون الدستوري (law135) — ' + title + ': ' + name + ' (ص' + pages + ') — بيانات فقط */');
+P('/* القانون الدولي (law135) — ' + title + ': ' + name + ' (ص' + pages + ') — بيانات فقط */');
 P('(window.LAW135 = window.LAW135 || { chapters: [] }).chapters.push({');
 P('  id: ' + lit(id) + ', title: ' + lit(title) + ', name: ' + lit(name) + ', pages: ' + lit(pages) + ',');
 P('  lessons: [');
@@ -100,13 +101,16 @@ mapC.forEach((n, i) => node(n, '    ', i === mapC.length - 1));
 P('  ] },');
 P('  night: [');
 items(night, '    ', lit);
+P('  ],');
+P('  defs: [');
+items(defs, '    ', lit);
 P('  ]');
 P('});');
 fs.writeFileSync(out, L.join('\n') + '\n');
 
 /* تحقق: الدمج لا يُسقط شيئاً */
 const back = load(out);
-const cnt = (c) => JSON.stringify([c.lessons.length, c.lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), (c.tables || []).length, c.map ? c.map.c.length : 0, (c.night || []).length]);
-const want = JSON.stringify([lessons.length, lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), tables.length, mapC.length, night.length]);
+const cnt = (c) => JSON.stringify([c.lessons.length, c.lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), (c.tables || []).length, c.map ? c.map.c.length : 0, (c.night || []).length, (c.defs || []).length]);
+const want = JSON.stringify([lessons.length, lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), tables.length, mapC.length, night.length, defs.length]);
 if (cnt(back) !== want) { console.error('ERROR: round-trip mismatch'); process.exit(1); }
-console.log('merged ' + parts.length + ' part(s) -> ' + out + ': lessons ' + lessons.map((l) => l.id).join(',') + ' · tables ' + tables.length + ' · map ' + mapC.length + ' · night ' + night.length + (renamed.length ? ' · renumbered ' + renamed.join(' ') : ''));
+console.log('merged ' + parts.length + ' part(s) -> ' + out + ': lessons ' + lessons.map((l) => l.id).join(',') + ' · tables ' + tables.length + ' · map ' + mapC.length + ' · night ' + night.length + ' · defs ' + defs.length + (renamed.length ? ' · renumbered ' + renamed.join(' ') : ''));

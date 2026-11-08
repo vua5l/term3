@@ -43,6 +43,7 @@ ch.lessons.forEach((l) => {
     else if (b.t === 'note') p('- ' + id + pg(b.pg) + ' تنبيه: ' + b.x);
     else if (b.t === 'list') { p('- ' + id + pg(b.pg) + ' ' + b.lead); b.items.forEach((it, j) => p('    ' + (j + 1) + '. ' + it)); }
     else if (b.t === 'dr') p('- ' + id + ' من إملاء الدكتور: ' + (b.x || '') + (b.items ? ' ' + b.items.join(' / ') : ''));
+    else if (b.t === 'q') p('- ' + id + pg(b.pg) + ' [هنا في الموقع نص حرفي من الكتاب' + (b.label ? ': ' + b.label : '') + '، قوبل بصور الصفحات فحُذف من هذه النسخة، فلا تعدّ ما قبله ناقصًا]');
   });
   const cards = l.cards.filter((k) => !(k.type === 'def' && k.bk));
   if (cards.length) {
