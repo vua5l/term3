@@ -60,7 +60,7 @@
     if (!m.last && o.last) m.last = clone(o.last);
     return m;
   }
-  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer, dv: newer, imp: newer };
+  var MERGE = { q: mergeQ, k: newer, learn: newer, exit: mergeExit, bank: mergeBank, cell: mergeQ, def: mergeQ, dx: newer, dv: newer, imp: newer, es: newer, tq: newer };
   function merge(a, b) {
     a = norm(a); b = norm(b);
     if (a.base !== b.base) return clone(b.base > a.base ? b : a); // «البدء من جديد» في جهاز يغلب ما قبله
