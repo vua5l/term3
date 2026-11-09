@@ -5,7 +5,7 @@ You are an independent reviewer. Another worker read a scanned International Law
 ## Inputs (for your chapter `cN`)
 - Review copy: `/home/claude/build/reviews/review-cN.md`. For each lesson it gives **the book's text for the lesson's pages** (verbatim transcription, checked against the page images), then everything the worker wrote **in his own words**: summary paragraphs and lists, non-verbatim cards, every objective question with its approved answer marked [المعتمد] (and, in brackets, the kind of mistake each wrong option or false statement was built on), every essay question with its model-answer points, and the «الفرق الجوهري» rows of the comparison tables. Verbatim items (quoted definitions) are not in it: they were checked against the page images and by machine.
 - Automatic pre-check: `/home/claude/build/reviews/auto-cN.txt` (validator output). A first screen, not a verdict.
-- Page images, only for a doubtful place: the PDF `/mnt/user-data/uploads/51c4f0f5-___________________________.pdf`, where PDF page = book page − 97 (`pdftoppm -f N -l N -r 110 -gray -png <PDF> /home/claude/build/work/review-cN/p`, then view with the Read tool). Do not read the whole book; the review copy holds the text you need.
+- Page images, only for a doubtful place: the book PDF at the path in the environment variable `BOOK_PDF`, where PDF page = book page − 97 (`pdftoppm -f N -l N -r 110 -gray -png <PDF> /home/claude/build/work/review-cN/p`, then view with the Read tool). Do not read the whole book; the review copy holds the text you need.
 
 ## The rule of judgment (fixed)
 - Judge by the book's text alone, never by general knowledge or by what is commonly held.

@@ -1,116 +1,114 @@
-# Brief: transcribe one chapter of a scanned law textbook and write its study-site lessons
+# Brief: write the study-site content for one batch of an International Law textbook
 
-You are helping a Saudi law student prepare for a constitutional law midterm on **Wednesday 4 Nov 2026**. His study site (folder `law136`, a GitHub Pages site) already covers the first part of the book (pp. 21–123). The professor added pp. 125–289 to the exam, with nothing deleted. You are building **one chapter** of the new part. Two other workers build the neighbouring chapters in parallel with the same brief, so follow it exactly. Everything you write is in **Modern Standard Arabic** (the student reads Arabic; these instructions are in English only for you).
-
-Book: «النظام السياسي والدستوري للمملكة العربية السعودية» — أ.د. أحمد بن عبدالله بن باز.
+You are helping a Saudi law student prepare for his **International Law** midterm (القانون الدولي العام 1, second midterm) on **Tuesday 17 Nov 2026**. His study site (folder `law135`, a GitHub Pages site) is built in batches of about 25–30 book pages; other workers build the neighbouring batches in parallel with this same brief, so follow it exactly. Everything you write for the site is in **Modern Standard Arabic**; these instructions are in English only for you.
 
 ## Inputs
-- Page images: `/home/claude/work/pages/bNNN.png`, named by the **printed book page** (b127.png = book p. 127). `b125.png` is the title page of «الباب الثاني»; p. 126 is not in the scan (blank back of the title page). Read your pages with the Read tool, in order. Check the printed number at the foot of each page; if it differs from the file name, say so in your final report.
-- Existing site, for format and style only (do not edit anything under `/home/claude/term3`): `/home/claude/term3/law136/data/c5.js`. Read lines **362–554** before writing (one complete lesson, then the chapter's tables, mind map and last-night sheet). That is the exact format and the level of detail expected.
+- **Verbatim transcription** of the book pages (already done and checked against the page images): `/home/claude/book/text/نص الكتاب ص A–B.md`. Page markers are `=== ص 127 ===`; headings start with `#`; footnotes follow `حواشي:`. This is your main reading source.
+- **Page images**: every verbatim item (a `q` block, a `def` card with `bk: true`, a definition in `defs`, a `list` taken from the book) and every number, date or article number you use must be checked against the page image, not only against the transcription. Do it with the crop tool, which cuts out just the spot where a text appears: `python3 /home/claude/term3/_tools/law135/crop_quote.py <book page> "<the text as in the transcription>" /home/claude/build/work/<your chapter>/<name>.png`, then view the PNG with the Read tool (if the crop misses the text, pass a few distinctive words from it instead). Do not view whole pages unless a crop fails; for that, the PDF is the path in the environment variable `BOOK_PDF` (the book PDF the student attached), PDF page = book page − 97. Keep a short list of what you checked; mention in your report any word where the image differs from the transcription.
+- **Format and level of detail**: `/home/claude/term3/law136/data/c5.js`, lines 362–554 (a constitutional-law chapter from the same student: one full lesson, then the chapter's tables, mind map and last-night sheet). Read them first. Do not edit anything under `/home/claude/term3`.
+- **Compilations (التجميعات)**: `/home/claude/book/tj/essay-questions.txt`: past questions collected by students, plus a note the professor dictated in class (treaty interpretation methods). And a colleague's summary of the course: `/home/claude/book/tj/summary-colleague.txt` (only the line range given in your task concerns you; its PDF extraction sometimes doubles «ال», e.g. «االتفاقيات» = «الاتفاقيات»).
 
-## Output 1 — verbatim transcription (write it first)
-File: `/home/claude/work/source/<chapter id>-text.md`
-- First line: `# <chapter title and name> (ص X–Y) — نص مستخرج من صور الصفحات`
-- For every page, a marker line `## ص 127`, then the page text **exactly as printed**: same words, spelling, hamzas, numbers, dates, punctuation and paragraphing. Headings on their own line prefixed with `### `. Numbered points as printed. Footnotes at the end of their page, each on its own line starting `[هامش] `.
-- Omit only the running header («النظام السياسي والدستوري للمملكة العربية السعودية»), the page number box and the «CamScanner» footer. Diacritics (tashkeel) may be omitted.
-- Never correct, modernise or paraphrase the author, even when the wording looks odd. If a word is truly illegible, write `[؟]` and list it in your report.
-- **Keep dates here** (this file is a faithful copy; dates are removed only on the site).
-- Append to the file every 4–6 pages, so nothing is lost if you are interrupted.
-
-## Output 2 — the chapter data file
-File: `/home/claude/work/data/<chapter id>.js` — same format as `c5.js`:
+## Output: the chapter data file
+`/home/claude/build/data/<chapter id>.js`, built incrementally (lesson by lesson, not one giant write):
 
 ```js
-/* القانون الدستوري (law136) — الفصل السادس: <name> (ص125–154) — بيانات فقط */
-(window.LAW136 = window.LAW136 || { chapters: [] }).chapters.push({
-  id: "c6", title: "الفصل السادس", name: "<chapter name>", pages: "125–154",
+/* القانون الدولي (law135) — <chapter name> (ص A–B) — بيانات فقط */
+(window.LAW135 = window.LAW135 || { chapters: [] }).chapters.push({
+  id: "c3", title: "<short label shown in the site, e.g. «المعاهدات: الإبرام»>", name: "<full name>", pages: "A–B",
   lessons: [
     {
-      id: "l23", title: "<short lesson title>", pages: "127–132", minutes: 35,
+      id: "l7", title: "<short lesson title>", pages: "127–132", minutes: 35,
       summary: [
         { t: "h", x: "المبحث الأول: ..." },
         { t: "p", x: "...", pg: "130" },
         { t: "list", lead: "<says what is listed and how many>:", items: ["...", "..."], pg: "131", ordered: true },
         { t: "q", x: "<the book's exact words>", pg: "131", label: "<what this text defines>" },
-        { t: "note", x: "...", pg: "131" }
+        { t: "note", x: "...", pg: "131" },
+        { t: "dr", x: "<what the professor dictated>", items: ["...", "..."] }
       ],
       cards: [
-        { id: "l23k1", type: "def", front: "...", back: "...", bk: false, pg: "130" },
-        { id: "l23k2", type: "count", front: "...", n: 3, lead: "ثلاثة أسباب:", items: ["...", "...", "..."], pg: "131" },
-        { id: "l23k3", type: "rule", front: "...", rule: "...", exc: "...", pg: "132" }
+        { id: "l7k1", type: "def", front: "...", back: "...", bk: true, pg: "130" },
+        { id: "l7k2", type: "count", front: "...", n: 3, lead: "ثلاثة شروط:", items: ["...", "...", "..."], pg: "131" },
+        { id: "l7k3", type: "rule", front: "...", rule: "...", exc: "...", pg: "132" }
       ],
       objective: [
-        { id: "l23o1", k: "tf", q: "...", a: false, why: "...", pg: "130" },
-        { id: "l23o2", k: "mcq", q: "...", opts: ["...", "...", "...", "..."], a: 2, why: "...", pg: "131" },
-        { id: "l23o3", k: "fill", q: "... ____ ...", a: "...", opts: ["...", "...", "...", "..."], why: "...", pg: "132" }
+        { id: "l7o1", k: "tf", q: "...", a: false, e: "تعميم وإطلاق", why: "...", pg: "130" },
+        { id: "l7o2", k: "tf", q: "...", a: true, why: "...", pg: "131" },
+        { id: "l7o3", k: "mcq", q: "...", opts: ["...", "...", "...", "..."], a: 2, e: ["خلط مصطلح بشبيهه", "حكم لحالة أخرى", null, "شرط أو ركن ناقص"], why: "...", pg: "131" },
+        { id: "l7o4", k: "fill", q: "... ____ ...", a: "...", opts: ["...", "...", "...", "..."], e: [null, "خلط مصطلح بشبيهه", "رقم أو تاريخ قريب", "خلط مصطلح بشبيهه"], why: "...", pg: "132" }
       ],
       essay: [
-        { id: "l23e1", q: "...", pg: "130–132", points: [ { x: "...", pg: "130" }, { x: "...", pg: "131" } ] }
+        { id: "l7e1", q: "...", pg: "130–132", points: [ { x: "...", pg: "130" }, { x: "...", pg: "131" } ] }
+      ],
+      steps: [
+        { id: "l7s1", title: "مراحل ...", items: ["...", "...", "..."], pg: "131–133" }
       ]
     }
   ],
-  tables: [ { id: "c6t1", title: "...", cols: ["وجه المقارنة", "...", "..."], rows: [["...", "...", "..."]], core: "...", pg: "133–154" } ],
-  map: { t: "الفصل السادس: ...", c: [ { t: "...", pg: "...", c: [ { t: "...", d: "...", pg: "..." } ] } ] },
-  night: [ { x: "...", pg: "..." } ]
+  tables: [ { id: "c3t1", title: "...", cols: ["وجه المقارنة", "...", "..."], rows: [["...", "...", "..."]], core: "...", pg: "133–140" } ],
+  map: { t: "<chapter title>", c: [ { t: "...", pg: "...", c: [ { t: "...", d: "...", pg: "..." } ] } ] },
+  night: [ { x: "...", pg: "..." } ],
+  defs: [ { term: "...", pg: "130", parts: ["...", "...", "..."], hide: ["..."], fam: "<family name>" } ]
 });
 ```
-- `pg` everywhere: printed book pages — `"130"`, `"130–132"` (en dash –), or `"130، 132"`.
-- IDs: lessons as assigned to you; cards `<lesson>k1…`, objective `<lesson>o1…`, essays `<lesson>e1…`, tables `<chapter>t1…`. Unique, sequential.
-- Build the file incrementally (e.g. lesson by lesson), not in one giant write.
+- `pg` everywhere: printed book pages, `"130"`, `"130–132"` (en dash –) or `"130، 132"`.
+- IDs: lessons exactly as assigned to you; cards `<lesson>k1…`, objective `<lesson>o1…`, essays `<lesson>e1…`, steps `<lesson>s1…`, tables `<chapter>t1…`. Unique and sequential.
 
-## Content rules (the student's own rules — follow all of them)
+## Content rules (the student's own rules; follow all of them)
 **Accuracy**
-1. The book is the only source. No outside knowledge, even if true. Never make the book say what it does not say, and never attribute a statement to anyone other than the one the book attributes it to.
-2. Definitions, enumerations (lists) and numbers are taken **verbatim** with their page. A `q` block, and a `def` card with `bk: true`, must be the book's exact words (omissions marked `(...)`). Paraphrased definitions use `bk: false`.
-
-**Dates are not in the syllabus** (the professor said so)
-3. On the site (summary, cards, questions, essays, tables, map, night) remove every historical year or date, Hijri or Gregorian, every century reference, and historical durations (how long a state, a reign, a siege or an event lasted; when a law was issued). Keep the order of events with words such as «ثم، بعد، قبل، الأولى/الثانية/الثالثة». Keep numbers that are not dates: counts (members, articles, conditions), article numbers, ordinals — and every period that is part of a legal rule (a term of office, a condition, a deadline, an age: «مدة المجلس أربع سنوات»، «بعد مضي سنة»), exactly as the book states it. Never replace a number the book gives with a vague phrase («مدة قصيرة»، «مدة محددة»); if a historical duration must go, simply omit it. No question whose answer is a historical date or duration. Inside a verbatim quote, cut the date phrase and mark `(...)`. Add nothing the book does not print (not even a unit), and no notes linking to the first part of the book unless the page itself makes the link.
-4. Names are examinable: people (founders, imams, kings), places, battles, agreements and treaties, institutions, causes, results, examples. Keep them.
+1. The book is the only source. No outside knowledge, even if true. Never make the book say what it does not say. Never attribute a statement to anyone other than the one the book attributes it to (the author's own view versus «الفقه», a named scholar, a court, a convention).
+2. The author's view is the reference, even where it differs from the common view. When the book gives more than one opinion on a point, every question about that point names whose opinion it asks about («في رأي المؤلف»، «عند أنصار نظرية …»), so it never has two answers.
+3. Definitions, enumerations (lists) and numbers are taken **verbatim** with their page. A `q` block, a `def` card with `bk: true` and every `defs` entry must be the book's exact words, in the book's spelling (the book writes الدولى، فى، التى: keep that inside verbatim text). Omissions inside a quote are marked `(...)`. Paraphrased definitions use `bk: false`. Your own wording elsewhere uses normal modern spelling (الدولي، في، التي).
+4. Dates, years, article numbers and conventions (e.g. اتفاقية فيينا لقانون المعاهدات 1969) are part of this subject: keep them exactly as the book gives them.
+5. Names are examinable: conventions, courts, cases, scholars, theories, organisations, examples. Keep them.
 
 **Clarity**
-5. Every list and every count card has a lead-in saying exactly what it lists and how many («أسباب سقوط الدولة السعودية الأولى ثلاثة:»). Wording must be self-contained: the student must never need to open the book to understand a sentence.
-6. Nothing testable about the book's own structure: no card, question, essay or night point such as «ماذا يتضمن الباب الثاني؟» or «كم مبحثاً في الفصل؟». The summary may state the chapter plan briefly for orientation, nothing more.
+6. Every list and every count card has a lead-in saying exactly what it lists and how many («شروط صحة المعاهدة الموضوعية ثلاثة:»). Every sentence must be understandable without opening the book.
+7. Nothing testable about the book's own structure (no «ماذا يتضمن المبحث الثاني؟»).
+8. When the book gives examples («مثل»، «كـ»، «على سبيل المثال»), present them as examples, never as a closed count.
+9. Keep the book's hedges («ويبدو أن…»، «على الأرجح») and attributions; never turn an opinion into a fact.
+10. A `note` block never starts with «تنبيه:» (the site prints that label). A list whose items carry the book's letters (أ، ب، ج) is not `ordered`.
 
-**Lessons learned on chapters 6–8** (apply them)
-- A `note` block's text never starts with «تنبيه:» — the site prints that label itself.
-- A list whose items carry the book's letters (أ، ب، ج) is not `ordered`.
-- When the book gives examples («مثل»، «كـ»، «على سبيل المثال»), present them as examples («ذكر الكتاب منها خمسة»), never as a closed count.
-- Keep the book's hedges («ويبدو أن…»، «على الأرجح») and its attributions («في رأي المؤلف»); do not turn an opinion into a fact.
-- Check terms against the first part already on the site (search `data/c1.js`…`c5.js`): the book sometimes uses two names for one thing, and a wrong option must not be a name the book also uses.
-- Multiple choice built from sets (e.g. three countries): make sure the most frequent items across the options do not point to the answer.
-
-**Summary** (the main study text — the student studies from it instead of the book)
-7. Faithful and complete for everything examinable on the pages, in the book's order, with headings mirroring the book's (المبحث، المطلب، أولاً…). Paragraphs short (1–3 sentences). Use `q` for each real definition in the book, `list` for every enumeration (`ordered: true` when the book numbers it or the order matters), `note` («تنبيه») for traps such as two names for one thing.
+**Summary** (the student studies from it instead of the book)
+11. Faithful and complete for everything examinable on your pages, in the book's order, with headings mirroring the book's (المبحث، المطلب، أولاً…). Short paragraphs (1–3 sentences). A `q` for each real definition, a `list` for every enumeration (`ordered: true` when the book numbers it or the order matters), a `note` for traps such as two names for one thing or a frequent confusion.
 
 **Cards** (about 6–10 per lesson)
-8. A card for every definition (`def`), every enumeration (`count`: the number on the front's meaning, `n`, a `lead`, the items numbered and concise) and every rule with an exception (`rule` + `exc`).
+12. A card for every definition (`def`), every enumeration (`count`: `n`, a `lead`, the items numbered and concise) and every rule with an exception (`rule` + `exc`).
 
-**Objective questions** (about 10–14 per lesson: roughly half true/false, ~4 multiple choice, 2–3 fill-in)
-9. True/false deliberately set traps, explained in `why`: generalisation without its exception, a missing condition, «دائماً» or «فقط», swapping an event, person or ruling between the first, second and third states, swapping two similar terms. Balance true and false.
-10. Multiple choice: 4 options. Every wrong option is a mistake a student who has not mastered the lesson would actually make: another term from the chapter, a correct ruling for a different case, a list missing one item, a nearby number, a person or place from another state. No option can be dismissed as obviously off-topic. The correct option must not stand out by length, precision, being the only one in the book's wording, or sharing a word with the question; spread its position over a = 0,1,2,3 about evenly; no pair of opposite options that gives it away; no absolute word («دائماً، فقط») only in the wrong options. Each wrong option must be definitely wrong according to the book (never two defensible answers). Test every question: could someone reach the answer by elimination without knowing the lesson? If yes, rewrite it.
-11. Fill-in: the blank is `____`; `a` is the answer; `opts` has 4 plausible options including `a`; the blank must admit only one answer.
-12. `why` explains why the answer is right and, for multiple choice, why the tempting wrong options are wrong, from the book.
+**Objective questions** (about 12–16 per lesson). The professor said the exam will mostly ask **true/false with a justification («بيّن مدى صحة العبارة مع التعليل»)** and probably **no multiple choice**, essays instead. So:
+13. **True/false is the main type: 60–70% of the objective questions**, balanced between true and false. Each statement is the kind the professor would ask. Set deliberate traps: generalisation without its exception, a missing condition or element, «دائماً» or «فقط», a ruling moved to another case, two similar terms swapped, an opinion given to the wrong holder, a nearby number or date.
+    - `why` **is the model justification** the student will compare his own with: for a false statement, say why it is false and state the correct rule from the book; for a true statement, say why it is true (the rule, its condition, its exception if any). Two or three sentences, from the book, with the key words the professor expects.
+14. **Multiple choice: at most 2 per lesson**, only where the lesson has confusable terms or rulings. 4 options. Every wrong option is a mistake a student who has not mastered the lesson would actually make; none can be dismissed as off-topic; the correct one must not stand out by length, precision, the book's wording, or sharing a word with the question; spread its position over a = 0–3; no pair of opposite options that gives it away; no absolute word only in the wrong options; every wrong option is definitely wrong according to the book. Test each question: could someone reach the answer by elimination without knowing the lesson? If yes, rewrite it.
+15. **Fill-in: 2–3 per lesson.** The blank is `____`; `a` is the answer; `opts` has 4 plausible options including `a`; the blank admits only one answer.
+16. **Error types (required).** Every wrong thing a student could pick carries the kind of mistake it was built on, one of exactly: «خلط مصطلح بشبيهه»، «حكم لحالة أخرى»، «شرط أو ركن ناقص»، «رقم أو تاريخ قريب»، «رأي منسوب إلى غير قائله»، «تعميم وإطلاق». So: a false true/false statement has `e: "<type>"` (a true one has no `e`); a multiple-choice question has `e` with 4 entries aligned with `opts` (`null` for the correct option); a fill-in has `e` aligned with its `opts` (`null` for the answer).
 
-**Essay questions** (2–3 per lesson, exam style: اشرح، بيّن، عدّد مع الشرح، قارن)
-13. `points` are the model answer used to grade the student, so they must be complete, each with its page, in the order: تعريف ← شروط أو أركان ← القاعدة ← الاستثناءات ← مثال ← خاتمة, where applicable.
+**Essay questions** (3–4 per lesson, exam style: اشرح، بيّن، عدّد مع الشرح، قارن، علّل)
+17. `points` are the model answer used to grade the student, complete, each with its page, ordered تعريف ← شروط أو أركان ← القاعدة ← الاستثناءات ← مثال ← خاتمة where applicable. Cover every examinable topic of the lesson across its essays.
+
+**Compilations and the colleague's summary** (use them silently: nothing on the site says where an item came from)
+18. Every question in `essay-questions.txt` whose topic falls inside your pages enters the site as the matching kind: an essay question («الفرق بين…»، «الشروط…»، «المراحل…»), a true/false with justification («بيّن مدى صحة العبارة»), or a fill-in/multiple choice for the «خيارات» lines. Give each such item `exp: 1` (a hidden flag; the site shows nothing before the last three days). The summary must cover its full answer.
+19. The compilation's or the colleague's answer is checked against the book. Where it **differs from the book** (a number, a date, a word, a missing item, an opinion given to the wrong holder), the book wins on the site, and the wrong version becomes a trap: a false true/false statement whose `why` states the book's version with its page, or a wrong option. List every such difference in your report (the student wants to see them).
+20. The professor's dictated note on «مناهج تفسير المعاهدات» goes to whoever has the book's pages on treaty interpretation: add a `dr` block with it (as dictated, `items` for the lists) right after the book's own treatment, a `count` card for each of its two lists (front ending «(من إملاء الدكتور)»), and compare it with the book in your report.
 
 **Chapter extras**
-14. `tables`: 2–4 comparison tables where the content really compares things. `cols[0]` is «وجه المقارنة»; every row has as many cells as there are columns; cells short (a few words). The site also quizzes single cells («which column does this cell belong to?»), so a cell must not repeat another cell of its row and must not contain its column's name. `core` is «الفرق الجوهري»: one sentence that captures the essence of the difference. No dates.
-15. `map`: the chapter mind map. Root `t` is the chapter title; one child per lesson; short headings (رؤوس أقلام, ≤ 6 words) with an optional one-line `d`; `pg` on nodes.
-16. `night`: 10–14 one-line high-yield points for the last night before the exam (counts with their items, key distinctions, key names), each with `pg`.
-17. `minutes`: honest first-study time (existing lessons: 20–45 minutes for 2–5 pages), weighted by the density of definitions, lists and names; integer, max 75.
-18. Style: clear MSA like the existing files; Arabic comma «،» and semicolon «؛», quotes «», en dash – in page ranges; no diacritics except where needed to disambiguate.
+21. `tables`: 2–4 comparison tables where the content really compares things. `cols[0]` is «وجه المقارنة»; every row has as many cells as columns; cells short; a cell never repeats another cell of its row and never contains its column's name (the site quizzes single cells). `core` is «الفرق الجوهري»: one sentence capturing the essence of the difference.
+22. `map`: the chapter mind map. Root `t` is the chapter title; one child per lesson; short heads (≤ 6 words) with an optional one-line `d`; `pg` on nodes.
+23. `night`: 10–14 one-line high-yield points for the last night (counts with their items, key distinctions, key names), each with `pg`.
+24. `defs`: every real definition the book gives on your pages, verbatim, cut into its natural phrases (`parts`, 2–14 pieces; short definitions word by word). `parts.join(' ')` must equal the verbatim text exactly. `hide`: words inside the text that reveal the term (so «whose definition is this?» does not give it away). `fam`: a short family name grouping definitions that resemble each other (e.g. «أنواع المعاهدات»); use the same family names as your neighbours would for the same subject.
+25. `steps` (optional, per lesson): only where the book presents a genuinely ordered sequence (stages, procedures) whose order matters, the items in the book's order.
+26. `minutes`: honest first-study time, weighted by the density of definitions, lists, opinions and numbers (20–45 minutes for 3–6 dense pages is typical); integer, max 75.
+27. Style: clear MSA; Arabic comma «،» and semicolon «؛», quotes «», en dash – in page ranges; no diacritics except to disambiguate.
 
 ## Lesson split
-Use the planned lessons you were given. A lesson ends at the end of a مبحث or مطلب; never split a definition or a list between two lessons. You may move a boundary or change the number of lessons only if the pages clearly require it: then number sequentially from your first ID and explain why in your report (IDs are renumbered across chapters before publishing).
+Use the planned lessons you were given. A lesson ends at the end of a مبحث or مطلب; never split a definition or a list between two lessons. Change a boundary only if the pages clearly require it, and explain why in your report.
 
 ## Check before you finish
-Run: `node /home/claude/work/tools/validate.js /home/claude/work/data/<id>.js /home/claude/work/source/<id>-text.md`
-Fix every ERROR. Resolve every WARNING: a «verbatim text not found» warning means your quote differs from your transcription — look at the page image and correct whichever is wrong; a date warning must be removed unless it is a false positive. Rerun until clean.
+Run `node /home/claude/term3/_tools/law135/validate.js /home/claude/build/data/<id>.js "<transcription file>" --range <first>-<last lesson number>` (if your pages span two transcription files, concatenate them into one temporary file under `/home/claude/build/work/<id>/` and pass that). Fix every ERROR. Resolve every WARNING: a «verbatim text not found» warning means your quote differs from the transcription; look at the page image and correct whichever is wrong (if the transcription is wrong, say so in your report, page and word). Rerun until clean.
 
 ## Final report (your last message, in English, short)
-- Lessons: id, title, pages, minutes, and counts (cards / objective / essays).
-- Any page whose printed number differs from its file name, and any illegible words.
-- Any place where the book is ambiguous, or where you were unsure of the reading, with the page.
+- Lessons: id, title, pages, minutes, and counts (cards / objective with tf-mcq-fill split / essays / steps); tables, night, defs counts.
+- Every difference between the compilations or the colleague's summary and the book (what they say, what the book says, page).
+- How the professor's note compares with the book (if your pages include treaty interpretation).
+- Any place where the book is ambiguous or you were unsure of the reading, with the page; any transcription error you found.
 - Any change to the planned lesson split, and why.
-Do not paste the content itself into the report; it is in the files. Do not edit anything under `/home/claude/term3` and do not run git.
+Do not paste the content itself into the report. Do not edit anything under `/home/claude/term3` and do not run git.
