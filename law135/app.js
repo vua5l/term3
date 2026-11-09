@@ -7,7 +7,7 @@
    الدرس وتسميع الخروج: lessonHTML، summaryHTML، exitCard، finishQuiz (الوضع exit).
    مهام الجدول: recallHTML، reviewHTML، eveHTML. البطاقات: deckHTML، cardsBrowser.
    البنك: objSetup، bankPick، bankMark، closeRound. المقالي: essaySetup، essayMessage، newEssaysRequest.
-   دفتر الأخطاء: record، nbHTML. «ما حاولت أعلّل»: skipWhy، noWhy، noWhyList، keepOldNoWhy، njHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
+   دفتر الأخطاء: record، nbHTML. «ما حاولت أعلّل»: skipWhy، noWhy، noWhyList، njHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
    سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
    التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
    طريقة «اطّلاع» في التعريفات: viewHTML، viewCard، viewBar، viewStep، viewEndHTML، setDv.
@@ -267,21 +267,17 @@ function judgeWhy(id, okWhy) {
   if (!okWhy) { r.m = 1; r.s = 0; delete r.d; }
   S.q[id] = r; ST.save(); updateBadge(); reportNb();
 }
-/* «ما حاولت أعلّل» (j: 2): يحفظ العبارة في قائمة «ما حاولت أعلّل» (#nj)، ولا يمسّ المستوى ولا دفتر الأخطاء ولا تسميع الخروج.
+/* «ما حاولت أعلّل» (j: 2): العبارة في قائمة «ما حاولت أعلّل» (#nj)، ولا يمسّ المستوى ولا دفتر الأخطاء ولا تسميع الخروج.
+   يُحفظ تلقائياً حين يُكشف جواب «صح أو خطأ»، فيبقى إن خرج الطالب من السؤال بلا اختيار، وكذلك إن ضغط زره.
    وتخرج منها حين يضغط فيها «علّلت صح» أو «فاتني شيء» في أي مكان، وإعادتها منها كأي سؤال في البنك.
-   وما أُجيب عنه قبل NJ_FROM ولم يُحكم على تعليله قط يدخلها كذلك: أُضيف الزر ليلة 9 نوفمبر 2026، وNJ_FROM بعده بساعات
-   فلا يضيع ما أُجيب عنه تلك الليلة في صفحة قديمة بقيت مفتوحة. */
-var NJ_FROM = Date.parse('2026-11-10T04:00:00+03:00');
-function njOld(r) { return !!r && r.j === undefined && +r.n > 0 && (+r.t || 0) < NJ_FROM; }
-function noWhy(id) { var q = Q[id], r = S.q[id]; return !!(q && q.k === 'tf' && r && (r.j === 2 || njOld(r))); }
+   وما أُجيب عنه قبل ذلك ولم يُحكم على تعليله قط (لا j فيه) يدخلها كذلك. */
+function noWhy(id) { var q = Q[id], r = S.q[id]; return !!(q && q.k === 'tf' && r && (r.j === 2 || (r.j === undefined && +r.n > 0))); }
 function noWhyList(chId) { return QL.filter(function (q) { return noWhy(q.id) && (!chId || q.ch.id === chId); }); }
 function skipWhy(id) {
   var r = S.q[id]; if (!r) return;
   r.j = 2; r.t = now();
   S.q[id] = r; ST.save();
 }
-/* ما دخل القائمة لأنه أُجيب عنه قبل الزر بلا حكم: يُثبَّت فيها قبل أن تُسجَّل إجابته الجديدة، فلا يخرج إلا بحكم على تعليله */
-function keepOldNoWhy(id) { var r = S.q[id]; if (Q[id] && Q[id].k === 'tf' && njOld(r)) r.j = 2; }
 /* مهمة «مراجعة دفتر الأخطاء» في مهام اليوم: تظهر ما دام في الدفتر شيء، وتُنجز حين يُجاب اليوم عن كل ما فيه
    صواباً أو خطأ، وما بقي خطأ يبقى للغد. وتُبلَّغ إلى الجدول بـ extra فتظهر فيه كذلك */
 function nbState() {
@@ -1133,7 +1129,7 @@ function bankHTML() {
     (bankKind === 'obj' ? '<p class="muted small p0">صح وخطأ، واختيار من متعدد، وضع الكلمة الصحيحة، من فصل واحد أو أكثر.</p>' + roundBanner() + objSetup() +
       '<section class="card"><div class="block-head"><h3>دفتر الأخطاء</h3><span class="chip">' + countWord(mk, W.q) + '</span></div><p class="muted small p0">يدخله كل سؤال موضوعي أخطأت فيه، ويخرج منه بعد إجابتين صحيحتين في يومين مختلفين.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>' +
-      '<section class="card"><div class="block-head"><h3>ما حاولت أعلّل</h3><span class="chip">' + countWord(noWhyList().length, W.q) + '</span></div><p class="muted small p0">عبارات «صح أو خطأ» ضغطت فيها «ما حاولت أعلّل»، لتعود إليها وتعلّلها.</p>' +
+      '<section class="card"><div class="block-head"><h3>ما حاولت أعلّل</h3><span class="chip">' + countWord(noWhyList().length, W.q) + '</span></div><p class="muted small p0">عبارات «صح أو خطأ» لم تحكم فيها على تعليلك، لتعود إليها وتعلّلها.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nj">افتح القائمة</button></section>'
     : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup()));
 }
@@ -1835,10 +1831,10 @@ var njCh = 'all';
 function njHTML() {
   var all = noWhyList(), list = njCh === 'all' ? all : noWhyList(njCh);
   var h = '<div class="block-head"><h2>ما حاولت أعلّل</h2><span class="chip">' + countWord(all.length, W.q) + '</span></div>' +
-    '<p class="muted small p0">كل عبارة «صح أو خطأ» ضغطت فيها «ما حاولت أعلّل» تُحفظ هنا، وتخرج حين تضغط فيها «علّلت صح» أو «فاتني شيء» في أي مكان. وإعادتها تُحسب كأي سؤال في البنك.</p>' +
+    '<p class="muted small p0">كل عبارة «صح أو خطأ» تكشف جوابها ولا تضغط فيها «علّلت صح» ولا «فاتني شيء» تُحفظ هنا، وتخرج حين تضغط أحدهما فيها في أي مكان. وإعادتها تُحسب كأي سؤال في البنك.</p>' +
     chBar('nj-ch', njCh, true, function (c) { return ' (' + noWhyList(c.id).length + ')'; }) +
     '<button type="button" class="btn wide" data-act="start-nj"' + (list.length ? '' : ' disabled') + '>أعدها الآن' + (list.length ? ': ' + countWord(list.length, W.q) : '') + '</button>';
-  if (!list.length) return h + '<div class="empty"><b>القائمة فارغة</b><br>' + (all.length ? 'لا شيء منها في هذا الفصل.' : 'حين تضغط «ما حاولت أعلّل» في عبارة تظهر هنا لتعود إليها.') + '</div>';
+  if (!list.length) return h + '<div class="empty"><b>القائمة فارغة</b><br>' + (all.length ? 'لا شيء منها في هذا الفصل.' : 'حين تتجاوز تعليل عبارة تظهر هنا لتعود إليها.') + '</div>';
   return h + list.map(function (q) {
     return '<article class="art"><div class="chips"><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + '</div>' +
       '<p class="p0 strong">' + esc(q.q) + '</p>' +
@@ -2348,8 +2344,9 @@ view.addEventListener('click', function (e) {
       if (v === null || isNaN(v)) return;
       var ok = isRight(q, v);
       quiz.lastEt = ok ? '' : errType(q, v);
-      if (q.k === 'tf') keepOldNoWhy(q.id);
       quiz.picked = v; quiz.results.push(ok); quiz.lastRes = record(q.id, ok, quiz.lastEt);
+      /* «صح أو خطأ»: «ما حاولت أعلّل» تلقائياً حتى يضغط «علّلت صح» أو «فاتني شيء» */
+      if (q.k === 'tf') skipWhy(q.id);
       if (quiz.mode === 'imp') impSet(q.id, ok);
       /* محاولة تسميع الخروج تُحسب من أول إجابة، فتُحفظ نسبتها على أسئلة الدرس كلها كلما أجاب */
       if (quiz.mode === 'exit') saveExit(quiz.les, Math.round(100 * quiz.results.filter(Boolean).length / quiz.ids.length), 'exit');
