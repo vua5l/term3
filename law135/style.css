@@ -865,6 +865,9 @@ body > .sheet::before{content:none}
 .my-why p{font-size:15px;line-height:1.8;white-space:pre-line}
 .book-why p{font-size:15.5px;line-height:1.85;color:var(--ink)}
 .self{margin-top:12px}
+/* «ما حاولت أعلّل»: تحت الزرّين وأصغر منهما */
+.self .btn.skip{grid-column:1/-1;justify-self:center;font-size:13px;font-weight:500;padding:6px 16px;color:var(--sec)}
+.self .btn.skip.on{background:var(--soft);color:var(--ink);border-color:var(--ink)}
 
 .dr-note{background:var(--soft);border:1.5px dashed var(--mark);border-radius:var(--r2);padding:12px 14px;display:grid;gap:6px;margin:10px 0}
 .dr-note .dr-h{margin:0}

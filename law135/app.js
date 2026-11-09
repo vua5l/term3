@@ -7,7 +7,7 @@
    الدرس وتسميع الخروج: lessonHTML، summaryHTML، exitCard، finishQuiz (الوضع exit).
    مهام الجدول: recallHTML، reviewHTML، eveHTML. البطاقات: deckHTML، cardsBrowser.
    البنك: objSetup، bankPick، bankMark، closeRound. المقالي: essaySetup، essayMessage، newEssaysRequest.
-   دفتر الأخطاء: record، nbHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
+   دفتر الأخطاء: record، nbHTML. «ما حاولت أعلّل»: skipWhy، noWhy، noWhyList، keepOldNoWhy، njHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
    سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
    التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
    طريقة «اطّلاع» في التعريفات: viewHTML، viewCard، viewBar، viewStep، viewEndHTML، setDv.
@@ -241,7 +241,7 @@ function sendLevel() {
 /* ---------- الإجابات ودفتر الأخطاء: يخرج السؤال بإجابتين صحيحتين في يومين مختلفين ---------- */
 function inNb(id) { var r = S.q[id]; return !!(r && r.m); }
 /* f وfe: أول إجابة في آخر يوم أُجيب فيه عن السؤال (1 صواب أو 0 خطأ) ونوع خطئها، وبهما وحدهما يُقاس المستوى وتُعدّ أنواع الأخطاء.
-   j: آخر حكم للطالب على تعليله في «صح أو خطأ» (1 علّلت صح، 0 فاتني شيء)، ولا يدخل المستوى */
+   j: آخر حكم للطالب على تعليله في «صح أو خطأ» (1 علّلت صح، 0 فاتني شيء، 2 ما حاولت أعلّل)، ولا يدخل المستوى */
 function record(id, ok, et) {
   var r = S.q[id] || {}, t = todayISO(), was = !!r.m, first = r.a !== t || r.f === undefined, res = { out: false, same: false, inNb: false, enter: false };
   r = { n: (+r.n || 0) + 1, c: (+r.c || 0) + (ok ? 1 : 0), m: was ? 1 : 0, s: +r.s || 0, d: r.d || '', a: t, t: now(),
@@ -267,6 +267,21 @@ function judgeWhy(id, okWhy) {
   if (!okWhy) { r.m = 1; r.s = 0; delete r.d; }
   S.q[id] = r; ST.save(); updateBadge(); reportNb();
 }
+/* «ما حاولت أعلّل» (j: 2): يحفظ العبارة في قائمة «ما حاولت أعلّل» (#nj)، ولا يمسّ المستوى ولا دفتر الأخطاء ولا تسميع الخروج.
+   وتخرج منها حين يضغط فيها «علّلت صح» أو «فاتني شيء» في أي مكان، وإعادتها منها كأي سؤال في البنك.
+   وما أُجيب عنه قبل NJ_FROM ولم يُحكم على تعليله قط يدخلها كذلك: أُضيف الزر ليلة 9 نوفمبر 2026، وNJ_FROM بعده بساعات
+   فلا يضيع ما أُجيب عنه تلك الليلة في صفحة قديمة بقيت مفتوحة. */
+var NJ_FROM = Date.parse('2026-11-10T04:00:00+03:00');
+function njOld(r) { return !!r && r.j === undefined && +r.n > 0 && (+r.t || 0) < NJ_FROM; }
+function noWhy(id) { var q = Q[id], r = S.q[id]; return !!(q && q.k === 'tf' && r && (r.j === 2 || njOld(r))); }
+function noWhyList(chId) { return QL.filter(function (q) { return noWhy(q.id) && (!chId || q.ch.id === chId); }); }
+function skipWhy(id) {
+  var r = S.q[id]; if (!r) return;
+  r.j = 2; r.t = now();
+  S.q[id] = r; ST.save();
+}
+/* ما دخل القائمة لأنه أُجيب عنه قبل الزر بلا حكم: يُثبَّت فيها قبل أن تُسجَّل إجابته الجديدة، فلا يخرج إلا بحكم على تعليله */
+function keepOldNoWhy(id) { var r = S.q[id]; if (Q[id] && Q[id].k === 'tf' && njOld(r)) r.j = 2; }
 /* مهمة «مراجعة دفتر الأخطاء» في مهام اليوم: تظهر ما دام في الدفتر شيء، وتُنجز حين يُجاب اليوم عن كل ما فيه
    صواباً أو خطأ، وما بقي خطأ يبقى للغد. وتُبلَّغ إلى الجدول بـ extra فتظهر فيه كذلك */
 function nbState() {
@@ -527,7 +542,7 @@ var RSTEP = {};    /* خطوة البطاقات منتهية في هذه الج�
 var bankKind = 'obj', objSel = null, objCount = 10, essaySel = null;
 var sumCh = null, revSub = 'cards', cardFilter = { hideKnown: false }, cardSel = null; /* cardSel: دروس بطاقات المراجعة {معرّف الدرس: true} */
 var armed = null;
-var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', cells: 'quiz', defs: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan', imp: 'imp', impg: 'imp', impc: 'imp', impr: 'imp' };
+var TAB_OF = { home: 'home', plan: 'plan', sum: 'sum', lesson: 'sum', quiz: 'quiz', nb: 'quiz', nj: 'quiz', cells: 'quiz', defs: 'quiz', rev: 'rev', deck: 'rev', recall: 'plan', review: 'plan', eve: 'plan', imp: 'imp', impg: 'imp', impc: 'imp', impr: 'imp' };
 
 function render() {
   var tb = TAB_OF[screen] || 'home';
@@ -544,6 +559,7 @@ function render() {
     else if (screen === 'eve') h = eveHTML();
     else if (screen === 'quiz') h = quiz ? runHTML() : bankHTML();
     else if (screen === 'nb') h = nbHTML();
+    else if (screen === 'nj') h = njHTML();
     else if (screen === 'cells') { if (!CQ) bankKind = 'cells'; h = CQ ? cellsHTML() : bankHTML(); }
     else if (screen === 'defs') { selInit(); if (!DQ && DEFS.length) bankKind = 'defs'; h = DQ ? defsHTML() : bankHTML(); }
     else if (screen === 'deck') h = DECK ? deckHTML() : revHTML();
@@ -1116,7 +1132,9 @@ function bankHTML() {
     (bankKind === 'defs' && DEFS.length ? defsSetup() :
     (bankKind === 'obj' ? '<p class="muted small p0">صح وخطأ، واختيار من متعدد، وضع الكلمة الصحيحة، من فصل واحد أو أكثر.</p>' + roundBanner() + objSetup() +
       '<section class="card"><div class="block-head"><h3>دفتر الأخطاء</h3><span class="chip">' + countWord(mk, W.q) + '</span></div><p class="muted small p0">يدخله كل سؤال موضوعي أخطأت فيه، ويخرج منه بعد إجابتين صحيحتين في يومين مختلفين.</p>' +
-      '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>'
+      '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>' +
+      '<section class="card"><div class="block-head"><h3>ما حاولت أعلّل</h3><span class="chip">' + countWord(noWhyList().length, W.q) + '</span></div><p class="muted small p0">عبارات «صح أو خطأ» ضغطت فيها «ما حاولت أعلّل»، لتعود إليها وتعلّلها.</p>' +
+      '<button type="button" class="btn ghost wide" data-go="#nj">افتح القائمة</button></section>'
     : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup()));
 }
 function cellsSetup() {
@@ -1205,8 +1223,10 @@ function runHTML() {
         ? (quiz.tfText ? '<div class="my-why"><span>تعليلك</span><p>' + esc(quiz.tfText) + '</p></div>' : '') +
           '<div class="book-why"><span>التعليل من الكتاب</span><p>' + rich(q.why || '') + pg(q.pg) + '</p></div>' +
           '<div class="self" role="group" aria-label="قارن تعليلك بتعليل الكتاب"><button type="button" class="btn plain' + (quiz.self === 1 ? ' on' : '') + '" data-act="why-self" data-s="1" aria-pressed="' + (quiz.self === 1) + '">علّلت صح</button>' +
-          '<button type="button" class="btn plain miss' + (quiz.self === 0 ? ' on' : '') + '" data-act="why-self" data-s="0" aria-pressed="' + (quiz.self === 0) + '">فاتني شيء</button></div>' +
-          (quiz.self === 0 ? '<p class="nb-note">دخل دفتر الأخطاء ليعود إليك، ولا يغيّر مستواك.</p>' : '')
+          '<button type="button" class="btn plain miss' + (quiz.self === 0 ? ' on' : '') + '" data-act="why-self" data-s="0" aria-pressed="' + (quiz.self === 0) + '">فاتني شيء</button>' +
+          '<button type="button" class="btn plain skip' + (quiz.self === 2 ? ' on' : '') + '" data-act="why-self" data-s="2" aria-pressed="' + (quiz.self === 2) + '">ما حاولت أعلّل</button></div>' +
+          (quiz.self === 0 ? '<p class="nb-note">دخل دفتر الأخطاء ليعود إليك، ولا يغيّر مستواك.</p>' : '') +
+          (quiz.self === 2 ? '<p class="nb-note">حُفظ في قائمة «ما حاولت أعلّل» ببنك الأسئلة لتعود إليه، ولا يغيّر مستواك.</p>' : '')
         : (q.why ? '<p class="why">' + rich(q.why) + pg(q.pg) + '</p>' : '<p class="why">' + pg(q.pg) + '</p>')) +
       quiz.rounds.map(function (t) { return '<p class="fin-msg ok">' + esc(t) + '</p>'; }).join('') +
       '<div class="row"><button type="button" class="btn" data-act="next">' + (quiz.i + 1 < n ? 'السؤال التالي' : 'النتيجة') + '</button></div>';
@@ -1250,6 +1270,7 @@ function resultHTML() {
   if (quiz.mode === 'exit' && l) { var nx = LES[LES.indexOf(l) + 1]; nav = '<a class="btn" href="#l-' + l.n + '">إلى الدرس</a>' + (nx ? '<a class="btn ghost" href="#l-' + nx.n + '">الدرس التالي</a>' : ''); }
   else if (quiz.mode === 'recall' || quiz.mode === 'review') nav = '<a class="btn" href="#home">الرئيسية</a><button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>';
   else if (quiz.mode === 'imp') nav = '<button type="button" class="btn" data-act="imp-go">تابع المهم</button><a class="btn ghost" href="#imp-' + (quiz.gid || 1) + '">إلى المجموعة</a>';
+  else if (quiz.mode === 'nj') nav = '<button type="button" class="btn" data-go="#nj">ما حاولت أعلّل (' + noWhyList().length + ')</button><button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>';
   else nav = '<button type="button" class="btn" data-act="new-quiz">اختبار جديد</button><button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>';
   return '<div class="block-head"><h2>النتيجة</h2><span class="chip">' + esc(quiz.label) + '</span></div><section class="card"><div class="score">' + pct + '%</div>' +
     '<p class="muted p0">' + right + ' صحيحة من ' + (quiz.mode === 'exit' ? total : n) + (n < total && quiz.mode !== 'exit' ? ' (أنهيت قبل آخر الأسئلة)' : '') + '</p>' +
@@ -1809,6 +1830,22 @@ function nbHTML() {
   }).join('');
 }
 
+/* ---------- «ما حاولت أعلّل»: العبارات بلا حكمها، والحكم والتعليل مطويّان تحت كل عبارة ---------- */
+var njCh = 'all';
+function njHTML() {
+  var all = noWhyList(), list = njCh === 'all' ? all : noWhyList(njCh);
+  var h = '<div class="block-head"><h2>ما حاولت أعلّل</h2><span class="chip">' + countWord(all.length, W.q) + '</span></div>' +
+    '<p class="muted small p0">كل عبارة «صح أو خطأ» ضغطت فيها «ما حاولت أعلّل» تُحفظ هنا، وتخرج حين تضغط فيها «علّلت صح» أو «فاتني شيء» في أي مكان. وإعادتها تُحسب كأي سؤال في البنك.</p>' +
+    chBar('nj-ch', njCh, true, function (c) { return ' (' + noWhyList(c.id).length + ')'; }) +
+    '<button type="button" class="btn wide" data-act="start-nj"' + (list.length ? '' : ' disabled') + '>أعدها الآن' + (list.length ? ': ' + countWord(list.length, W.q) : '') + '</button>';
+  if (!list.length) return h + '<div class="empty"><b>القائمة فارغة</b><br>' + (all.length ? 'لا شيء منها في هذا الفصل.' : 'حين تضغط «ما حاولت أعلّل» في عبارة تظهر هنا لتعود إليها.') + '</div>';
+  return h + list.map(function (q) {
+    return '<article class="art"><div class="chips"><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + '</div>' +
+      '<p class="p0 strong">' + esc(q.q) + '</p>' +
+      '<details class="pre"><summary>اعرض الحكم والتعليل</summary><p class="p0 small">العبارة <b>' + (q.a ? 'صحيحة' : 'خاطئة') + '</b></p>' + (q.why ? '<p class="why small">' + rich(q.why) + '</p>' : '') + '</details></article>';
+  }).join('');
+}
+
 /* ---------- المراجعة: البطاقات والمقارنات والخرائط والليلة الأخيرة ---------- */
 function revHTML() {
   var subs = [['cards', 'البطاقات'], ['cmp', 'المقارنات'], ['maps', 'الخرائط'], ['night', 'الليلة الأخيرة']];
@@ -2117,7 +2154,7 @@ document.getElementById('setBtn').addEventListener('click', openSettings);
 function parseHash() {
   var h = (location.hash || '').replace(/^#/, ''), m;
   if (!h || h === 'home') return ['home'];
-  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'cells', 'defs', 'imp'].indexOf(h) > -1) return [h];
+  if (['plan', 'sum', 'quiz', 'rev', 'review', 'eve', 'nb', 'nj', 'cells', 'defs', 'imp'].indexOf(h) > -1) return [h];
   if ((m = /^imp-(\d+)$/.exec(h))) return ['impg', +m[1]];
   if (h === 'impc') return [IC ? 'impc' : 'imp'];
   if (h === 'impr') return [IR ? 'impr' : 'imp'];
@@ -2149,7 +2186,7 @@ document.querySelector('.tabs').addEventListener('click', function (e) {
 document.getElementById('mistakesBtn').addEventListener('click', function () { go('#nb'); });
 function quitDest(md, l) {
   if (md === 'exit' && l) return '#l-' + l.n; if (md === 'recall' && l) return '#r-' + l.n;
-  if (md === 'review') return '#review'; if (md === 'nb') return '#nb'; if (md === 'expq') return '#rev'; return '#quiz';
+  if (md === 'review') return '#review'; if (md === 'nb') return '#nb'; if (md === 'nj') return '#nj'; if (md === 'expq') return '#rev'; return '#quiz';
 }
 view.addEventListener('click', function (e) {
   var g = e.target.closest('[data-go]'); if (g && !g.disabled) { go(g.getAttribute('data-go')); return; }
@@ -2299,7 +2336,9 @@ view.addEventListener('click', function (e) {
     }
     case 'why-self': {
       if (!quiz || quiz.picked === null) return;
-      quiz.self = +el.getAttribute('data-s'); judgeWhy(quiz.ids[quiz.i], quiz.self === 1); render(); return;
+      quiz.self = +el.getAttribute('data-s');
+      if (quiz.self === 2) skipWhy(quiz.ids[quiz.i]); else judgeWhy(quiz.ids[quiz.i], quiz.self === 1);
+      render(); return;
     }
     case 'tf-reveal': { var wt2 = document.getElementById('whyText'); if (wt2) quiz.tfText = wt2.value.trim(); }
     /* falls through */
@@ -2309,6 +2348,7 @@ view.addEventListener('click', function (e) {
       if (v === null || isNaN(v)) return;
       var ok = isRight(q, v);
       quiz.lastEt = ok ? '' : errType(q, v);
+      if (q.k === 'tf') keepOldNoWhy(q.id);
       quiz.picked = v; quiz.results.push(ok); quiz.lastRes = record(q.id, ok, quiz.lastEt);
       if (quiz.mode === 'imp') impSet(q.id, ok);
       /* محاولة تسميع الخروج تُحسب من أول إجابة، فتُحفظ نسبتها على أسئلة الدرس كلها كلما أجاب */
@@ -2373,6 +2413,8 @@ view.addEventListener('click', function (e) {
     case 'cell-again': cellsAgain(); return;
     case 'cell-quit': { var cBack = CQ ? CQ.back : '#quiz'; CQ = null; go(cBack === '#cells' ? '#quiz' : cBack); return; }
     case 'nb-ch': nbCh = ch; render(); return;
+    case 'nj-ch': njCh = ch; render(); return;
+    case 'start-nj': { var lj = noWhyList(njCh === 'all' ? null : njCh); startQuiz(shuffle(lj.map(function (x) { return x.id; })), 'ما حاولت أعلّل', 'nj'); return; }
     case 'start-nb': { var list = mistakes(nbCh === 'all' ? null : nbCh); startQuiz(shuffle(list.map(function (x) { return x.id; })), 'دفتر الأخطاء', 'nb'); return; }
     case 'rev-sub': revSub = el.getAttribute('data-sub'); ST.setPref('revSub', revSub); render(); return;
     case 'cmp-test': {
