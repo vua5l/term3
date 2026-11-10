@@ -1,0 +1,22 @@
+{
+  "//": "إعدادات القانون الدستوري كما بُني بأدواته القديمة (_tools/law136). تُستعمل لاختبار الأدوات العامة بمقابلة نتائجها بنتائج تلك الأدوات، لا لبناء جديد. والتنبيهات الثلاثة الجديدة مطفأة هنا لتتطابق النتائج.",
+  "code": "law136",
+  "name": "القانون الدستوري",
+  "exam": "الاختبار الفصلي الثاني",
+  "book": { "title": "النظام السياسي والدستوري للمملكة العربية السعودية", "author": "", "pdfOffset": 7 },
+  "text": { "pageMark": "hash" },
+  "checks": {
+    "blocks": ["h", "p", "list", "q", "note"],
+    "errorTypes": false,
+    "exp": false,
+    "steps": false,
+    "defs": "manual",
+    "intro": "off",
+    "dates": "warn",
+    "mix": { "essayMin": 1 },
+    "similar": 0,
+    "longest": 0,
+    "dupDefs": false
+  },
+  "smoke": { "routes": ["#home", "#imp", "#imp-1", "#imp-2", "#plan", "#sum", "#quiz", "#rev", "#review", "#eve", "#nb", "#cells"] }
+}
