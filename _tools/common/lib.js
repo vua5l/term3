@@ -22,6 +22,15 @@ const DEFAULTS = {
   site: '',                 /* مجلد الموقع، والأصل الرمز */
   book: { title: '', author: '', pdfOffset: 0 },   /* pdfOffset: صفحة الملف المصوَّر = صفحة الكتاب − هذا الرقم */
   text: { pageMark: 'eq' }, /* علامة الصفحة في ملفات النص المنسوخ: eq «=== ص 127 ===» أو hash «# ص 127» */
+  copy: {                   /* تدقيق النسخ: صور الصفحات والقراءات الآلية (pages.js وcompare.js وcrops.js) */
+    dpi: 300,               /* دقة صورة الصفحة التي تُقصّ منها القصاصات */
+    zoom: 600,              /* دقة القصاصة التي تُعرض وحدها مكبّرة */
+    readings: [             /* القراءات الآلية، ثلاث بإعدادات تختلف صورها: الاسم، ودقة الصورة، ووسائط tesseract. الثانية والثالثة اختيرتا بالتجربة على كتاب حقيقي */
+      { name: 'a', dpi: 300, args: '-l ara --psm 3' },
+      { name: 'b', dpi: 200, args: '-l ara --psm 3' },
+      { name: 'c', dpi: 300, args: '-l ara --psm 3 -c thresholding_method=2' }
+    ]
+  },
   checks: {
     blocks: ['h', 'p', 'list', 'q', 'note', 'dr'],
     errorTypes: true,       /* كل خيار خاطئ وعبارة خاطئة معلَّمة بنوع خطئها */
@@ -72,6 +81,14 @@ function loadSubject(arg) {
   Object.keys(ENUMS).forEach((k) => {
     const v = k.split('.').reduce((o, p) => o[p], S);
     if (!ENUMS[k].includes(v)) die(file + ': ' + k + ' must be one of ' + ENUMS[k].join(' | ') + ' (got ' + JSON.stringify(v) + ')');
+  });
+  const C = S.copy, okDpi = (d) => Number.isInteger(d) && d >= 72 && d <= 1200;
+  if (!okDpi(C.dpi) || !okDpi(C.zoom)) die(file + ': copy.dpi and copy.zoom must be whole numbers between 72 and 1200');
+  if (!Array.isArray(C.readings) || C.readings.length < 2) die(file + ': copy.readings must list at least two readings');
+  C.readings.forEach((r, n) => {
+    if (!isObj(r) || !/^[a-z][a-z0-9]*$/.test(r.name || '') || !okDpi(r.dpi) || !isStr(r.args) || Object.keys(r).some((k) => !['name', 'dpi', 'args'].includes(k)))
+      die(file + ': copy.readings[' + n + '] must be { name: "a", dpi: 300, args: "-l ara --psm 3" }');
+    if (C.readings.findIndex((x) => x && x.name === r.name) !== n) die(file + ': copy.readings: the name "' + r.name + '" is used twice');
   });
   S.global = S.global || S.code.toUpperCase();
   S.site = S.site || S.code;

@@ -4,6 +4,7 @@
    2) الصيغة الجديدة: موقع تجريبي في مجلد مؤقت، يُحوَّل إليه فصل من الدولي ليُكتب تعريفه مرة واحدة في الملخص، ثم تُشتق بطاقاته وخانته.
    3) التنبيهات الثلاثة وحال الدفعات وملف الإعدادات بحالات مصنوعة.
    4) المتصفح (يُتخطى مع --fast): المرور على الشاشات وفحص التشغيل ومحاكاة الجهازين.
+   5) تدقيق النسخ: برنامج المقارنة بقراءتين مصنوعتين، والقصاصات المجمّعة من صفحة مصنوعة، وتجهيز الصفحات بملف مصوَّر مصنوع (يُتخطى ما غابت أداته).
    لا يكتب شيئاً في المستودع: كل كتابة في مجلد مؤقت. */
 'use strict';
 const fs = require('fs');
@@ -401,6 +402,169 @@ test('settings: the example file loads, and a mistyped or wrong setting is refus
   must(/unknown setting/.test(bad({ code: 'law1', name: 'x', checks: { mixx: {} } }).out), 'mistyped key accepted');
   must(/checks\.defs must be one of/.test(bad({ code: 'law1', name: 'x', checks: { defs: 'sumary' } }).out), 'wrong value accepted');
   must(/code must look like/.test(bad({ code: 'Law 1', name: 'x' }).out), 'bad code accepted');
+});
+
+/* ======================= 5) تدقيق النسخ: المقارنة والقصاصات وتجهيز الصفحات ======================= */
+const COPY = path.join(TMP, 'copy');
+fs.mkdirSync(COPY, { recursive: true });
+const subjFile = (name, over) => { const f = path.join(COPY, name + '.json'); fs.writeFileSync(f, JSON.stringify(Object.assign({ code: 'law901', name: 'مادة تجريبية', book: { title: 'ك', author: 'م', pdfOffset: 9 } }, over || {}))); return f; };
+/* قراءة آلية مصنوعة: سطور من كلمات، لكل كلمة موضع في صورة الصفحة. k: نسبة دقة القراءة إلى الدقة الأساس */
+function fakeTsv(lines, k) {
+  const rows = ['level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext', ['1', 1, 0, 0, 0, 0, 0, 0, Math.round(2480 * k), Math.round(3508 * k), -1, ''].join('\t')];
+  lines.forEach((ln, i) => { let x = 2100; ln.split(' ').forEach((w, n) => { const wd = 34 * w.length; x -= wd + 30; rows.push(['5', 1, 1, 1, i + 1, n + 1, Math.round(x * k), Math.round((400 + 110 * i) * k), Math.round(wd * k), Math.round(52 * k), 95, w].join('\t')); }); });
+  return rows.join('\n') + '\n';
+}
+const COPY_TEXT = ['# نص تجريبي', '', '=== ص 10 ===',
+  'هذا نص المتن الأول فى الصفحة عليها، ولا يجوز غبن أحد فى النقد',
+  'وقد رأى الشاهد عين الحقيقة ثم أنه يجوز الطعن لا غير',
+  'الكلمة مطموسة هنا ثم زائدة تماما',
+  'ويبقى الحكم لمحكمة النقض',
+  'وقال إنه يصح البيع',
+  'حواشي:', '(1) انظر Alland D., p.351 المرجع السابق', '',
+  '=== ص 11 ===', 'صفحة أخرى لا تشبه صورتها فى شىء من كلماتها ولا فى ترتيبها ولا فى عددها أبدا وهذا سطر طويل منها يكفى للحكم عليها', '',
+  '=== ص 12 ===', 'صفحة لم تُقرأ', '', '=== ص 13 ===', '[صفحة بيضاء]', ''].join('\n');
+const READ_A = ['هذا نص المتن الأول فى الصفحة عليهاء ولايجوز غبن أحد فى النقد', 'وقد رأى الشاهد غبن الحقيقة ثم أنه لايجوز الطعن لا غير', 'الكلمة مطصوة هنا ثم تماما', 'ويبقى الحكم لحكمة النقد', 'وقال إنه لا يصح البيع', '1 انظر قفقف 351 المرجع السايق'];
+const READ_B = ['هذا نص المتن الاول فى الصفحة عليها ولا يجوز غبن احد فى النقد', 'وقد رأى الشاهد عين الحقيقة ثم أنه لايجوز الطعن لا غير', 'الكلمة مطموسه هنا ثم تماما', 'ويبقى الحكم لحكمة النقطص', 'وقال إنه لا يصح البيع', '1 انظر فففف المرجع السابق'];
+const TWO = { readings: [{ name: 'a', dpi: 300, args: '-l ara --psm 3' }, { name: 'b', dpi: 200, args: '-l ara --psm 3' }] };
+const CW = path.join(COPY, 'work'), CTXT = path.join(COPY, 'text.md'), CSUB = subjFile('law901', { copy: TWO });
+fs.mkdirSync(CW, { recursive: true });
+fs.writeFileSync(CTXT, COPY_TEXT);
+fs.writeFileSync(path.join(CW, 'p10.a.tsv'), fakeTsv(READ_A, 1)); fs.writeFileSync(path.join(CW, 'p10.b.tsv'), fakeTsv(READ_B, 200 / 300));
+['a', 'b'].forEach((r) => fs.writeFileSync(path.join(CW, 'p11.' + r + '.tsv'), fakeTsv(['كلام مختلف تماما عما كتبه الناسخ هنا وليس منه إلا قليل جدا', 'وسطر ثان مثله لا علاقة له بالمنسوخ من قريب أو بعيد'], r === 'a' ? 1 : 200 / 300)));
+['a', 'b'].forEach((r) => fs.writeFileSync(path.join(CW, 'p13.' + r + '.tsv'), fakeTsv([], r === 'a' ? 1 : 200 / 300)));
+const cmp = (extra) => tool('compare.js', [CSUB, CW, CTXT, '--out', path.join(COPY, 'cmp.json')].concat(extra || []));
+const cmpJson = () => JSON.parse(read(path.join(COPY, 'cmp.json')));
+
+test('copy check: each word is judged by the rule (confirmed by one reading, glued word, comma read as hamza, dots, another word, absent, meaningless letters)', () => {
+  const r = cmp(['--pages', '10-10', '--wide', 'off']);
+  must(r.status === 0, r.out.slice(-600));
+  const j = cmpJson(), b = j.totals;
+  must(b.body.n === 38 && b.fn.n === 3 && b.other.n === 5, 'positions: ' + JSON.stringify(b));
+  must(b.body.un === 5 && b.body.img === 4 && b.body.open === 2, 'body: ' + JSON.stringify(b.body));
+  must(b.fn.un === 0 && b.fn.img === 0, 'footnotes: ' + JSON.stringify(b.fn));
+  must(b.other.un === 3 && b.other.open === 3 && b.other.img === 0, 'numbers and foreign: ' + JSON.stringify(b.other));
+  must(j.why.dots === 1 && j.why.glue === 1 && j.why.word === 1 && j.why.absent === 1 && j.why.agree === 0, 'reasons: ' + JSON.stringify(j.why));
+  must(j.openAgree === 1 && j.missed.words === 1 && j.missed.spots === 1, 'agreed ' + j.openAgree + ', missed ' + JSON.stringify(j.missed));
+  const by = (w) => j.items.find((it) => it.words.join(' ') === w);
+  must(by('عين').why === 'dots' && by('عين').exact && by('يجوز').why === 'glue' && by('النقض').why === 'word' && by('زائدة').why === 'absent', 'wrong reason on an item');
+  must(by('مطموسة').s === 'open' && by('لمحكمة').s === 'open' && by('لمحكمة').why === 'agree', 'what is accepted without the image');
+  must(by('زائدة').box && !by('زائدة').exact, 'a word no reading saw is placed between its neighbours');
+  const m = j.items.find((it) => it.why === 'missed');
+  must(m && m.read[0].join(' ') === 'لا' && m.box, 'the word both readings read and the copyist did not write');
+  must(/لم تؤكده أي قراءة آلية: 17\.4% من 46 موضعاً \(رُجع فيه إلى الصورة 8\.7% · قُبل بلا صورة 10\.9%/.test(r.out) && /قرأته قراءتان ولم يكتبه الناسخ: 1 كلمة في 1 موضعاً/.test(r.out), 'line one: ' + r.out.split('\n').find((l) => l.startsWith('١')));
+  must(/المتن 13\.2% \(بلا صورة 5\.3%\) · الحواشي 0\.0% .* الأرقام والأجنبية وحدها 60\.0% · أشد الصفحات: 10 \(/.test(r.out) && /حصيلة المدقق: لم تُدخل بعد/.test(r.out), 'line two: ' + r.out.split('\n').find((l) => l.startsWith('٢')));
+  return '46 positions: 4 to the image, 5 accepted without it, 1 word missed by the copyist';
+});
+test('copy check: a word both readings agree on goes to the image only when the wide lexicon knows it', () => {
+  const wide = path.join(COPY, 'wide.txt'); fs.writeFileSync(wide, 'لحكمة\nكلمة\n');
+  const r = cmp(['--pages', '10-10', '--wide', wide]);
+  const j = cmpJson();
+  must(r.status === 0 && j.why.agree === 1 && j.openAgree === 0 && j.totals.body.img === 5 && j.totals.body.open === 1, JSON.stringify([j.why, j.openAgree, j.totals.body]));
+});
+test('copy check: the verifier\'s verdicts are counted, an unread page is reported as not run, and a page unlike its image is warned about', () => {
+  const j0 = (cmp(['--wide', 'off']), cmpJson());
+  must(j0.notRead.join() === '12' && j0.mismatch.join() === '11' && j0.pages.length === 3, 'pages: ' + JSON.stringify([j0.notRead, j0.mismatch, j0.pages.length]));
+  must(j0.pages.find((g) => g.p === 13).ar === 0, 'the copyist\'s blank-page note was read as book text');
+  const dots = j0.items.find((it) => it.why === 'dots'), glue = j0.items.find((it) => it.why === 'glue');
+  const vf = path.join(COPY, 'verdicts.tsv');
+  fs.writeFileSync(vf, '# id\tverdict\tnote\n' + dots.id + '\twrong\tغبن\n' + glue.id + '\tok\t\n99.1\tok\t\n');
+  const r = cmp(['--wide', 'off', '--verdicts', vf]);
+  must(/NOT RUN \(no readings\): 1 page\(s\): 12/.test(r.out) && /WARNING: page\(s\) that barely match their image.*: 11/.test(r.out), r.out.slice(0, 700));
+  must(/ثبت خطأ الناسخ بالصورة في 1 موضعاً من 2 فُحصت/.test(r.out) && /1 verdict line\(s\) with an unknown id/.test(r.out) && new RegExp('wrong ' + dots.id.replace('.', '\\.') + ': غبن').test(r.out), r.out.slice(-700));
+  const none = tool('compare.js', [CSUB, path.join(COPY, 'empty'), CTXT]);
+  must(none.status === 3 && /NOT RUN/.test(none.out), 'no readings at all must be NOT RUN: ' + none.out.slice(0, 200));
+  must(tool('compare.js', [CSUB, CW, CTXT, '--out', path.join(REPO, 'x.json')]).status === 2 && !fs.existsSync(path.join(REPO, 'x.json')), 'details were written inside the repository');
+});
+test('copy check: a third reading confirms what two left open, and does not clear a word that a reading read as another valid word differing in dots', () => {
+  const W3 = path.join(COPY, 'work3'); fs.mkdirSync(W3, { recursive: true });
+  const READ_C = READ_B.slice(); READ_C[2] = 'الكلمة مطموسة هنا ثم تماما'; READ_C[3] = 'ويبقى الحكم لمحكمة النقض'; READ_C[4] = 'وقال إنه يصح البيع';
+  fs.writeFileSync(path.join(W3, 'p10.a.tsv'), fakeTsv(READ_A, 1)); fs.writeFileSync(path.join(W3, 'p10.b.tsv'), fakeTsv(READ_B, 200 / 300)); fs.writeFileSync(path.join(W3, 'p10.c.tsv'), fakeTsv(READ_C, 1));
+  const r = tool('compare.js', [subjFile('three'), W3, CTXT, '--pages', '10-10', '--wide', 'off', '--out', path.join(COPY, 'cmp3.json')]);
+  must(r.status === 0, r.out.slice(-500));
+  const j = JSON.parse(read(path.join(COPY, 'cmp3.json')));
+  must(j.readings.length === 3 && j.totals.body.open === 0 && j.totals.body.un === 2 && j.totals.body.img === 3, 'body with three readings: ' + JSON.stringify(j.totals.body));
+  must(j.why.dots === 1 && j.why.glue === 1 && j.why.absent === 1 && j.why.word === 0 && j.openAgree === 0 && j.missed.words === 1, JSON.stringify([j.why, j.openAgree, j.missed]));
+});
+test('settings: three readings on different images are the default, and a wrong reading is refused', () => {
+  const D = lib.loadSubject(path.join(T, 'subject.example.json')).copy;
+  must(D.dpi === 300 && D.zoom === 600 && D.readings.length === 3 && D.readings[0].args === '-l ara --psm 3' && new Set(D.readings.map((r) => r.dpi + ' ' + r.args)).size === 3, 'defaults changed: ' + JSON.stringify(D));
+  must(lib.loadSubject(CSUB).copy.readings.length === 2 && /ara\+fra/.test(lib.loadSubject('law135').copy.readings[2].args), 'a subject could not set its own readings');
+  const bad = (copy) => tool('compare.js', [subjFile('bad', { copy }), CW, CTXT]).out;
+  must(/at least two readings/.test(bad({ readings: [{ name: 'a', dpi: 300, args: '-l ara' }] })), 'one reading accepted');
+  must(/copy\.readings\[1\] must be/.test(bad({ readings: [{ name: 'a', dpi: 300, args: '-l ara' }, { name: 'b', dpi: 'x', args: '-l ara' }] })), 'bad dpi accepted');
+  must(/used twice/.test(bad({ readings: [{ name: 'a', dpi: 300, args: '-l ara' }, { name: 'a', dpi: 200, args: '-l ara' }] })), 'repeated name accepted');
+});
+const pngSize = (f) => { const b = fs.readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+const PY = (code, args) => run('python3', ['-I', '-c', code].concat(args || []));
+const hasPil = PY('import PIL').status === 0;
+const hasPoppler = run('pdftoppm', ['-v']).status !== null;
+/* صورة صفحة مصنوعة وملف مصوَّر منها: مستطيل أسود في موضع كل كلمة */
+if (hasPil) {
+  const boxes = fakeTsv(READ_A, 1).split('\n').filter((l) => l.startsWith('5\t')).map((l) => l.split('\t').slice(6, 10).map(Number));
+  fs.writeFileSync(path.join(COPY, 'boxes.json'), JSON.stringify(boxes));
+  const mk = PY('import sys,json\nfrom PIL import Image,ImageDraw\nim=Image.new("L",(2480,3508),255)\nd=ImageDraw.Draw(im)\nfor x,y,w,h in json.load(open(sys.argv[1])): d.rectangle([x,y,x+w,y+h],fill=0)\nim.save(sys.argv[2]); im.save(sys.argv[3],resolution=300.0)', [path.join(COPY, 'boxes.json'), path.join(CW, 'p10.png'), path.join(COPY, 'book.pdf')]);
+  if (mk.status !== 0) throw new Error('could not draw the test page: ' + mk.out);
+}
+if (!hasPil) skip('crops', 'the Python imaging library (Pillow) is not installed');
+else test('crops: doubtful spots are cut at full resolution into a few sheets no reader has to shrink, with an index and a verdict sheet', () => {
+  cmp(['--pages', '10-10', '--wide', 'off']);
+  const out = path.join(COPY, 'crops');
+  const r = tool('crops.js', [CSUB, CW, out, '--queue', path.join(COPY, 'cmp.json')]);
+  must(r.status === 0 && /crops: 5 spot\(s\) in 1 sheet\(s\), 1100 px wide/.test(r.out), r.out.slice(-500));
+  const [w, h] = pngSize(path.join(out, 'sheet-001.png'));
+  must(w === 1100 && h > 300 && w * h <= 1150000, 'sheet size ' + w + 'x' + h);
+  const j = cmpJson(), ids = j.items.filter((it) => it.s === 'img').map((it) => it.id), idx = read(path.join(out, 'index.md')), known = JSON.parse(read(path.join(out, 'crops.json')));
+  must(ids.every((id) => idx.includes('- ' + id + ' ·') && known[id] && known[id].sheets[0] === 'sheet-001.png'), 'an id is missing from the index');
+  must(/\[\[عين\]\]/.test(idx) && /a «غبن» · b «عين»/.test(idx) && /قرأت قراءتان هنا «لا» وليس في المنسوخ/.test(idx), 'the index does not say what was read');
+  must(read(path.join(out, 'verdicts.template.tsv')).trim().split('\n').length === 6, 'verdict sheet');
+  const open = tool('crops.js', [CSUB, CW, path.join(COPY, 'crops-open'), '--queue', path.join(COPY, 'cmp.json'), '--which', 'open']);
+  must(/crops: 2 spot\(s\)/.test(open.out), 'accepted-without-image spots: ' + open.out);
+  const lf = path.join(COPY, 'list.txt'); fs.writeFileSync(lf, '# نصوص حرفية\n10 | رأى الشاهد غبن الحقيقة\nk7 | 10 | ويبقى الحكم\n10 | كلام ليس فى الصفحة أصلا ولا يشبهها\n14 | صفحة بلا صورة\n');
+  const lst = tool('crops.js', [CSUB, CW, path.join(COPY, 'crops-list'), '--list', lf]);
+  must(lst.status === 0 && /crops: 2 spot\(s\) in 1 sheet\(s\).*skipped 2/.test(lst.out) && /SKIPPED q4 \(not found on page 10/.test(lst.out) && /SKIPPED q5 \(page 14 has no image/.test(lst.out), lst.out);
+  must(JSON.parse(read(path.join(COPY, 'crops-list', 'crops.json'))).k7, 'a given id was not kept');
+  must(tool('crops.js', [CSUB, CW, path.join(REPO, '_crops_test')]).status === 2 && !fs.existsSync(path.join(REPO, '_crops_test')), 'crops were written inside the repository');
+  if (!hasPoppler) return '5 spots in one sheet ' + w + 'x' + h + ' (zoom NOT RUN: pdftoppm missing)';
+  const dots = j.items.find((it) => it.why === 'dots').id;
+  const z = tool('crops.js', [CSUB, CW, out, '--zoom', path.join(COPY, 'book.pdf'), dots]);
+  const zf = path.join(out, 'zoom-' + dots + '.png');
+  must(z.status === 0 && fs.existsSync(zf), z.out);
+  const [zw, zh] = pngSize(zf);
+  must(zw <= 1560 && zw >= 600 && zh > 150 && !fs.readdirSync(out).some((f) => f.startsWith('.zoom')), 'zoomed crop ' + zw + 'x' + zh);
+  return '5 spots in one sheet ' + w + 'x' + h + ', one zoomed alone ' + zw + 'x' + zh;
+});
+const langs = run('tesseract', ['--list-langs']);
+if (!hasPil || !hasPoppler || langs.status === null || !/^eng$/m.test(langs.out)) skip('page preparation', 'needs pdftoppm, tesseract with eng, and Pillow');
+else test('page preparation: pages are drawn by their book numbers and read with both settings, a rerun does nothing, and the comparison reads the result', () => {
+  const pdf = path.join(COPY, 'latin.pdf'), work = path.join(COPY, 'work-latin');
+  const mk = PY('import sys\nfrom PIL import Image,ImageDraw,ImageFont\ndef page(lines):\n    try:\n        f=ImageFont.load_default(size=44); im=Image.new("L",(1240,1754),255); d=ImageDraw.Draw(im)\n        for i,t in enumerate(lines): d.text((120,200+110*i),t,fill=0,font=f)\n        return im\n    except TypeError:\n        im=Image.new("L",(310,438),255); d=ImageDraw.Draw(im)\n        for i,t in enumerate(lines): d.text((30,50+27*i),t,fill=0)\n        return im.resize((1240,1754))\na=page(["the first page of the test book","holds two short lines of words"]); b=page(["second page with other words","and nothing else on it today"])\na.save(sys.argv[1],save_all=True,append_images=[b],resolution=150.0)', [pdf]);
+  must(mk.status === 0, mk.out);
+  const sub = subjFile('latin', { copy: { dpi: 150, readings: [{ name: 'a', dpi: 150, args: '-l eng --psm 6' }, { name: 'b', dpi: 100, args: '-l eng --psm 6' }] } });
+  const r = tool('pages.js', [sub, pdf, work, '--pages', '10-11']);
+  must(r.status === 0 && /2 of 2 ready · rendered now 2 · read now a 2, b 2 · failed 0/.test(r.out), r.out);
+  must(/\tfirst\n/.test(read(path.join(work, 'p10.a.tsv'))) && /\tsecond\n/.test(read(path.join(work, 'p11.b.tsv'))) && !fs.existsSync(path.join(work, 'p10.100.png')), 'the readings are not what the pages say');
+  must(/2 of 2 ready · rendered now 0 · read now a 0, b 0/.test(tool('pages.js', [sub, pdf, work, '--pages', '10-11']).out), 'a rerun did the work again');
+  must(/outside the scanned file/.test(tool('pages.js', [sub, pdf, work, '--pages', '10-12']).out), 'a page outside the file was accepted');
+  must(/must be outside the repository/.test(tool('pages.js', [sub, pdf, path.join(REPO, '_pages_test'), '--pages', '10-10']).out), 'page images were written inside the repository');
+  const txt = path.join(COPY, 'latin.md'); fs.writeFileSync(txt, '=== ص 10 ===\nthe first page of the test book\nholds two short lines of words\n=== ص 11 ===\nsecond page with other words\nand nothing else on it today\n');
+  const c = tool('compare.js', [sub, work, txt, '--wide', 'off']);
+  const j = JSON.parse(read(path.join(work, 'compare.json')));
+  must(c.status === 0 && j.pages.length === 2 && j.totals.other.n === 24 && j.totals.other.un <= 3, c.out.slice(0, 600));
+  return 'two pages read twice; ' + (j.totals.other.n - j.totals.other.un) + ' of 24 words confirmed';
+});
+
+test('instructions: the format sample passes the checker with the default settings, and the general instructions carry no subject of their own', () => {
+  const ex = path.join(T, 'subject.example.json');
+  const v = tool('validate.js', [ex, path.join(T, 'sample.js')]);
+  must(v.status === 0 && /OK: no errors/.test(v.out) && !/WARNING/.test(v.out), v.out.slice(-700));
+  must(/l2 .*PENDING/.test(v.out) && /defs 1/.test(v.out), 'the sample no longer shows a pending lesson and a definition written once');
+  ['BUILDER.md', 'REVIEWER.md', 'PROMPTS.md', 'LESSONS.md', 'APPENDIX.example.md'].forEach((f) => {
+    const t = read(path.join(T, f));
+    must(!/law13[56]|القانون الدولي|الدستوري|\d{1,2} (Nov|نوفمبر)|\/home\/|\/mnt\//.test(t), f + ' names a subject, a date or a conversation path');
+  });
+  const b = read(path.join(T, 'BUILDER.md'));
+  must(/التعريف يُكتب مرة واحدة/.test(b) && /intro/.test(b) && /pending: true/.test(b) && /ولا تبنِ من الفرق فخاً/.test(b), 'the builder instructions lost a rule of the new format');
+  must(!/60–70%|بيّن مدى صحة العبارة/.test(b) && /60–70%/.test(read(path.join(T, 'tests', 'subjects', 'law135.APPENDIX.md'))), 'what one subject needed must stay in its appendix');
 });
 
 /* ======================= 4) المتصفح ======================= */
