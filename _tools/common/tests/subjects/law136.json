@@ -12,6 +12,7 @@
     "steps": false,
     "defs": "manual",
     "intro": "off",
+    "map": "require",
     "dates": "warn",
     "mix": { "essayMin": 1 },
     "similar": 0,

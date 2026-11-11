@@ -127,6 +127,11 @@ if (flags.verdicts) {
 const done = perPage.length;
 if (!done) { console.log('NOT RUN: no page of the text has its readings in ' + WORK + ' (run pages.js first)'); process.exit(3); }
 const pc = (a, b) => (b ? (100 * a / b).toFixed(a && 100 * a / b < 0.095 ? 2 : 1) + '%' : '—');
+/* المعدود بعد العدد في السطرين: الواحد والاثنان بلفظيهما، و3 إلى 10 جمع، و11 إلى 99 مفرد منصوب، وما سواها مفرد */
+const counted = (n, f) => { const r = n % 100; return n === 1 ? f[0] : n === 2 ? f[1] : n + ' ' + (r >= 3 && r <= 10 ? f[2] : r >= 11 ? f[3] : f[4]); };
+const SPOTS = ['موضع واحد', 'موضعين', 'مواضع', 'موضعاً', 'موضع'];
+const WORDS = ['كلمة واحدة', 'كلمتان', 'كلمات', 'كلمة', 'كلمة'];
+const ARWORDS = ['كلمة عربية واحدة', 'كلمتان عربيتان', 'كلمات عربية', 'كلمة عربية', 'كلمة عربية'];
 const all = { n: tot.body.n + tot.fn.n + tot.other.n, un: tot.body.un + tot.fn.un + tot.other.un, img: tot.body.img + tot.fn.img + tot.other.img, open: tot.body.open + tot.fn.open + tot.other.open };
 const worst = perPage.filter((g) => g.ar >= 20).sort((a, b) => b.un / b.ar - a.un / a.ar).slice(0, 6);
 const imgSpots = items.filter((it) => it.s === 'img').length, openSpots = items.filter((it) => it.s === 'open').length;
@@ -147,11 +152,11 @@ if (flags.list) {
 }
 console.log('');
 console.log('السطران:');
-console.log('١) لم تؤكده أي قراءة آلية: ' + pc(all.un, all.n) + ' من ' + all.n + ' موضعاً (رُجع فيه إلى الصورة ' + pc(all.img, all.n) + ' · قُبل بلا صورة ' + pc(all.open, all.n) + '، منه ' + openAgree + ' كلمة عربية اتفقت قراءتان فيها على لفظ ليس كلمة)'
-  + ' · قرأته قراءتان ولم يكتبه الناسخ: ' + missedWords + ' كلمة في ' + missedSpots + ' موضعاً');
+console.log('١) لم تؤكده أي قراءة آلية: ' + pc(all.un, all.n) + ' من ' + counted(all.n, SPOTS) + ' (رُجع فيه إلى الصورة ' + pc(all.img, all.n) + ' · قُبل بلا صورة ' + pc(all.open, all.n) + '، منه ' + counted(openAgree, ARWORDS) + ' اتفقت قراءتان ' + (openAgree === 2 ? 'فيهما' : 'فيها') + ' على لفظ ليس كلمة)'
+  + ' · قرأته قراءتان ولم يكتبه الناسخ: ' + counted(missedWords, WORDS) + ' في ' + counted(missedSpots, SPOTS));
 console.log('٢) المتن ' + pc(tot.body.un, tot.body.n) + ' (بلا صورة ' + pc(tot.body.open, tot.body.n) + ') · الحواشي ' + pc(tot.fn.un, tot.fn.n) + ' (بلا صورة ' + pc(tot.fn.open, tot.fn.n) + ')'
   + ' · الأرقام والأجنبية وحدها ' + pc(tot.other.un, tot.other.n) + ' · أشد الصفحات: ' + (worst.map((g) => g.p + ' (' + pc(g.un, g.ar) + ')').join('، ') || '—')
-  + (verdicts ? ' · ثبت خطأ الناسخ بالصورة في ' + verdicts.wrong + ' موضعاً من ' + (verdicts.ok + verdicts.wrong + verdicts.unclear) + ' فُحصت' + (verdicts.unclear ? ' (' + verdicts.unclear + ' لم تتضح)' : '') : ' · حصيلة المدقق: لم تُدخل بعد'));
+  + (verdicts ? ' · ثبت خطأ الناسخ بالصورة في ' + counted(verdicts.wrong, SPOTS) + ' من ' + (verdicts.ok + verdicts.wrong + verdicts.unclear) + ' فُحصت' + (verdicts.unclear ? ' (' + verdicts.unclear + ' لم تتضح)' : '') : ' · حصيلة المدقق: لم تُدخل بعد'));
 if (verdicts) {
   if (verdicts.unknown) console.log('WARNING: ' + verdicts.unknown + ' verdict line(s) with an unknown id or verdict were ignored');
   verdicts.list.forEach((v) => console.log('  wrong ' + v.id + (v.note ? ': ' + v.note : '')));

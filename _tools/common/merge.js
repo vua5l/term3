@@ -87,9 +87,11 @@ function render(S, meta, d) {
       P(ind + '] }' + (last ? '' : ','));
     } else P(ind + lit(n) + (last ? '' : ','));
   }
-  P('  map: { t: ' + lit(d.mapT || (meta.title + ': ' + meta.name)) + ', c: [');
-  d.mapC.forEach((n, i) => node(n, '    ', i === d.mapC.length - 1));
-  P('  ] },');
+  if (S.checks.map === 'require') {   /* الخريطة الذهنية: لمادة اختارها لها صاحب الموقع وحدها */
+    P('  map: { t: ' + lit(d.mapT || (meta.title + ': ' + meta.name)) + ', c: [');
+    d.mapC.forEach((n, i) => node(n, '    ', i === d.mapC.length - 1));
+    P('  ] },');
+  }
   P('  night: [');
   items(d.night, '    ', lit);
   if (S.checks.defs === 'chapter') {
@@ -114,6 +116,7 @@ function mergeChapters(S, out, meta, chs, opt) {
       seen.add(l.id); lessons.push(l);
     }
     for (const t of c.tables || []) tables.push(t);
+    if (c.map !== undefined && S.checks.map === 'off') throw new Error('map is not used for this subject: the mind map is written only when the site owner chose it (checks.map: "require" in the subject settings)');
     if (c.map) { if (!mapT) mapT = c.map.t; for (const n of c.map.c || []) mapC.push(n); }
     for (const n of c.night || []) night.push(n);
     for (const d of c.defs || []) defs.push(d);
@@ -145,7 +148,7 @@ function mergeChapters(S, out, meta, chs, opt) {
   const got = shape(back.lessons, (back.tables || []).length, back.map ? back.map.c.length : 0, (back.night || []).length, (back.defs || []).length);
   const want = shape(lessons, tables.length, mapC.length, night.length, defs.length);
   if (got !== want) throw new Error('round-trip mismatch');
-  return 'merged ' + chs.length + ' part(s) -> ' + out + ': lessons ' + lessons.map((l) => l.id).join(',') + ' · tables ' + tables.length + ' · map ' + mapC.length + ' · night ' + night.length +
+  return 'merged ' + chs.length + ' part(s) -> ' + out + ': lessons ' + lessons.map((l) => l.id).join(',') + ' · tables ' + tables.length + (S.checks.map === 'require' ? ' · map ' + mapC.length : '') + ' · night ' + night.length +
     (withDefs ? ' · defs ' + defs.length : '') + (S.checks.defs === 'summary' ? ' · derived cards ' + (derived.length ? derived.join(' ') : 'unchanged') : '') + (renamed.length ? ' · renumbered ' + renamed.join(' ') : '');
 }
 

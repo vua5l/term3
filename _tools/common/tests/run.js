@@ -151,7 +151,7 @@ else {
   /* موقع تجريبي من فصل الدولي الثاني، محوَّلاً إلى الصيغة الجديدة */
   fs.mkdirSync(path.join(SBX, 'law900', 'data'), { recursive: true });
   fs.mkdirSync(path.join(SBX, '_tools', 'law900'), { recursive: true });
-  fs.writeFileSync(path.join(SBX, '_tools', 'law900', 'subject.json'), JSON.stringify({ code: 'law900', name: 'مادة تجريبية', exam: 'اختبار', book: { title: 'كتاب', author: 'مؤلف', pdfOffset: 0 }, checks: { intro: 'optional' } }, null, 1));
+  fs.writeFileSync(path.join(SBX, '_tools', 'law900', 'subject.json'), JSON.stringify({ code: 'law900', name: 'مادة تجريبية', exam: 'اختبار', book: { title: 'كتاب', author: 'مؤلف', pdfOffset: 0 }, checks: { intro: 'optional', map: 'require' } }, null, 1));
   fs.writeFileSync(path.join(SBX, 'law900', 'config.js'), "window.LAW900_CONFIG = { code: 'law900', name: 'مادة تجريبية', scope: 'ص 127–152', pdfOffset: 0, storageKey: 'law900-v1', chapters: ['c2'] };\n");
   fs.writeFileSync(path.join(SBX, 'law900', 'index.html'), '<script src="data/c2.js"></script><script src="data/defs.js"></script>\n');
   const S135 = lib.loadSubject('law135'), site135 = lib.loadSite(S135, ['defs.js']);
@@ -191,6 +191,24 @@ else {
   test('new format: merging again changes nothing', () => {
     const r = sbx('merge.js', [X.code, xData('c2'), cur.id, cur.title, cur.name, cur.pages, xData('c2')]);
     must(r.status === 0 && /derived cards unchanged/.test(r.out) && read(xData('c2')) === firstBytes, 'not idempotent: ' + r.out.slice(-200));
+  });
+  test('mind map: with the default settings it is neither required nor accepted, and a subject whose owner chose it requires it', () => {
+    /* الموقع التجريبي اختار الخرائط (map: require). وهذه إعدادات مادة لم تخترها: الأصل */
+    const off = path.join(TMP, 'map-off.json');
+    fs.writeFileSync(off, JSON.stringify({ code: 'law900', name: 'مادة تجريبية', checks: { intro: 'optional' } }));
+    const part = path.join(TMP, 'pmap.js'), out = path.join(TMP, 'map-off-c2.js');
+    const vOff = (ch) => { asPart(ch, part); return sbx('validate.js', [off, part]); };
+    const bare = lib.copy(src); delete bare.map;
+    let r = vOff(bare); must(r.status === 0 && /OK: no errors/.test(r.out), 'a chapter without a mind map was refused: ' + r.out.slice(-300));
+    r = vOff(lib.copy(src)); must(r.status === 1 && /map is not used for this subject/.test(r.out), 'a mind map nobody chose was accepted');
+    r = xValidate(bare); must(r.status === 1 && /map \{t, c\[\]\} missing/.test(r.out), 'a subject that chose mind maps accepted a chapter without one');
+    asPart(bare, part);
+    r = sbx('merge.js', [off, out, bare.id, bare.title, bare.name, bare.pages, part]);
+    must(r.status === 0 && !/· map/.test(r.out) && !/^\s*map:/m.test(read(out)) && xLoad(out).map === undefined, 'merge wrote a mind map: ' + r.out.slice(-200));
+    must(sbx('validate.js', [off, out]).status === 0, 'the merged file without a mind map does not validate');
+    asPart(lib.copy(src), part);
+    r = sbx('merge.js', [off, out, src.id, src.title, src.name, src.pages, part]);
+    must(r.status === 1 && /map is not used for this subject/.test(r.out) && xLoad(out).map === undefined, 'merge accepted a mind map nobody chose');
   });
   test('new format: make-defs builds the definitions box from the summary, equal to the published one', () => {
     const r = sbx('make-defs.js', [X.code]); must(r.status === 0, r.out);
@@ -397,10 +415,11 @@ test('status: batches, their state and the usage before and after are recorded a
 });
 test('settings: the example file loads, and a mistyped or wrong setting is refused', () => {
   const S = lib.loadSubject(path.join(T, 'subject.example.json'));
-  must(S.global === 'LAW000' && S.checks.defs === 'summary' && S.checks.intro === 'require' && S.checks.tfReason === false && S.checks.mix.tfMinShare === 0, 'defaults changed');
+  must(S.global === 'LAW000' && S.checks.defs === 'summary' && S.checks.intro === 'require' && S.checks.map === 'off' && S.checks.tfReason === false && S.checks.mix.tfMinShare === 0, 'defaults changed');
   const bad = (o) => { const f = path.join(TMP, 'bad.json'); fs.writeFileSync(f, JSON.stringify(o)); return tool('validate.js', [f, 'x.js']); };
   must(/unknown setting/.test(bad({ code: 'law1', name: 'x', checks: { mixx: {} } }).out), 'mistyped key accepted');
   must(/checks\.defs must be one of/.test(bad({ code: 'law1', name: 'x', checks: { defs: 'sumary' } }).out), 'wrong value accepted');
+  must(/checks\.map must be one of/.test(bad({ code: 'law1', name: 'x', checks: { map: true } }).out), 'a wrong value for the mind map setting was accepted');
   must(/code must look like/.test(bad({ code: 'Law 1', name: 'x' }).out), 'bad code accepted');
 });
 
@@ -451,7 +470,7 @@ test('copy check: each word is judged by the rule (confirmed by one reading, glu
   must(by('زائدة').box && !by('زائدة').exact, 'a word no reading saw is placed between its neighbours');
   const m = j.items.find((it) => it.why === 'missed');
   must(m && m.read[0].join(' ') === 'لا' && m.box, 'the word both readings read and the copyist did not write');
-  must(/لم تؤكده أي قراءة آلية: 17\.4% من 46 موضعاً \(رُجع فيه إلى الصورة 8\.7% · قُبل بلا صورة 10\.9%/.test(r.out) && /قرأته قراءتان ولم يكتبه الناسخ: 1 كلمة في 1 موضعاً/.test(r.out), 'line one: ' + r.out.split('\n').find((l) => l.startsWith('١')));
+  must(/لم تؤكده أي قراءة آلية: 17\.4% من 46 موضعاً \(رُجع فيه إلى الصورة 8\.7% · قُبل بلا صورة 10\.9%/.test(r.out) && /منه كلمة عربية واحدة اتفقت قراءتان فيها/.test(r.out) && /قرأته قراءتان ولم يكتبه الناسخ: كلمة واحدة في موضع واحد/.test(r.out), 'line one: ' + r.out.split('\n').find((l) => l.startsWith('١')));
   must(/المتن 13\.2% \(بلا صورة 5\.3%\) · الحواشي 0\.0% .* الأرقام والأجنبية وحدها 60\.0% · أشد الصفحات: 10 \(/.test(r.out) && /حصيلة المدقق: لم تُدخل بعد/.test(r.out), 'line two: ' + r.out.split('\n').find((l) => l.startsWith('٢')));
   return '46 positions: 4 to the image, 5 accepted without it, 1 word missed by the copyist';
 });
@@ -470,7 +489,13 @@ test('copy check: the verifier\'s verdicts are counted, an unread page is report
   fs.writeFileSync(vf, '# id\tverdict\tnote\n' + dots.id + '\twrong\tغبن\n' + glue.id + '\tok\t\n99.1\tok\t\n');
   const r = cmp(['--wide', 'off', '--verdicts', vf]);
   must(/NOT RUN \(no readings\): 1 page\(s\): 12/.test(r.out) && /WARNING: page\(s\) that barely match their image.*: 11/.test(r.out), r.out.slice(0, 700));
-  must(/ثبت خطأ الناسخ بالصورة في 1 موضعاً من 2 فُحصت/.test(r.out) && /1 verdict line\(s\) with an unknown id/.test(r.out) && new RegExp('wrong ' + dots.id.replace('.', '\\.') + ': غبن').test(r.out), r.out.slice(-700));
+  must(/ثبت خطأ الناسخ بالصورة في موضع واحد من 2 فُحصت/.test(r.out) && /1 verdict line\(s\) with an unknown id/.test(r.out) && new RegExp('wrong ' + dots.id.replace('.', '\\.') + ': غبن').test(r.out), r.out.slice(-700));
+  /* المعدود بعد العدد: من 3 إلى 10 جمع */
+  const three = j0.items.filter((it) => it.s === 'img').slice(0, 3);
+  const vf3 = path.join(COPY, 'verdicts3.tsv');
+  fs.writeFileSync(vf3, three.map((it) => it.id + '\twrong\t').join('\n') + '\n');
+  const r3 = cmp(['--wide', 'off', '--verdicts', vf3]);
+  must(three.length === 3 && /ثبت خطأ الناسخ بالصورة في 3 مواضع من 3 فُحصت/.test(r3.out), 'a count from three to ten must take the plural: ' + r3.out.split('\n').find((l) => l.startsWith('٢')));
   const none = tool('compare.js', [CSUB, path.join(COPY, 'empty'), CTXT]);
   must(none.status === 3 && /NOT RUN/.test(none.out), 'no readings at all must be NOT RUN: ' + none.out.slice(0, 200));
   must(tool('compare.js', [CSUB, CW, CTXT, '--out', path.join(REPO, 'x.json')]).status === 2 && !fs.existsSync(path.join(REPO, 'x.json')), 'details were written inside the repository');
@@ -564,6 +589,7 @@ test('instructions: the format sample passes the checker with the default settin
   });
   const b = read(path.join(T, 'BUILDER.md'));
   must(/التعريف يُكتب مرة واحدة/.test(b) && /intro/.test(b) && /pending: true/.test(b) && /ولا تبنِ من الفرق فخاً/.test(b), 'the builder instructions lost a rule of the new format');
+  must(/لا تكتبها إلا إن قال ملحق المادة إن صاحب الموقع اختارها/.test(b) && /checks\.map: require/.test(read(path.join(T, 'APPENDIX.example.md'))), 'the mind map must stay a choice of the site owner, not part of the base');
   must(!/60–70%|بيّن مدى صحة العبارة/.test(b) && /60–70%/.test(read(path.join(T, 'tests', 'subjects', 'law135.APPENDIX.md'))), 'what one subject needed must stay in its appendix');
 });
 

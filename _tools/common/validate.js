@@ -58,9 +58,11 @@ function validateChapter(S, ch, opt) {
   if (!Array.isArray(ch.lessons) || !ch.lessons.length) E('chapter: lessons[] missing');
   if (!Array.isArray(ch.tables)) E('chapter: tables[] missing');
   if (!allPending) {   /* فصل كل دروسه معلّقة: مخطط وحده، بلا خريطة ولا ورقة ليلة */
-    if (!ch.map || !isStr(ch.map.t) || !Array.isArray(ch.map.c)) E('chapter: map {t, c[]} missing');
+    if (C.map === 'require' && (!ch.map || !isStr(ch.map.t) || !Array.isArray(ch.map.c))) E('chapter: map {t, c[]} missing');
     if (!Array.isArray(ch.night) || !ch.night.length) E('chapter: night[] missing');
   }
+  /* الخريطة الذهنية ليست من الأساس: لا تُكتب إلا في مادة اختارها لها صاحب الموقع */
+  if (C.map === 'off' && ch.map !== undefined) E('chapter: map is not used for this subject: the mind map is written only when the site owner chose it (checks.map: "require" in the subject settings)');
   if (C.defs === 'summary' && Array.isArray(ch.defs) && ch.defs.length) E('chapter: defs[] is not used for this subject: each definition is written once in the summary (a q block with def and parts)');
 
   const ids = new Set();
@@ -260,7 +262,7 @@ function validateChapter(S, ch, opt) {
     if (n.pg !== undefined) checkPg(w, n.pg);
     if (n.c !== undefined) { if (!Array.isArray(n.c)) E(w + ': c must be an array'); else n.c.forEach((x, i) => walk(x, w + '.c[' + i + ']')); }
   }
-  if (ch.map) walk(ch.map, 'map');
+  if (C.map === 'require' && ch.map) walk(ch.map, 'map');
   (ch.night || []).forEach((x, i) => { if (!x || !isStr(x.x)) E('night[' + i + ']: needs x'); else checkPg('night[' + i + ']', x.pg); });
 
   scanStrings('chapter', ch);

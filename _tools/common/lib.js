@@ -38,6 +38,7 @@ const DEFAULTS = {
     steps: true,            /* خطوات مرتبة في الدرس (اختيارية) */
     defs: 'summary',        /* summary: التعريف يُكتب مرة في الملخص وتُشتق بطاقته وخانته · chapter: خانة defs في ملف الفصل · manual: defs.js يُكتب باليد */
     intro: 'require',       /* التمهيد المبسّط في رأس الدرس: require | optional | off */
+    map: 'off',             /* الخريطة الذهنية للفصل، وليست من الأساس: off لا تُكتب ويرفضها الفحص · require لمادة اختارها لها صاحب الموقع */
     dates: 'off',           /* warn: ينبّه إلى ما يشبه التواريخ، لمادة تُحذف تواريخها */
     tfReason: false,        /* أستاذ المادة يطلب التعليل في الصح والخطأ: يغيّر صيغة السؤال في نسخة المراجعة ورسالة جيمني وحدهما */
     minutesMax: 75,
@@ -48,7 +49,7 @@ const DEFAULTS = {
   },
   smoke: { routes: ['#home', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'] }
 };
-const ENUMS = { 'checks.defs': ['summary', 'chapter', 'manual'], 'checks.intro': ['require', 'optional', 'off'], 'checks.dates': ['off', 'warn'], 'text.pageMark': ['eq', 'hash'] };
+const ENUMS = { 'checks.defs': ['summary', 'chapter', 'manual'], 'checks.intro': ['require', 'optional', 'off'], 'checks.map': ['off', 'require'], 'checks.dates': ['off', 'warn'], 'text.pageMark': ['eq', 'hash'] };
 
 function die(msg, code) { console.error(msg); process.exit(code === undefined ? 2 : code); }
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);

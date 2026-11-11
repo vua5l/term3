@@ -9,6 +9,7 @@
   "checks": {
     "defs": "chapter",
     "intro": "off",
+    "map": "require",
     "tfReason": true,
     "mix": { "essayMin": 2, "tfMinShare": 0.55, "tfAim": "60–70%", "mcqMaxPerLesson": 3 },
     "similar": 0,
