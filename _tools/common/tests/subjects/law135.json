@@ -5,7 +5,7 @@
   "course": "القانون الدولي العام 1",
   "exam": "الاختبار الفصلي الثاني",
   "book": { "title": "القانون الدولي العام – الجزء الأول", "author": "أ.د. محمد صافي يوسف", "pdfOffset": 97 },
-  "copy": { "readings": [ { "name": "a", "dpi": 300, "args": "-l ara --psm 3" }, { "name": "b", "dpi": 200, "args": "-l ara --psm 3" }, { "name": "c", "dpi": 300, "args": "-l ara+fra --psm 3 -c thresholding_method=2" } ] },
+  "scan": { "readings": [ { "name": "a", "dpi": 300, "args": "-l ara --psm 3" }, { "name": "b", "dpi": 200, "args": "-l ara --psm 3" }, { "name": "c", "dpi": 300, "args": "-l ara+fra --psm 3 -c thresholding_method=2" } ] },
   "checks": {
     "defs": "chapter",
     "intro": "off",

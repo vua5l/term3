@@ -4,7 +4,6 @@
   "name": "القانون الدستوري",
   "exam": "الاختبار الفصلي الثاني",
   "book": { "title": "النظام السياسي والدستوري للمملكة العربية السعودية", "author": "", "pdfOffset": 7 },
-  "text": { "pageMark": "hash" },
   "checks": {
     "blocks": ["h", "p", "list", "q", "note"],
     "errorTypes": false,

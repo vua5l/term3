@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-/* تجهيز صفحات الكتاب المصوَّر لتدقيق النسخ: يرسم كل صفحة صورةً، ويقرؤها آلياً بالإعدادين المختلفين.
-   الاستعمال: node _tools/common/pages.js <الرمز> <الكتاب.pdf> <مجلد العمل> --pages 98-353 [--jobs N] [--force] [--keep]
+/* تجهيز صفحات الكتاب المصوَّر: يرسم كل صفحة صورةً، ويقرؤها آلياً بإعدادات القراءة المختلفة.
+   الاستعمال: node _tools/common/pages.js <الرمز> <الكتاب.pdf> <مجلد العمل> --pages 98-353 [--pdf] [--txt] [--jobs N] [--force] [--keep]
    - الصفحات بأرقام الكتاب المطبوعة، وصفحة الملف المصوَّر = صفحة الكتاب − book.pdfOffset من ملف الإعدادات.
-   - الإعدادان في copy.readings (الأصل في lib.js). والمسارات كلها من سطر الأمر، ومجلد العمل خارج المستودع.
-   - يكتب في مجلد العمل: p127.png (صورة الصفحة بالدقة الأساس) وp127.a.tsv وp127.b.tsv (كلمات كل قراءة بمواضعها).
-   - يكمل من حيث توقف: ما وُجد لا يُعاد إلا مع --force. وصور الدقة الأخرى تُحذف بعد قراءتها إلا مع --keep. */
+   - إعدادات القراءة في scan.readings (الأصل في lib.js). والمسارات كلها من سطر الأمر، ومجلد العمل خارج المستودع.
+   - يكتب في مجلد العمل: p127.png (صورة الصفحة بالدقة الأساس) وp127.a.tsv وp127.b.tsv … (كلمات كل قراءة بمواضعها).
+   - --pdf يكتب فيه أيضاً «صفحات الكتاب A–B.pdf»: هذه الصفحات كما هي في المصوَّر، يرفعها صاحب الموقع إلى جيمني مع نسخة المراجعة.
+   - --txt يكتب فيه p127.txt: القراءة الأولى نصاً، لمراجع يقرؤها بدل الصور. قراءة آلة فيها أغلاط، لا نص معتمد للكتاب.
+   - يكمل من حيث توقف: ما وُجد لا يُعاد إلا مع --force. وصور الدقة الأخرى تُحذف بعد قراءتها إلا مع --keep.
+   - القراءات مساعد في التدقيق: لا يُبنى منها محتوى ولا يُجمع منها نص للكتاب. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -12,8 +15,8 @@ const os = require('os');
 const { spawn, spawnSync } = require('child_process');
 const L = require('./lib');
 
-const { rest, flags } = L.args(process.argv.slice(2), { pages: 1, jobs: 1, force: 0, keep: 0 });
-if (rest.length < 3 || !flags.pages) L.die('usage: node _tools/common/pages.js <code> <book.pdf> <work dir> --pages A-B[,C-D] [--jobs N] [--force] [--keep]');
+const { rest, flags } = L.args(process.argv.slice(2), { pages: 1, jobs: 1, force: 0, keep: 0, pdf: 0, txt: 0 });
+if (rest.length < 3 || !flags.pages) L.die('usage: node _tools/common/pages.js <code> <book.pdf> <work dir> --pages A-B[,C-D] [--pdf] [--txt] [--jobs N] [--force] [--keep]');
 const S = L.loadSubject(rest[0]);
 const PDF = path.resolve(rest[1]), OUT = path.resolve(rest[2]);
 if (!fs.existsSync(PDF)) L.die('book file not found: ' + PDF);
@@ -24,7 +27,7 @@ if (has('pdftoppm', '-v') === null) L.die('NOT RUN: pdftoppm is not installed (p
 const langs = has('tesseract', '--list-langs');
 if (langs === null) L.die('NOT RUN: tesseract is not installed', 3);
 const have = new Set(langs.split('\n').map((s) => s.trim()).filter(Boolean));
-S.copy.readings.forEach((r) => {
+S.scan.readings.forEach((r) => {
   const m = r.args.match(/(?:^|\s)-l\s+(\S+)/);
   (m ? m[1].split('+') : []).forEach((lg) => { if (!have.has(lg)) L.die('NOT RUN: tesseract language "' + lg + '" (reading ' + r.name + ') is not installed', 3); });
 });
@@ -50,7 +53,7 @@ const run = (cmd, args) => new Promise((resolve) => {
 });
 const full = (f) => fs.existsSync(f) && fs.statSync(f).size > 0;
 const stat = { rendered: 0, read: {}, failed: [] };
-S.copy.readings.forEach((r) => { stat.read[r.name] = 0; });
+S.scan.readings.forEach((r) => { stat.read[r.name] = 0; });
 
 async function render(p, dpi, file) {
   const base = file.replace(/\.png$/, '') + '.part';
@@ -61,12 +64,12 @@ async function render(p, dpi, file) {
 }
 async function onePage(p) {
   const img = path.join(OUT, 'p' + p + '.png');
-  if (flags.force || !full(img)) { const e = await render(p, S.copy.dpi, img); if (e) return stat.failed.push('p' + p + ' ' + e); stat.rendered++; }
-  for (const r of S.copy.readings) {
+  if (flags.force || !full(img)) { const e = await render(p, S.scan.dpi, img); if (e) return stat.failed.push('p' + p + ' ' + e); stat.rendered++; }
+  for (const r of S.scan.readings) {
     const tsv = path.join(OUT, 'p' + p + '.' + r.name + '.tsv');
     if (!flags.force && full(tsv)) continue;
     let src = img;
-    if (r.dpi !== S.copy.dpi) {
+    if (r.dpi !== S.scan.dpi) {
       src = path.join(OUT, 'p' + p + '.' + r.dpi + '.png');
       if (flags.force || !full(src)) { const e = await render(p, r.dpi, src); if (e) { stat.failed.push('p' + p + ' ' + e); continue; } }
     }
@@ -76,15 +79,45 @@ async function onePage(p) {
     fs.renameSync(tmp + '.tsv', tsv);
     stat.read[r.name]++;
   }
-  if (!flags.keep) S.copy.readings.forEach((r) => { const f = path.join(OUT, 'p' + p + '.' + r.dpi + '.png'); if (r.dpi !== S.copy.dpi && fs.existsSync(f)) fs.unlinkSync(f); });
+  if (!flags.keep) S.scan.readings.forEach((r) => { const f = path.join(OUT, 'p' + p + '.' + r.dpi + '.png'); if (r.dpi !== S.scan.dpi && fs.existsSync(f)) fs.unlinkSync(f); });
 }
 (async () => {
   const t0 = Date.now(), queue = pages.slice();
   const jobs = Math.max(1, +(flags.jobs || os.cpus().length) || 1);
   await Promise.all(Array.from({ length: Math.min(jobs, queue.length) }, async () => { while (queue.length) await onePage(queue.shift()); }));
-  const done = pages.filter((p) => full(path.join(OUT, 'p' + p + '.png')) && S.copy.readings.every((r) => full(path.join(OUT, 'p' + p + '.' + r.name + '.tsv')))).length;
+  const done = pages.filter((p) => full(path.join(OUT, 'p' + p + '.png')) && S.scan.readings.every((r) => full(path.join(OUT, 'p' + p + '.' + r.name + '.tsv')))).length;
   console.log('pages ' + pages[0] + '–' + pages[pages.length - 1] + ': ' + done + ' of ' + pages.length + ' ready · rendered now ' + stat.rendered
-    + ' · read now ' + S.copy.readings.map((r) => r.name + ' ' + stat.read[r.name]).join(', ') + ' · failed ' + stat.failed.length + ' · ' + Math.round((Date.now() - t0) / 1000) + 's');
+    + ' · read now ' + S.scan.readings.map((r) => r.name + ' ' + stat.read[r.name]).join(', ') + ' · failed ' + stat.failed.length + ' · ' + Math.round((Date.now() - t0) / 1000) + 's');
   stat.failed.slice(0, 20).forEach((f) => console.log('  FAILED ' + f));
+  if (flags.txt) {                       /* القراءة الأولى نصاً، لمراجع يقرؤها بدل الصور */
+    const r0 = S.scan.readings[0].name;
+    let n = 0;
+    pages.forEach((p) => {
+      const tsv = path.join(OUT, 'p' + p + '.' + r0 + '.tsv');
+      if (!full(tsv)) return;
+      const lines = [];
+      let key = '';
+      fs.readFileSync(tsv, 'utf8').split('\n').forEach((row) => {
+        const c = row.split('\t');
+        if (c[0] !== '5' || !(c[11] || '').trim()) return;
+        const k = c[2] + '.' + c[3] + '.' + c[4];
+        if (k !== key) { key = k; lines.push([]); }
+        lines[lines.length - 1].push(c.slice(11).join(' ').trim());
+      });
+      fs.writeFileSync(path.join(OUT, 'p' + p + '.txt'), '[قراءة آلية للصفحة ' + p + '، الإعداد ' + r0 + ': تخطئ في النقاط والهمزات والأرقام وتلصق الكلمات، وليست نصاً معتمداً للكتاب]\n' + lines.map((l) => l.join(' ')).join('\n') + '\n');
+      n++;
+    });
+    console.log('  machine reading as text (' + r0 + '): ' + n + ' page(s), p<N>.txt in the work dir');
+  }
+  if (flags.pdf) {                       /* ملف صفحات الدفعة كما هي في المصوَّر */
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-')), parts = [];
+    pages.forEach((p) => { const r = spawnSync('pdfseparate', ['-f', String(p - off), '-l', String(p - off), PDF, path.join(tmp, 'p-%d.pdf')], { encoding: 'utf8' }); const f = path.join(tmp, 'p-' + (p - off) + '.pdf'); if (!r.error && r.status === 0 && fs.existsSync(f)) parts.push(f); });
+    const out = path.join(OUT, 'صفحات الكتاب ' + pages[0] + '–' + pages[pages.length - 1] + '.pdf');
+    let ok = parts.length === pages.length;
+    if (ok && parts.length === 1) fs.copyFileSync(parts[0], out);
+    else if (ok) { const u = spawnSync('pdfunite', parts.concat([out]), { encoding: 'utf8' }); ok = !u.error && u.status === 0; }
+    fs.rmSync(tmp, { recursive: true, force: true });
+    console.log(ok ? '  pdf of these pages: ' + out : '  NOT RUN: the pdf of these pages was not written (pdfseparate and pdfunite, from poppler-utils, are needed)');
+  }
   process.exit(stat.failed.length || done < pages.length ? 1 : 0);
 })();

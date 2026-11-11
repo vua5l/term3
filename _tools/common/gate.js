@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /* بوابة الدفعة بأمر واحد: الفحوص كلها بالترتيب، ثم النشر إن طُلب. تطبع أسطراً قليلة، وتكتب التفاصيل في ملف يُقرأ عند الحاجة.
-   الاستعمال: node _tools/common/gate.js <رمز المادة> [--lessons A-B] [--text ملف أو مجلد النص المنسوخ]... [--full] [--no-browser] [--check]
+   الاستعمال: node _tools/common/gate.js <رمز المادة> [--lessons A-B] [--pages مجلد العمل] [--full] [--no-browser] [--check]
                                          [--publish "وصف عربي في سطر"] [--trailer "سطر يُلحق برسالة الرفع"]...
      --lessons A-B   دروس الدفعة التي يمرّ عليها فحص المتصفح (والأصل كل الدروس المبنية).
-     --text          يُقابَل به كل نص حرفي في الموقع.
+     --pages         مجلد العمل (ما كتبته pages.js): يُقابَل كل نص منقول بقراءات صفحته الآلية حيث جُهّزت صفحته، كشفاً أولياً لا حكماً.
      --full          فحص التشغيل الكامل: يزيد محاكاة الجهازين (لموقع جديد أو شيفرة تغيّرت).
      --no-browser    بلا فحص المتصفح (يُذكر في النتيجة أنه لم يُجرَ).
      --check         لا يكتب ملفي الدروس والتعريفات، بل يتحقق أنهما مطابقان.
@@ -21,8 +21,8 @@ const { buildLessons } = require('./make-lessons');
 const { buildDefs, body } = require('./make-defs');
 const { checkDefs } = require('./defs-check');
 
-const { rest, flags } = lib.args(process.argv.slice(2), { lessons: 1, text: 'many', full: 0, 'no-browser': 0, check: 0, publish: 1, trailer: 'many' });
-if (!rest[0]) lib.die('usage: node gate.js <subject> [--lessons A-B] [--text file|dir]... [--full] [--no-browser] [--check] [--publish "msg"] [--trailer "line"]...');
+const { rest, flags } = lib.args(process.argv.slice(2), { lessons: 1, pages: 1, full: 0, 'no-browser': 0, check: 0, publish: 1, trailer: 'many' });
+if (!rest[0]) lib.die('usage: node gate.js <subject> [--lessons A-B] [--pages work-dir] [--full] [--no-browser] [--check] [--publish "msg"] [--trailer "line"]...');
 const S = lib.loadSubject(rest[0]);
 const rel = (f) => path.relative(S.repo, f);
 const out = [], detail = [];
@@ -39,24 +39,19 @@ function finish() {
 }
 const sh = (cmd, args, opt) => cp.spawnSync(cmd, args, Object.assign({ cwd: S.repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }, opt || {}));
 
-/* ملفات النص المنسوخ */
-const textFiles = [];
-(flags.text || []).forEach((t) => {
-  if (!fs.existsSync(t)) lib.die('--text: not found: ' + t);
-  if (fs.statSync(t).isDirectory()) fs.readdirSync(t).filter((f) => /\.md$/.test(f)).sort().forEach((f) => textFiles.push(path.join(t, f)));
-  else textFiles.push(t);
-});
+/* مجلد العمل: صور الصفحات وقراءاتها الآلية */
+const workDir = flags.pages ? path.resolve(flags.pages) : null;
+if (workDir && !fs.existsSync(workDir)) lib.die('--pages: not found: ' + flags.pages);
 
 let site;
 try { site = lib.loadSite(S, ['defs.js']); } catch (e) { step('load', 'FAIL', e.message); finish(); }
 
 /* 1) ملفات الفصول */
 {
-  const src = textFiles.length ? lib.sourceIndex(S, textFiles) : null;
   let nE = 0, nW = 0, pend = 0, built = 0;
   const per = [];
   site.cfg.chapters.forEach((id) => {
-    const r = validateFile(S, path.join(S.siteDir, 'data', id + '.js'), { src, noNotes: true });
+    const r = validateFile(S, path.join(S.siteDir, 'data', id + '.js'), { work: workDir, quiet: true, noNotes: true });
     detail.push('## validate ' + id, r.fatal || r.lines.join('\n'), '');
     if (r.fatal) { nE++; per.push(id + ' cannot load'); return; }
     nE += r.errors.length; nW += r.warns.length;
@@ -65,7 +60,7 @@ try { site = lib.loadSite(S, ['defs.js']); } catch (e) { step('load', 'FAIL', e.
   site.chapters.forEach((c) => (c.lessons || []).forEach((l) => { if (l.pending === true) pend++; else built++; }));
   const extra = fs.readdirSync(path.join(S.siteDir, 'data')).filter((f) => /^c\d+[a-z]?\.js$/.test(f) && !site.cfg.chapters.includes(f.replace(/\.js$/, '')));
   step('validate', nE ? 'FAIL' : 'OK', site.cfg.chapters.length + ' chapter files · lessons built ' + built + ', pending ' + pend + ' · errors ' + nE + ', warnings ' + nW +
-    (src ? ' · verbatim texts matched against ' + textFiles.length + ' text file(s)' : ' · no text given (verbatim texts not matched)') + (per.length ? ' · ' + per.join('; ') : '') +
+    (workDir ? ' · verbatim texts matched against the machine readings where their pages are prepared' : ' · no pages given (verbatim texts not matched)') + (per.length ? ' · ' + per.join('; ') : '') +
     (extra.length ? ' · data files not in config.js: ' + extra.join(', ') : ''));
 }
 

@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /* فحص ملف فصل، لأي مادة.
-   الاستعمال: node _tools/common/validate.js <رمز المادة> <ملف الفصل.js> [ملف النص المنسوخ.md ...] [--range 23-26] [--site]
+   الاستعمال: node _tools/common/validate.js <رمز المادة> <ملف الفصل.js> [--pages مجلد العمل] [--range 23-26] [--site]
+     --pages  مجلد العمل الذي كتبته pages.js: يُقابَل كل نص منقول بقراءات صفحته الآلية، كشفاً أولياً لا حكماً.
      --range  نطاق معرّفات الدروس المسندة إلى هذا الملف.
      --site   تُقابل أسئلة الملف بأسئلة فصول الموقع المنشورة أيضاً (تنبيه الأسئلة المتقاربة).
    يطبع الأخطاء (تمنع الرفع) والتنبيهات (تُراجَع)، ويخرج برمز 1 إن وُجد خطأ. */
 'use strict';
+const path = require('path');
 const lib = require('./lib');
 const notes = require('./warnings');
 
-/* opt: { range: [a, b], src: { all, body }, others: فصول أخرى تُقابل بها الأسئلة, noNotes: بلا التنبيهات الثلاثة } */
+/* opt: { range: [a, b], work: مجلد العمل (قراءات الصفحات), quiet: بلا تنبيه إلى صفحات لم تُجهَّز, others: فصول أخرى تُقابل بها الأسئلة, noNotes: بلا التنبيهات الثلاثة } */
 function validateChapter(S, ch, opt) {
   opt = opt || {};
   const C = S.checks, ETYPES = lib.ETYPES;
@@ -16,7 +18,9 @@ function validateChapter(S, ch, opt) {
   const errors = [], warns = [];
   const E = (m) => errors.push(m), W = (m) => warns.push(m);
   const range = opt.range || null;
-  const SRC = opt.src ? opt.src.all : null, SRC2 = opt.src ? opt.src.body : null;
+  const OCR = opt.work ? require('./ocrlib') : null, unready = new Set();
+  const LEX = new Set();   /* معجم المقابلة: كلمات الدفعة نفسها */
+  if (OCR) OCR.words(JSON.stringify(ch)).forEach((t) => { if (t.k === 'ar' && t.w.length > 1) LEX.add(t.w); });
 
   const chPg = pgNums(ch.pages);
   function checkPg(where, pg) {
@@ -30,13 +34,16 @@ function validateChapter(S, ch, opt) {
     }
   }
 
-  /* --- النص المنسوخ للمقابلة الآلية (كشف أولي لا حكم) --- */
-  function verbatim(where, text) {
-    if (!SRC || !isStr(text)) return;
-    const parts = text.replace(/\s*\[[^\]]+\]/g, '').split(   /* ما بين معقوفين تصحيح للخطأ الطباعي من الموقع، لا من الكتاب */
-      /\(\s*\.\.\.\s*\)|\(\s*…\s*\)|…|\.\.\./).map((x) => norm(x)).filter(Boolean);
-    const miss = parts.filter((p) => SRC.indexOf(p) < 0 && !(SRC2 && SRC2.indexOf(p) >= 0));
-    if (miss.length) W(where + ': verbatim text not found in the source transcription -> check against the page image: «' + text.slice(0, 90) + (text.length > 90 ? '…' : '') + '»');
+  /* --- مقابلة المنقول بقراءات صفحته الآلية: كشف أولي لا حكم. الحكم لصورة الصفحة عند المدقق المستقل --- */
+  function verbatim(where, text, pg) {
+    if (!OCR || !isStr(text)) return;
+    const clip = '«' + text.slice(0, 90) + (text.length > 90 ? '…' : '') + '»';
+    const r = OCR.checkQuote(S, opt.work, pg, text, LEX);
+    if (r.unready) { r.unready.forEach((p) => unready.add(p)); return; }
+    if (!r.found) { W(where + ': verbatim text not located in the machine readings of page ' + pg + ' -> check its page number, then its wording against the page image: ' + clip); return; }
+    /* يُنبَّه الباني إلى القوي وحده (strong في ocrlib.js). والأرقام والألفاظ الأجنبية تضعف فيها القراءة الآلية: يقابلها المدقق بالصورة */
+    const f = r.flags.filter((x) => x.strong && x.k === 'ar');
+    if (f.length) W(where + ': verbatim text differs from the machine readings (a first screen, not a verdict) -> look at the page image again: ' + f.slice(0, 5).map(OCR.say).join('؛ ') + (f.length > 5 ? ' …' : '') + ' in ' + clip);
   }
 
   /* --- التواريخ: تنبيه لمادة تُحذف تواريخها --- */
@@ -120,7 +127,7 @@ function validateChapter(S, ch, opt) {
         if (d.front !== undefined && !isStr(d.front)) E(w + ': def.front must be a non-empty string when present');
         if (!isStr(d.fam)) W(w + ': no def.fam (family of similar definitions)');
         checkPg(w, b.pg);
-        verbatim(w, full);
+        verbatim(w, full, b.pg);
         if (d.card !== undefined) {
           const k = K.find((c) => c && c.id === d.card);
           if (!k) E(w + ': def.card ' + d.card + ' is not among the lesson cards (run merge to derive it)');
@@ -138,7 +145,7 @@ function validateChapter(S, ch, opt) {
         if (!Array.isArray(b.items) || b.items.length < 2 || !b.items.every(isStr)) E(w + ': list needs items[] (2+ strings)');
       } else if (!isStr(b.x)) E(w + ': needs x');
       checkPg(w, b.pg);
-      if (b.t === 'q') verbatim(w, b.x);
+      if (b.t === 'q') verbatim(w, b.x, b.pg);
     });
     K.forEach((k, i) => {
       const w = L + '.cards[' + i + ']';
@@ -147,7 +154,7 @@ function validateChapter(S, ch, opt) {
       if (k.type === 'def') {
         if (!isStr(k.back)) E(w + ': def needs back');
         if (typeof k.bk !== 'boolean') E(w + ': def needs bk true|false');
-        if (k.bk) verbatim(w, k.back);
+        if (k.bk) verbatim(w, k.back, k.pg);
         if (C.defs === 'summary') {
           if (k.auto === true) { if (!linked.has(k.id)) E(w + ': derived card ' + k.id + ' has no definition in the summary (run merge to remove it)'); }
           else if (k.bk === true) E(w + ': a card holding the book\'s exact definition is derived, not written: write the definition once in the summary (q block with def and parts) and delete this card');
@@ -250,7 +257,7 @@ function validateChapter(S, ch, opt) {
       const w = 'defs[' + i + '] ' + (d && d.term);
       if (!isStr(d.term)) E(w + ': missing term');
       if (!Array.isArray(d.parts) || d.parts.length < 2 || d.parts.length > 14 || !d.parts.every(isStr)) E(w + ': parts[] must hold 2–14 pieces');
-      else verbatim(w, d.parts.join(' '));
+      else verbatim(w, d.parts.join(' '), d.pg);
       if (d.hide !== undefined && (!Array.isArray(d.hide) || !d.hide.every(isStr))) E(w + ': hide must be an array of strings');
       if (!isStr(d.fam)) W(w + ': no fam (family of similar definitions)');
       checkPg(w, d.pg);
@@ -276,6 +283,8 @@ function validateChapter(S, ch, opt) {
   if (!opt.noNotes && C.longest) notes.longest([ch], C.longest).lines.forEach(W);
   if (!opt.noNotes && C.dupDefs) notes.dupDefs(notes.defsOf(S, [ch])).lines.forEach(W);
 
+  if (unready.size && !opt.quiet) W('verbatim texts were not matched on page(s) not prepared in the work dir: ' + Array.from(unready).sort((x, y) => x - y).join(', '));
+
   const lines = [];
   lines.push('== ' + ch.id + ' ' + ch.name + ' (' + ch.pages + ')');
   stats.forEach((s) => lines.push('  ' + s));
@@ -296,13 +305,13 @@ function validateFile(S, file, opt) {
 }
 
 if (require.main === module) {
-  const { rest, flags } = lib.args(process.argv.slice(2), { range: 1, site: 0 });
-  const [code, file, ...srcFiles] = rest;
-  if (!code || !file) lib.die('usage: node validate.js <subject> chapter.js [source.md ...] [--range 23-26] [--site]');
+  const { rest, flags } = lib.args(process.argv.slice(2), { range: 1, site: 0, pages: 1 });
+  const [code, file, ...more] = rest;
+  if (!code || !file || more.length) lib.die('usage: node validate.js <subject> chapter.js [--pages work-dir] [--range 23-26] [--site]' + (more.length ? '\n  text files are no longer read: verbatim texts are matched against the machine readings of their pages (--pages)' : ''));
   const S = lib.loadSubject(code);
   const opt = {};
   if (flags.range) opt.range = flags.range.split('-').map(Number);
-  if (srcFiles.length) opt.src = lib.sourceIndex(S, srcFiles);
+  if (flags.pages) { opt.work = path.resolve(flags.pages); if (!require('fs').existsSync(opt.work)) lib.die('--pages: not found: ' + flags.pages); }
   if (flags.site) { try { opt.others = lib.loadSite(S).chapters; } catch (e) { lib.die('ERROR: --site: ' + e.message, 1); } }
   const res = validateFile(S, file, opt);
   if (res.fatal) lib.die(res.fatal, 1);

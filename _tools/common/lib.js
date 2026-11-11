@@ -21,8 +21,7 @@ const DEFAULTS = {
   global: '',               /* اسم الكائن في ملفات البيانات، والأصل الرمز بحروف كبيرة: LAW140 */
   site: '',                 /* مجلد الموقع، والأصل الرمز */
   book: { title: '', author: '', pdfOffset: 0 },   /* pdfOffset: صفحة الملف المصوَّر = صفحة الكتاب − هذا الرقم */
-  text: { pageMark: 'eq' }, /* علامة الصفحة في ملفات النص المنسوخ: eq «=== ص 127 ===» أو hash «# ص 127» */
-  copy: {                   /* تدقيق النسخ: صور الصفحات والقراءات الآلية (pages.js وcompare.js وcrops.js) */
+  scan: {                   /* الملف المصوَّر: صور الصفحات وقراءاتها الآلية (pages.js وscan.js وcrops.js، ومقابلة المنقول في validate.js) */
     dpi: 300,               /* دقة صورة الصفحة التي تُقصّ منها القصاصات */
     zoom: 600,              /* دقة القصاصة التي تُعرض وحدها مكبّرة */
     readings: [             /* القراءات الآلية، ثلاث بإعدادات تختلف صورها: الاسم، ودقة الصورة، ووسائط tesseract. الثانية والثالثة اختيرتا بالتجربة على كتاب حقيقي */
@@ -49,7 +48,7 @@ const DEFAULTS = {
   },
   smoke: { routes: ['#home', '#plan', '#sum', '#quiz', '#rev', '#review', '#eve', '#nb', '#cells'] }
 };
-const ENUMS = { 'checks.defs': ['summary', 'chapter', 'manual'], 'checks.intro': ['require', 'optional', 'off'], 'checks.map': ['off', 'require'], 'checks.dates': ['off', 'warn'], 'text.pageMark': ['eq', 'hash'] };
+const ENUMS = { 'checks.defs': ['summary', 'chapter', 'manual'], 'checks.intro': ['require', 'optional', 'off'], 'checks.map': ['off', 'require'], 'checks.dates': ['off', 'warn'] };
 
 function die(msg, code) { console.error(msg); process.exit(code === undefined ? 2 : code); }
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -83,13 +82,13 @@ function loadSubject(arg) {
     const v = k.split('.').reduce((o, p) => o[p], S);
     if (!ENUMS[k].includes(v)) die(file + ': ' + k + ' must be one of ' + ENUMS[k].join(' | ') + ' (got ' + JSON.stringify(v) + ')');
   });
-  const C = S.copy, okDpi = (d) => Number.isInteger(d) && d >= 72 && d <= 1200;
-  if (!okDpi(C.dpi) || !okDpi(C.zoom)) die(file + ': copy.dpi and copy.zoom must be whole numbers between 72 and 1200');
-  if (!Array.isArray(C.readings) || C.readings.length < 2) die(file + ': copy.readings must list at least two readings');
+  const C = S.scan, okDpi = (d) => Number.isInteger(d) && d >= 72 && d <= 1200;
+  if (!okDpi(C.dpi) || !okDpi(C.zoom)) die(file + ': scan.dpi and scan.zoom must be whole numbers between 72 and 1200');
+  if (!Array.isArray(C.readings) || C.readings.length < 2) die(file + ': scan.readings must list at least two readings');
   C.readings.forEach((r, n) => {
     if (!isObj(r) || !/^[a-z][a-z0-9]*$/.test(r.name || '') || !okDpi(r.dpi) || !isStr(r.args) || Object.keys(r).some((k) => !['name', 'dpi', 'args'].includes(k)))
-      die(file + ': copy.readings[' + n + '] must be { name: "a", dpi: 300, args: "-l ara --psm 3" }');
-    if (C.readings.findIndex((x) => x && x.name === r.name) !== n) die(file + ': copy.readings: the name "' + r.name + '" is used twice');
+      die(file + ': scan.readings[' + n + '] must be { name: "a", dpi: 300, args: "-l ara --psm 3" }');
+    if (C.readings.findIndex((x) => x && x.name === r.name) !== n) die(file + ': scan.readings: the name "' + r.name + '" is used twice');
   });
   S.global = S.global || S.code.toUpperCase();
   S.site = S.site || S.code;
@@ -155,36 +154,6 @@ function span(pg) {
   return m ? [Math.min(...m.map(Number)), Math.max(...m.map(Number))] : null;
 }
 
-/* --- ملفات النص المنسوخ --- */
-const MARKS = {
-  eq: { line: /^===\s*ص\s*[0-9٠-٩]+\s*===\s*$/, lines: /^===\s*ص\s*[0-9٠-٩]+\s*===\s*$/gm, split: /^===\s*ص\s*([0-9٠-٩]+)\s*===\s*$/m },
-  hash: { line: /^#+\s*ص\s*[0-9٠-٩]+.*$/, lines: /^#+\s*ص\s*[0-9٠-٩]+.*$/gm, split: /^#+\s*ص\s*([0-9٠-٩]+).*$/m }
-};
-/* فهرس للمقابلة الآلية: all النص كله موحَّداً، وbody المتن وحده (تُحذف الحواشي حتى علامة الصفحة التالية، فيتصل نص يعبر من صفحة إلى التي بعدها) */
-function sourceIndex(S, files) {
-  const text = files.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
-  const M = MARKS[S.text.pageMark];
-  if (S.text.pageMark === 'hash') return { all: norm(text.replace(M.lines, ' ').replace(/\[هامش[^\]]*\]/g, ' ')), body: null };
-  const all = norm(text.replace(M.lines, ' ').replace(/^#+\s*/gm, ' ').replace(/\*\*/g, ' ').replace(/^حواشي:\s*$/gm, ' ').replace(/\[هامش[^\]]*\]/g, ' '));
-  let inFn = false;
-  const body = text.split('\n').filter((ln) => {
-    if (M.line.test(ln)) { inFn = false; return false; }
-    if (/^حواشي:\s*$/.test(ln)) { inFn = true; return false; }
-    return !inFn;
-  }).join('\n').replace(/^#+\s*/gm, ' ').replace(/\*\*/g, ' ');
-  return { all, body: norm(body) };
-}
-/* نص كل صفحة برقمها */
-function sourcePages(S, files) {
-  const PAGES = {};
-  const M = MARKS[S.text.pageMark];
-  files.forEach((f) => {
-    const parts = fs.readFileSync(f, 'utf8').split(M.split);
-    for (let i = 1; i < parts.length; i += 2) PAGES[+toLatin(parts[i])] = parts[i + 1].trim();
-  });
-  return PAGES;
-}
-
 /* --- تعريف الملخص (حين checks.defs = summary): كتلة q فيها def وparts --- */
 const isDefBlock = (b) => !!b && b.t === 'q' && b.def !== undefined;
 const defText = (b) => (Array.isArray(b.parts) ? b.parts.join(' ') : '');
@@ -206,4 +175,4 @@ function args(argv, spec) {
   return { rest, flags };
 }
 
-module.exports = { TOOLS, REPO, ETYPES, DEFAULTS, die, isObj, isStr, loadSubject, newCtx, run, loadChapter, loadSite, copy, toLatin, norm, ws, pgNums, span, MARKS, sourceIndex, sourcePages, isDefBlock, defText, defFull, args };
+module.exports = { TOOLS, REPO, ETYPES, DEFAULTS, die, isObj, isStr, loadSubject, newCtx, run, loadChapter, loadSite, copy, toLatin, norm, ws, pgNums, span, isDefBlock, defText, defFull, args };

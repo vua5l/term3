@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-/* نسخة المراجعة (للمراجع المستقل وحده، ولجيمني): ما كتبه Claude بعبارته وحده، ومع كل درس نص الكتاب الذي بُني عليه بصفحاته.
-   لا يدخلها ما نُقل حرفياً (كتل «q»، والتعريفات، وبطاقات التعريف بنص الكتاب bk: true)، لأنه قوبل بصور الصفحات ويُفحص آلياً.
-   الاستعمال: node _tools/common/review-copy.js <رمز المادة> <ملف الفصل.js> <ملف النص المنسوخ.md> [ملف نص آخر.md ...] > review-cN.md */
+/* نسخة المراجعة (للمراجع المستقل ولجيمني): ما كتبه Claude بعبارته وحده، وعند كل موضع رقم صفحته في الكتاب.
+   ليس فيها نص من الكتاب: المراجع يقابلها بصفحات الكتاب نفسها، وجيمني بملف صفحات الدفعة.
+   ولا يدخلها ما نُقل حرفياً (كتل «q»، والتعريفات، وبطاقات التعريف بنص الكتاب bk: true)، لأنه يُقابَل بصور الصفحات عند المدقق المستقل.
+   الاستعمال: node _tools/common/review-copy.js <رمز المادة> <ملف الفصل أو الجزء.js> > review-cN.md */
 'use strict';
 const lib = require('./lib');
-const [code, file, ...srcFiles] = process.argv.slice(2);
-if (!code || !file || !srcFiles.length) lib.die('usage: node review-copy.js <subject> chapter.js text.md [text2.md]');
+const [code, file, ...more] = process.argv.slice(2);
+if (!code || !file || more.length) lib.die('usage: node review-copy.js <subject> chapter.js' + (more.length ? '\n  the review copy no longer holds the book text: the reviewer compares it with the pages themselves' : ''));
 const S = lib.loadSubject(code);
 let ch;
 try { ch = lib.loadChapter(S, file); } catch (e) { lib.die('ERROR: ' + e.message, 1); }
-const PAGES = lib.sourcePages(S, srcFiles);
 
 const L = [];
 const p = (s) => L.push(s);
@@ -17,13 +17,10 @@ const pg = (x) => (x ? ' [ص ' + x + ']' : '');
 const AB = ['أ', 'ب', 'ج', 'د'];
 const TF = S.checks.tfReason ? ' بيّن مدى صحة العبارة: ' : ' صح أو خطأ: ';
 p('# نسخة المراجعة: ' + ch.title + '، ' + ch.name + ' (ص ' + ch.pages + ')');
-p('فيها ما كتبه Claude بعبارته وحده، ولكل درس نص الكتاب الذي بُني عليه بصفحاته. والجواب المعتمد معلَّم بـ [المعتمد]، ونوع الخطأ الذي بُني عليه كل خيار خاطئ أو عبارة خاطئة بين قوسين.');
+p('فيها ما كتبه Claude بعبارته وحده، وعند كل موضع رقم صفحته في الكتاب: قابله بالصفحة نفسها، فليس فيها نص من الكتاب. والجواب المعتمد معلَّم بـ [المعتمد]، ونوع الخطأ الذي بُني عليه كل خيار خاطئ أو عبارة خاطئة بين قوسين.');
 ch.lessons.forEach((l) => {
   if (l.pending === true) return;   /* درس معلّق لم يُبنَ: لا شيء فيه يُراجَع */
   p('\n\n## الدرس ' + l.id + ': ' + l.title + ' (ص ' + l.pages + ')');
-  const s = lib.span(l.pages);
-  p('\n### نص الكتاب لهذا الدرس');
-  if (s) for (let n = s[0]; n <= s[1]; n++) p('\n[ص ' + n + ']\n' + (PAGES[n] || '(لا نص لهذه الصفحة في الملف)'));
   if (Array.isArray(l.intro) && l.intro.length) {
     p('\n### التمهيد المبسّط (بعبارة Claude، للفهم لا للحفظ، ولا شيء فيه من خارج الملخص)');
     l.intro.forEach((x, i) => p('- ' + l.id + '.i' + (i + 1) + ' ' + x));

@@ -1,25 +1,22 @@
 #!/usr/bin/env node
 /* حال الدفعات ونسبة الاستخدام قبل كل دفعة وبعدها، في _tools/<رمز المادة>/plan.json مع خطة الدروس.
-   الدفعة نوعان: نسخ (صفحات تُنسخ من الكتاب وتُدقَّق) ومحتوى (دروس تُبنى وتُراجَع وتُنشر).
+   الدفعة دفعة محتوى: دروس تُبنى من صور صفحاتها وتُراجَع وتُنشر.
    الاستعمال:
      node _tools/common/status.js <رمز>                              الجدول كله في أسطر قليلة
-     node _tools/common/status.js <رمز> add copy 98-129 ["ملاحظة"]     دفعة نسخ لصفحات
      node _tools/common/status.js <رمز> add content 1-5 c1 ["ملاحظة"]  دفعة محتوى لدروس l1..l5 في ملف c1
      node _tools/common/status.js <رمز> set <رقم الدفعة> <الحال>
      node _tools/common/status.js <رمز> usage <رقم الدفعة> before|after <النسبة>     من Settings > Usage
      node _tools/common/status.js <رمز> note <رقم الدفعة> "ملاحظة"
-   أحوال النسخ:    planned copied compared audited gemini done
-   أحوال المحتوى:  planned built checked reviewed gemini published */
+   الأحوال:  planned built checked reviewed gemini published */
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const lib = require('./lib');
 
 const STATES = {
-  copy: { planned: 'مخطّطة', copied: 'نُسخت', compared: 'قورنت بالقراءتين الآليتين', audited: 'دقّقها المدقق المستقل', gemini: 'عادت من جيمني', done: 'اعتُمد نصها' },
   content: { planned: 'مخطّطة', built: 'بُنيت', checked: 'اجتازت الفحص الآلي', reviewed: 'راجعها المراجع المستقل وصُحّحت', gemini: 'عادت من جيمني', published: 'نُشرت' }
 };
-const KIND = { copy: 'نسخ', content: 'محتوى' };
+const KIND = { content: 'محتوى' };
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
 
 function planFile(S) { return path.join(S.repo, '_tools', S.code, 'plan.json'); }
@@ -38,29 +35,30 @@ function savePlan(P) {
   fs.writeFileSync(P.file, JSON.stringify(P.plan, null, 1) + '\n');
 }
 const pct = (x) => (typeof x === 'number' ? x + '%' : '—');
-function rangeText(b) { return b.kind === 'copy' ? 'ص ' + b.range : 'l' + String(b.range).replace('-', '–l') + (b.file ? ' (' + b.file + ')' : ''); }
+function rangeText(b) { return 'l' + String(b.range).replace('-', '–l') + (b.file ? ' (' + b.file + ')' : ''); }
 function table(S, P) {
   const B = P.plan.batches, L = [];
   L.push(S.code + ' ' + S.name + ' · الدروس في الخطة ' + P.plan.lessons.length + ' · الدفعات ' + B.length + (P.legacy ? ' (خطة قديمة بلا دفعات)' : ''));
-  const sum = { copy: 0, content: 0 }, missing = [];
+  const missing = [];
+  let sum = 0;
   B.forEach((b) => {
     const u = b.usage || {}, both = typeof u.before === 'number' && typeof u.after === 'number';
     const cost = both ? u.after - u.before : null;
-    if (cost !== null && cost >= 0) sum[b.kind] += cost;
+    if (cost !== null && cost >= 0) sum += cost;
     if (typeof u.before !== 'number') missing.push(b.n + ' (قبل)');
-    else if (typeof u.after !== 'number' && ['done', 'published'].includes(b.state)) missing.push(b.n + ' (بعد)');
+    else if (typeof u.after !== 'number' && b.state === 'published') missing.push(b.n + ' (بعد)');
     const last = (b.log || []).slice(-1)[0];
-    L.push(' ' + b.n + ' | ' + KIND[b.kind] + ' | ' + rangeText(b) + ' | ' + (STATES[b.kind][b.state] || b.state) + ' | الاستخدام ' + pct(u.before) + ' ← ' + pct(u.after) +
+    L.push(' ' + b.n + ' | ' + (KIND[b.kind] || b.kind) + ' | ' + rangeText(b) + ' | ' + ((STATES[b.kind] || {})[b.state] || b.state) + ' | الاستخدام ' + pct(u.before) + ' ← ' + pct(u.after) +
       ' | الكلفة ' + (cost === null ? '—' : cost < 0 ? 'تجدّد الرصيد بين القياسين' : '+' + cost) + (last ? ' | ' + last.date : '') + (b.note ? ' | ' + b.note : ''));
   });
-  if (B.length) L.push('المجموع المسجَّل: +' + (sum.copy + sum.content) + ' (نسخ +' + sum.copy + '، محتوى +' + sum.content + ')');
+  if (B.length) L.push('المجموع المسجَّل: +' + sum);
   if (missing.length) L.push('تذكير: نسبة الاستخدام ناقصة في الدفعات: ' + missing.join('، ') + '. تُسأل من Settings > Usage.');
   return L;
 }
 
 function main(argv) {
   const [code, cmd, ...a] = argv;
-  if (!code) lib.die('usage: node status.js <subject> [add copy A-B | add content A-B cN | set N state | usage N before|after P | note N "text"]');
+  if (!code) lib.die('usage: node status.js <subject> [add content A-B cN | set N state | usage N before|after P | note N "text"]');
   const S = lib.loadSubject(code);
   const P = loadPlan(S);
   const find = (n) => { const b = P.plan.batches.find((x) => x.n === +n); if (!b) throw new Error('no batch ' + n); return b; };
@@ -68,7 +66,7 @@ function main(argv) {
     if (!cmd) { console.log(table(S, P).join('\n')); return; }
     if (cmd === 'add') {
       const [kind, range, x, y] = a;
-      if (!STATES[kind] || !/^\d+-\d+$/.test(range || '')) throw new Error('add copy 98-129 ["note"]  |  add content 1-5 c1 ["note"]');
+      if (!STATES[kind] || !/^\d+-\d+$/.test(range || '')) throw new Error('add content 1-5 c1 ["note"]');
       const b = { n: P.plan.batches.reduce((m, q) => Math.max(m, q.n), 0) + 1, kind, range, state: 'planned', usage: { before: null, after: null }, log: [{ state: 'planned', date: today() }] };
       if (kind === 'content') { if (!/^c\d+[a-z]?$/.test(x || '')) throw new Error('add content needs the chapter file id, e.g. c1'); b.file = x; if (y) b.note = y; }
       else if (x) b.note = x;
