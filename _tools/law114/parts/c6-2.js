@@ -4,7 +4,7 @@
 (window.LAW114 = window.LAW114 || { chapters: [] }).chapters.push({
  "id": "c6",
  "title": "إبطال العقد وبطلانه",
- "name": "TODO-NAME-c6",
+ "name": "الفصل الأول: العقد — المبحث الرابع: إبطال العقد وبطلانه",
  "pages": "128–131",
  "lessons": [
   {
