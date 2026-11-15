@@ -34,7 +34,7 @@ function pg(p) { return p ? '<span class="chip pg">ص ' + esc(p) + '</span>' : '
 var IMPW = { 1: 'الأهم', 2: 'مهم' };
 function expChip(x) { return x && x.imp ? '<span class="chip exp' + (x.imp === 2 ? ' lv2' : '') + '">' + IMPW[x.imp] + '</span>' : ''; }
 function lesChip(l) { return l && l.imp ? '<span class="chip exp' + (l.imp === 2 ? ' lv2' : '') + '">' + IMPW[l.imp] + (l.imp === 1 ? ' · ' + l.rank : '') + '</span>' : ''; }
-/* كتلة الملخص الموسومة يميزها خط جانبي، فلا تتكرر الشارة في كل فقرة */
+/* كتلة الملخص الموسومة يميزها تظليل خفيف (لا خط جانبي، فالخط الجانبي هنا علامة نص الكتاب)، فلا تتكرر الشارة في كل فقرة */
 function impAttr(b, base) { var c = (base || '') + (b && b.imp ? ' imp-b' + (b.imp === 2 ? ' lv2' : '') : ''); return c ? ' class="' + c.trim() + '"' : ''; }
 function arr(x) { return Array.isArray(x) ? x : []; }
 function num(id) { return +String(id == null ? '' : id).replace(/\D/g, '') || 0; }
@@ -847,7 +847,7 @@ function lessonHTML(n) {
   var i = LES.indexOf(l), prev = LES[i - 1], next = LES[i + 1], tbs = lesTables(l);
   var h = '<div class="block-head"><button type="button" class="link" data-go="#sum">الملخصات</button><span class="chip">الدرس ' + l.no + ' من ' + LES.length + '</span></div>' +
     '<section class="les-head"><p class="eyebrow">' + esc(chLabel(l.ch)) + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</p><h2>' + esc(l.title) + '</h2>' +
-    (l.imp ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">الخط الجانبي يعلّم الفقرات الموسومة</span></div>' : '') +
+    (l.imp ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">المظلَّل من الملخص هو المهم</span></div>' : '') +
     (exitFlag(l) ? '<p class="p0"><span class="flag solo">ينقصه تسميع الخروج</span></p>' : '') +
     (todayTask(l.id) && todayTask(l.id).kind === 'recall' ? '<p class="fin-msg">مهمتك اليوم في هذا الدرس تسميع بلا كتاب. <a href="#r-' + l.n + '">ابدأ التسميع</a></p>' : '') +
     '<div class="les-quick">' + (l.cards.length ? '<button type="button" class="btn ghost sm" data-act="deck-lesson" data-n="' + l.n + '">بطاقاته (' + l.cards.length + ')</button>' : '') +
@@ -1188,7 +1188,7 @@ function runHTML() {
   if (!(q.id in quiz.nb0)) quiz.nb0[q.id] = inNb(q.id);
   var h = '<div class="block-head"><h2>' + esc(quiz.label) + '</h2><button type="button" class="link" data-act="quit">' + (quiz.quitArmed ? 'اضغط مرة أخرى للإنهاء' : 'إنهاء') + '</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * quiz.i / n) + '%"></div></div><span class="n">' + (quiz.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + (quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + '</div>';
+    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + expChip(q) + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + (quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + '</div>';
   var b = '<p class="q-text">' + qText(q) + '</p>';
   if (q.k === 'tf') {
     /* صح أو خطأ مع التعليل: يختار الحكم، ثم يعلّل بكلماته أو في ذهنه، ثم ينكشف الجواب وتعليل الكتاب فيقارن */
@@ -1717,7 +1717,7 @@ function impGroupHTML(n) {
         btn: '<button type="button" class="btn' + (left ? '' : ' ghost') + '" data-act="imp-start" data-g="' + g.idx + '" data-st="' + st + '">' + (left ? (d ? 'تابع' : 'ابدأ') : 'أعدها') + '</button>' };
     }));
   if (g.les.length) {
-    h += '<p class="sec-title">الملخص</p><p class="muted small p0">افتحه إن أردت القراءة، فالخط الجانبي فيه يعلّم الفقرات الموسومة.</p><ol class="les-list">' + g.les.map(function (l) {
+    h += '<p class="sec-title">الملخص</p><p class="muted small p0">افتحه إن أردت القراءة، فالمظلَّل فيه هو المهم.</p><ol class="les-list">' + g.les.map(function (l) {
       return '<li><a class="les-row" href="#l-' + l.n + '"><span class="les-no">' + l.no + '</span><span class="les-tx"><b>' + esc(l.title) + '</b><span>ص ' + esc(l.pages) + '</span></span>' + GO + '</a></li>';
     }).join('') + '</ol>';
   }

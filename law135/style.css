@@ -882,3 +882,13 @@ a.side-row{text-decoration:none;color:inherit}
 
 /* تباين: أخضر النجاح في النهار أغمق قليلاً ليبلغ 4.5:1 على خلفيته (كان 4.33) */
 :root{--ok:#2A7050}
+
+/* وسم «مهم» (data/imp.js): شارة محددة بلون العلامة، تختلف عن «متوقع» المصمتة وعن الشارات الرمادية.
+   وكتلة الملخص الموسومة تُظلَّل تظليلاً خفيفاً، لا خطاً جانبياً، لأن الخط الجانبي هنا علامة نص الكتاب */
+.chip.exp{border-color:var(--mark);color:var(--mark);font-weight:700;margin-inline-start:6px;vertical-align:1px}
+.chips > .chip.exp,.les-st > .chip.exp{margin:0}
+.night-list .chip.exp{font-size:11px;padding:0 7px}
+.imp-b{background:var(--tint);border-radius:12px;padding:8px 12px;margin-inline:-10px}
+.quote.imp-b{background:var(--tint);border-radius:4px var(--r2) var(--r2) 4px;padding:14px 16px;margin-inline:0}
+.sum-note.imp-b{background:var(--tint);border-radius:var(--r2);padding:12px 14px;margin-inline:0}
+.imp-leg{align-self:center;font-size:12.5px;color:var(--sec)}
