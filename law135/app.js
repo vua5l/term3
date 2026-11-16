@@ -33,9 +33,10 @@ function pg(p) { return p ? '<span class="chip pg">ص ' + esc(p) + '</span>' : '
 /* الوسم: 1 «الأهم» و2 «مهم» */
 var IMPW = { 1: 'الأهم', 2: 'مهم' };
 function expChip(x) { return x && x.imp ? '<span class="chip exp' + (x.imp === 2 ? ' lv2' : '') + '">' + IMPW[x.imp] + '</span>' : ''; }
-function lesChip(l) { return l && l.imp ? '<span class="chip exp' + (l.imp === 2 ? ' lv2' : '') + '">' + IMPW[l.imp] + (l.imp === 1 ? ' · ' + l.rank : '') + '</span>' : ''; }
-/* كتلة الملخص الموسومة يميزها تظليل خفيف (لا خط جانبي، فالخط الجانبي هنا علامة نص الكتاب)، فلا تتكرر الشارة في كل فقرة */
-function impAttr(b, base) { var c = (base || '') + (b && b.imp ? ' imp-b' + (b.imp === 2 ? ' lv2' : '') : ''); return c ? ' class="' + c.trim() + '"' : ''; }
+function lesChip(l) { return (l && l.imp ? '<span class="chip exp' + (l.imp === 2 ? ' lv2' : '') + '">' + IMPW[l.imp] + (l.imp === 1 ? ' · ' + l.rank : '') + '</span>' : '') + xpTag(l); }
+/* كتلة الملخص الموسومة يميزها تظليل خفيف (لا خط جانبي، فالخط الجانبي هنا علامة نص الكتاب)، فلا تتكرر الشارة في كل فقرة.
+   و«متوقع» (data/exp.js) يميز كتلته إطار رفيع، فيجتمع مع تظليل «مهم» في الكتلة الواحدة */
+function impAttr(b, base) { var c = (base || '') + (b && b.imp ? ' imp-b' + (b.imp === 2 ? ' lv2' : '') : '') + (b && b.xp && expOn() ? ' xp-b' : ''); return c ? ' class="' + c.trim() + '"' : ''; }
 function arr(x) { return Array.isArray(x) ? x : []; }
 function num(id) { return +String(id == null ? '' : id).replace(/\D/g, '') || 0; }
 function now() { return Date.now(); }
@@ -178,6 +179,21 @@ var IMP = [], IMPN = [], TBID = {};
     night.forEach(function (k) { var m = String(k).split(':'); CH[m[0]].night[+m[1]].imp = lv; });
     Object.keys(g.s || {}).forEach(function (lid) { var l = LBY[lid]; if (l) arr(g.s[lid]).forEach(function (i) { if (l.summary[i]) l.summary[i].imp = lv; }); });
     ls.forEach(function (l) { l.imp = lv; l.rank = x.no; });
+  });
+})();
+/* «متوقع» بالصفحات: من data/exp.js (window.LAW135_EXP)، كل ما في صفحات أسئلة التجميعات يحمل x.xp = 1. فإن غاب الملف بقي «متوقع» على أسئلة التجميعات وحدها، في المراجعة وحدها */
+(function buildXp() {
+  var D = window.LAW135_EXP;
+  if (!D || typeof D !== 'object' || !arr(D.groups).length) return;
+  Object.keys(D.defs || {}).forEach(function (id) { if (DBY[id]) DBY[id].xp = 1; });
+  arr(D.groups).forEach(function (g) {
+    var ls = arr(g && g.les).map(function (id) { return LBY[id]; }).filter(Boolean); if (!ls.length) return;
+    arr(g.c).forEach(function (id) { if (K[id]) K[id].xp = 1; });
+    arr(g.o).forEach(function (id) { if (Q[id]) Q[id].xp = 1; });
+    arr(g.t).forEach(function (id) { if (TBID[id]) TBID[id].xp = 1; });
+    arr(g.n).forEach(function (k) { var m = String(k).split(':'), n = CH[m[0]] && CH[m[0]].night[+m[1]]; if (n) n.xp = 1; });
+    Object.keys(g.s || {}).forEach(function (lid) { var l = LBY[lid]; if (l) arr(g.s[lid]).forEach(function (i) { if (l.summary[i]) l.summary[i].xp = 1; }); });
+    ls.forEach(function (l) { l.xp = 1; });
   });
 })();
 function cellsOf(chId) { return CELLS.filter(function (c) { return c.ch.id === chId; }); }
@@ -847,7 +863,7 @@ function lessonHTML(n) {
   var i = LES.indexOf(l), prev = LES[i - 1], next = LES[i + 1], tbs = lesTables(l);
   var h = '<div class="block-head"><button type="button" class="link" data-go="#sum">الملخصات</button><span class="chip">الدرس ' + l.no + ' من ' + LES.length + '</span></div>' +
     '<section class="les-head"><p class="eyebrow">' + esc(chLabel(l.ch)) + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</p><h2>' + esc(l.title) + '</h2>' +
-    (l.imp ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">المظلَّل من الملخص هو المهم</span></div>' : '') +
+    (l.imp || xpTag(l) ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">' + (l.imp && xpTag(l) ? 'المظلَّل هو المهم، والمؤطَّر هو المتوقع' : l.imp ? 'المظلَّل من الملخص هو المهم' : 'المؤطَّر من الملخص هو المتوقع') + '</span></div>' : '') +
     (exitFlag(l) ? '<p class="p0"><span class="flag solo">ينقصه تسميع الخروج</span></p>' : '') +
     (todayTask(l.id) && todayTask(l.id).kind === 'recall' ? '<p class="fin-msg">مهمتك اليوم في هذا الدرس تسميع بلا كتاب. <a href="#r-' + l.n + '">ابدأ التسميع</a></p>' : '') +
     '<div class="les-quick">' + (l.cards.length ? '<button type="button" class="btn ghost sm" data-act="deck-lesson" data-n="' + l.n + '">بطاقاته (' + l.cards.length + ')</button>' : '') +
@@ -916,7 +932,7 @@ function nightHTML() {
   var h = '';
   CHS.forEach(function (c) {
     if (!c.night.length) return;
-    h += '<p class="sec-title">' + esc(chLabel(c)) + '</p><ol class="night-list">' + c.night.map(function (x) { return '<li>' + rich(x.x) + pg(x.pg) + expChip(x) + '</li>'; }).join('') + '</ol>';
+    h += '<p class="sec-title">' + esc(chLabel(c)) + '</p><ol class="night-list">' + c.night.map(function (x) { return '<li>' + rich(x.x) + pg(x.pg) + expChip(x) + xpTag(x) + '</li>'; }).join('') + '</ol>';
   });
   return h || '<div class="empty">لم تصل ورقة الليلة الأخيرة بعد.</div>';
 }
@@ -948,7 +964,7 @@ function cardHTML(k, flipped) {
   var ty = KLBL[k.type] || 'بطاقة', ref = 'ص ' + (k.pg || k.les.pages);
   return '<button type="button" class="fc t-' + esc(k.type) + (flipped ? ' flipped' : '') + '" data-act="flip" aria-label="' + (flipped ? 'اعرض الوجه' : 'اقلب البطاقة') + '">' +
     '<span class="fc-inner">' +
-      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (k.imp ? IMPW[k.imp] + ' · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
+      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (k.imp ? IMPW[k.imp] + ' · ' : '') + (xpTag(k) ? 'متوقع · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
       '<span class="face back" aria-hidden="' + !flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + esc(ref) + '</span></span><span class="fc-body">' + backHTML(k) + '</span></span>' +
     '</span></button>';
 }
@@ -1052,7 +1068,7 @@ function lesPicker(sel, act, cnt, word) {
     h += '<div class="les-pick"><div class="les-pick-h"><b>' + esc(chLabel(c)) + '</b><button type="button" class="link" data-act="' + act + '-ch" data-ch="' + c.id + '">' + (all ? 'ألغِ الفصل' : 'الفصل كله') + '</button></div>' +
       '<div class="pick soft" role="group" aria-label="' + esc(c.title) + '">' + c.les.map(function (l) {
         var n = cnt(l);
-        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + (l.imp ? ' · ' + IMPW[l.imp] : '') + '</small></span></button>';
+        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + (l.imp ? ' · ' + IMPW[l.imp] : '') + (xpTag(l) ? ' · متوقع' : '') + '</small></span></button>';
       }).join('') + '</div></div>';
   });
   return h;
@@ -1174,9 +1190,12 @@ function errType(q, v) {
   if (q.k === 'tf') return v === 1 && q.a === false ? String(q.e || '') : '';
   return Array.isArray(q.e) && q.e[v] ? String(q.e[v]) : '';
 }
-/* «متوقع» لا يظهر إلا في المراجعة (التسميع والمراجعة الشاملة وصفحة المراجعة) في آخر ثلاثة أيام قبل الاختبار */
+/* «متوقع» لا يظهر إلا في آخر ثلاثة أيام قبل الاختبار. expTag لأسئلة التجميعات (exp) في المراجعة وحدها (التسميع والمراجعة الشاملة وصفحة المراجعة).
+   وxpTag لكل ما في صفحاتها (xp من data/exp.js) في كل مكان: الدروس والملخص والبطاقات والتعريفات والجداول وليلة الاختبار ورأس السؤال في كل جولة.
+   فإن حُذف سطر data/exp.js من الصفحة عاد «متوقع» إلى المراجعة وحدها */
 function expOn() { var d = daysLeft(); return d !== null && d >= 0 && d <= 3; }
 function expTag(x) { return x && x.exp && expOn() ? '<span class="expect">متوقع</span>' : ''; }
+function xpTag(x) { return x && x.xp && expOn() ? '<span class="expect">متوقع</span>' : ''; }
 function rightIndex(q) {
   if (q.k === 'mcq') return +q.a;
   if (q.k === 'fill') { for (var i = 0; i < q.opts.length; i++) if (String(q.opts[i]).trim() === String(q.a).trim()) return i; }
@@ -1188,7 +1207,7 @@ function runHTML() {
   if (!(q.id in quiz.nb0)) quiz.nb0[q.id] = inNb(q.id);
   var h = '<div class="block-head"><h2>' + esc(quiz.label) + '</h2><button type="button" class="link" data-act="quit">' + (quiz.quitArmed ? 'اضغط مرة أخرى للإنهاء' : 'إنهاء') + '</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * quiz.i / n) + '%"></div></div><span class="n">' + (quiz.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + expChip(q) + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + (quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + '</div>';
+    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + expChip(q) + (q.xp ? xpTag(q) : quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + '</div>';
   var b = '<p class="q-text">' + qText(q) + '</p>';
   if (q.k === 'tf') {
     /* صح أو خطأ مع التعليل: يختار الحكم، ثم يعلّل بكلماته أو في ذهنه، ثم ينكشف الجواب وتعليل الكتاب فيقارن */
@@ -1298,7 +1317,7 @@ function cellsHTML() {
   if (!CQ.order[c.id]) CQ.order[c.id] = shuffle(cols.map(function (_, i) { return i; }).slice(1));
   var h = '<div class="block-head"><h2>' + esc(CQ.label) + '</h2><button type="button" class="link" data-act="cell-quit">إنهاء</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * CQ.i / n) + '%"></div></div><span class="n">' + (CQ.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">سؤال الخانة</span><span class="chip">' + esc(c.ch.title) + '</span>' + pg(t.pg) + expChip(t) + '</div>';
+    '<div class="chips"><span class="chip">سؤال الخانة</span><span class="chip">' + esc(c.ch.title) + '</span>' + pg(t.pg) + expChip(t) + xpTag(t) + '</div>';
   var b = '<p class="cell-tbl">' + esc(t.title) + '</p>' +
     '<div class="cell-box"><span class="cell-asp">' + esc(c.aspect) + '</span><p class="cell-x">' + esc(c.x) + '</p></div>' +
     '<p class="q-text">لأيّها هذه الخانة؟</p>' +
@@ -1531,7 +1550,7 @@ function defsHTML() {
   if (DQ.mode === 'view') return viewHTML(d, c);
   var h = '<div class="block-head"><h2>' + esc(DQ.label) + '</h2><button type="button" class="link" data-act="defs-quit">إنهاء</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * DQ.i / n) + '%"></div></div><span class="n">' + (DQ.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + expChip(d) + '</div>';
+    '<div class="chips"><span class="chip">' + (build ? 'ركّب التعريف' : 'لمن هذا التعريف؟') + '</span><span class="chip">' + esc(d.ch.title) + '</span>' + (build ? pg(d.pg) : '') + expChip(d) + xpTag(d) + '</div>';
   var b = '';
   if (build) {
     var put = c.placed.map(function (k) { return '<span>' + esc(c.chips[k].t) + '</span>'; });
@@ -1556,7 +1575,7 @@ function defsHTML() {
 }
 /* «اطّلاع»: وجه البطاقة المصطلح وظهرها التعريف بنصه الحرفي، ولا جواب فيها ولا نتيجة */
 function viewCard(d, open) {
-  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + (d.imp ? IMPW[d.imp] + ' · ' : '') + esc(ref) + '</span></span>';
+  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + (d.imp ? IMPW[d.imp] + ' · ' : '') + (xpTag(d) ? 'متوقع · ' : '') + esc(ref) + '</span></span>';
   return '<button type="button" class="fc t-def' + (open ? ' flipped' : '') + '" data-act="defs-flip" aria-label="' + (open ? 'اعرض المصطلح' : 'أظهر التعريف') + '">' +
     '<span class="fc-inner">' +
       '<span class="face front" aria-hidden="' + !!open + '">' + top + '<span class="fc-body"><p class="fc-q">' + esc(d.term) + '</p><p class="fc-hint">اضغط ليظهر التعريف</p><span class="reveal">أظهر التعريف</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
@@ -1820,7 +1839,7 @@ function nbHTML() {
   if (!list.length) return h + '<div class="empty"><b>الدفتر فارغ</b><br>' + (Object.keys(S.q).length ? 'أتقنت ما أخطأت فيه هنا.' : 'حين تخطئ في سؤال يظهر هنا لتعيده.') + '</div>';
   return h + list.map(function (q) {
     var r = S.q[q.id] || {}, ri = rightIndex(q), ans = q.k === 'tf' ? (q.a ? 'صح' : 'خطأ') : (ri > -1 ? q.opts[ri] : q.a);
-    return '<article class="art"><div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + '</div>' +
+    return '<article class="art"><div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + xpTag(q) + '</div>' +
       '<p class="p0 strong">' + esc(q.q) + '</p><p class="p0 small">الصواب: <b>' + esc(ans) + '</b></p>' + (q.why ? '<p class="why small">' + rich(q.why) + '</p>' : '') +
       '<p class="nb-note">' + (+r.s ? 'أصبت فيه مرة في يوم سابق، وبقيت إجابة صحيحة في يوم آخر.' : 'يخرج بإجابتين صحيحتين في يومين مختلفين.') + ' أخطأت فيه ' + ((+r.n || 0) - (+r.c || 0) === 1 ? 'مرة' : ((+r.n || 0) - (+r.c || 0) === 2 ? 'مرتين' : ((+r.n || 0) - (+r.c || 0)) + ' مرات')) + '.</p></article>';
   }).join('');
@@ -1836,7 +1855,7 @@ function njHTML() {
     '<button type="button" class="btn wide" data-act="start-nj"' + (list.length ? '' : ' disabled') + '>أعدها الآن' + (list.length ? ': ' + countWord(list.length, W.q) : '') + '</button>';
   if (!list.length) return h + '<div class="empty"><b>القائمة فارغة</b><br>' + (all.length ? 'لا شيء منها في هذا الفصل.' : 'حين تتجاوز تعليل عبارة تظهر هنا لتعود إليها.') + '</div>';
   return h + list.map(function (q) {
-    return '<article class="art"><div class="chips"><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + '</div>' +
+    return '<article class="art"><div class="chips"><span class="chip">' + esc(q.ch.title) + ' · الدرس ' + q.les.no + '</span>' + pg(q.pg) + expChip(q) + xpTag(q) + '</div>' +
       '<p class="p0 strong">' + esc(q.q) + '</p>' +
       '<details class="pre"><summary>اعرض الحكم والتعليل</summary><p class="p0 small">العبارة <b>' + (q.a ? 'صحيحة' : 'خاطئة') + '</b></p>' + (q.why ? '<p class="why small">' + rich(q.why) + '</p>' : '') + '</details></article>';
   }).join('');
@@ -1877,7 +1896,7 @@ function revHTML() {
 function cmpHTML(t) {
   var cols = arr(t.cols), rows = arr(t.rows);
   var askable = tableCells(t.id).length;
-  return '<section class="cmp" id="t-' + esc(t.id) + '"><div class="cmp-top"><h4>' + esc(t.title) + pg(t.pg) + expChip(t) + '</h4><span class="cmp-acts"><button type="button" class="mini" data-act="cmp-test" aria-pressed="false">اختبر نفسي</button>' +
+  return '<section class="cmp" id="t-' + esc(t.id) + '"><div class="cmp-top"><h4>' + esc(t.title) + pg(t.pg) + expChip(t) + xpTag(t) + '</h4><span class="cmp-acts"><button type="button" class="mini" data-act="cmp-test" aria-pressed="false">اختبر نفسي</button>' +
     (askable ? '<button type="button" class="mini" data-act="cells-table" data-t="' + esc(t.id) + '">سؤال الخانة</button>' : '') + '</span></div>' +
     '<div class="zf"><table class="cmp-t"><thead><tr>' + cols.map(function (c) { return '<th scope="col">' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
     rows.map(function (r) { r = arr(r); return '<tr>' + cols.map(function (_, i) { var c = r[i] == null ? '' : r[i]; return i === 0 ? '<th scope="row">' + esc(c) + '</th>' : '<td data-act="cell">' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') +

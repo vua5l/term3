@@ -892,3 +892,12 @@ a.side-row{text-decoration:none;color:inherit}
 .quote.imp-b{background:var(--tint);border-radius:4px var(--r2) var(--r2) 4px;padding:14px 16px;margin-inline:0}
 .sum-note.imp-b{background:var(--tint);border-radius:var(--r2);padding:12px 14px;margin-inline:0}
 .imp-leg{align-self:center;font-size:12.5px;color:var(--sec)}
+
+/* «متوقع» بالصفحات (data/exp.js): شارته المصمتة نفسها على الدروس والبنود، وكتلة الملخص يميزها إطار رفيع بلون العلامة
+   بلا تظليل، فتجتمع مع تظليل «مهم» في الكتلة الواحدة. ولا يظهر إلا في آخر ثلاثة أيام قبل الاختبار */
+.xp-b{border-radius:12px;padding:8px 12px;margin-inline:-10px;box-shadow:inset 0 0 0 1.5px var(--mark)}
+.quote.xp-b{border-radius:4px var(--r2) var(--r2) 4px;padding:14px 16px;margin-inline:0}
+.sum-note.xp-b{border-radius:var(--r2);padding:12px 14px;margin-inline:0}
+@supports (color:color-mix(in srgb,currentColor 50%,transparent)){.xp-b{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--mark) 55%,transparent)}}
+.les-st > .expect{margin:0}
+.night-list .expect{font-size:11px;padding:0 7px}
