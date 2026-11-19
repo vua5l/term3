@@ -186,7 +186,8 @@ function buildImp() {
     arr(g.t).forEach(function (id) { if (TBID[id]) TBID[id].imp = lv; });
     night.forEach(function (k) { var m = String(k).split(':'); CH[m[0]].night[+m[1]].imp = lv; });
     Object.keys(g.s || {}).forEach(function (lid) { var l = LBY[lid]; if (l) arr(g.s[lid]).forEach(function (i) { if (l.summary[i]) l.summary[i].imp = lv; }); });
-    ls.forEach(function (l) { l.imp = lv; l.rank = x.no; });
+    /* law114: الدرس في مجموعتين (أهم ومهم) يحمل أعلى درجتيه */
+    ls.forEach(function (l) { if (!l.imp || lv < l.imp) { l.imp = lv; l.rank = x.no; } });
   });
 }
 function cellsOf(chId) { return CELLS.filter(function (c) { return c.ch.id === chId; }); }
@@ -1710,7 +1711,8 @@ function impSecHTML(lv, title, note) {
     (note ? '<p class="muted small p0">' + esc(note) + '</p>' : '') + '<ol class="les-list">' + gs.map(impRow).join('') + '</ol></section>';
 }
 function impHTML() {
-  if (!IMP.length) return '<div class="empty"><b>لم يصل ملف الوسم</b><br>أعد فتح الصفحة بعد قليل.</div>';
+  if (!IMP.length) return impWindow() ? '<div class="empty"><b>لم يصل ملف الوسم</b><br>أعد فتح الصفحة بعد قليل.</div>'
+    : '<div class="empty"><b>خانة «المهم» تظهر في الأيام الأخيرة قبل الاختبار</b><br>وقبلها الدروس كلها سواء.</div>';
   var a = impStats(1), b = impStats(2), c = impStats(0), n = a.n + b.n, d = a.d + b.d, over = d >= n, nx = impNext();
   var h = '<div class="block-head"><h2>خانة المهم</h2><span class="chip">راجعت ' + d + ' من ' + n + '</span></div>' + impBar(impPct(d, n)) +
     '<p class="muted small p0">مرتبة من الأهم إلى ما دونه. ما تراجعه هنا يُحفظ فلا يعود، ويُزامَن بين أجهزتك، والسؤال الذي تخطئ فيه يبقى لك حتى تصيبه ويدخل دفتر الأخطاء كالمعتاد.</p>' +
