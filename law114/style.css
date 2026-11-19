@@ -1,0 +1,204 @@
+/* موقع النهائي لمصادر الالتزام (law114): التصميم المعتمد في 19 نوفمبر 2026.
+   مصادره:
+   - الألوان وطريقة عرض ملخص الدرس: من صفحة «كويز النيابة وآثار العقد» كما هي، والليل مشتق من ألوانها نفسها.
+   - الرئيسية والبطاقات والتنقل السفلي: من العينة «الودود».
+   - الأسئلة ورأس الصفحة: من العينة «الواضح».
+   - رأس الدرس: مزيج من «المخطوطة» و«الواضح» (عنوان في الوسط تحته زخرفة نقاط، وكبسولات، وتبويبات بخط تحتها).
+   - الخط: Baloo Bhaijaan 2 في كل شيء، يُحمَّل من Google Fonts في index.html بالأوزان 400 و500 و600 و700 و800.
+   هذا الملف طبقة التصميم وحدها، بأصناف تبدأ بـ ds-. وعند بناء الموقع يُلحق به قسم «ربط المحرك» على طريقة law135/style.css،
+   فيُلبس أصناف app.js هذه المكوّنات. وفي كتل المتغيرات أسماء متغيرات law135 نفسها، ليعمل قسم الربط المنسوخ منه بألوان هذا التصميم.
+   لا يُكتب لون مباشر في أي مكوّن، بل من المتغيرات. والليل يتبع الجوال، وbody[data-mode] الذي يكتبه app.js يفرض الليل أو النهار.
+   معاينة المكوّنات بمحتوى حقيقي: _tools/law114/design/preview.html */
+
+/* ===== الألوان ===== */
+:root {
+  /* أسماء هذا التصميم */
+  --bg: #E7DED1;          /* رمل دافئ */
+  --surface: #F3ECE2;     /* عاجي */
+  --surface-2: #ECE3D6;
+  --ink: #2A2127;
+  --muted: #6D5F66;
+  --plum: #43283C;        /* باذنجاني داكن */
+  --plum-2: #6B4862;
+  --mauve: #DCC9CF;       /* وردي رمادي */
+  --line: #D8CBBC;
+  --ok: #2E5C86;  --ok-bg: #DCE4EA;    /* الصواب: أزرق حبري */
+  --bad: #A0443A; --bad-bg: #F0D9D2;   /* الخطأ: آجرّي */
+  --note: #EFDCCF;                     /* خوخي: صندوق التنبيه */
+  --plate: #43283C; --on-plate: #F3E9EE;
+  --accent: #43283C;                   /* العناوين واللمسات */
+  --btn: #43283C; --on-btn: #F7EEF3;
+  --on-solid: #FFFFFF;                 /* نص على زر ممتلئ بلون الصواب أو الخطأ */
+  --shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 10px 26px -16px rgba(67,40,60,.38);
+  /* أسماء law135 لقسم ربط المحرك */
+  --card: var(--surface); --soft: var(--surface-2); --sec: var(--muted);
+  --hero: #43283C; --hero2: #55334C; --hero-ink: #F3E9EE; --hero-sec: #CDB3C2; --track: rgba(255,255,255,.14);
+  --mark: #6B4862; --acc: #DCC9CF; --on-acc: #43283C; --tint: #E9DCE0; --tint-ink: #6B4862;
+  --shade: rgba(42,33,39,.38);
+  /* الخط والأنصاف */
+  --font: "Baloo Bhaijaan 2", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --ui: var(--font); --book: var(--font);
+  --r: 22px; --r2: 16px; --r-lg: 26px; --r-md: 18px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  body:not([data-mode="day"]) {
+    --bg: #1A1217; --surface: #241A20; --surface-2: #2D2128; --ink: #EFE5D8; --muted: #B5A3AC;
+    --plum: #E0C1D2; --plum-2: #C99CB8; --mauve: #3A2833; --line: #3A2C34;
+    --ok: #94BADB; --ok-bg: #1C2A35; --bad: #E89F92; --bad-bg: #3A211E; --note: #392820;
+    --plate: #3B2433; --on-plate: #F2E7DA; --accent: #E6C8D8; --btn: #7B5571; --on-btn: #FFF7EF; --on-solid: #1A1217;
+    --shadow: 0 10px 26px -16px rgba(0,0,0,.65);
+    --hero: #3B2433; --hero2: #46293C; --hero-ink: #F2E7DA; --hero-sec: #C7AEBD; --track: rgba(255,255,255,.10);
+    --mark: #C99CB8; --acc: #E0C1D2; --on-acc: #2A1622; --tint: #33232D; --tint-ink: #E0C1D2; --shade: rgba(0,0,0,.55);
+    color-scheme: dark;
+  }
+}
+body[data-mode="night"] {
+  --bg: #1A1217; --surface: #241A20; --surface-2: #2D2128; --ink: #EFE5D8; --muted: #B5A3AC;
+  --plum: #E0C1D2; --plum-2: #C99CB8; --mauve: #3A2833; --line: #3A2C34;
+  --ok: #94BADB; --ok-bg: #1C2A35; --bad: #E89F92; --bad-bg: #3A211E; --note: #392820;
+  --plate: #3B2433; --on-plate: #F2E7DA; --accent: #E6C8D8; --btn: #7B5571; --on-btn: #FFF7EF; --on-solid: #1A1217;
+  --shadow: 0 10px 26px -16px rgba(0,0,0,.65);
+  --hero: #3B2433; --hero2: #46293C; --hero-ink: #F2E7DA; --hero-sec: #C7AEBD; --track: rgba(255,255,255,.10);
+  --mark: #C99CB8; --acc: #E0C1D2; --on-acc: #2A1622; --tint: #33232D; --tint-ink: #E0C1D2; --shade: rgba(0,0,0,.55);
+  color-scheme: dark;
+}
+
+/* ===== الأساس ===== */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--plum-2); outline-offset: 2px; border-radius: 10px; }
+.ds-ic { display: block; width: 20px; height: 20px; flex: none; }
+.ds-card { background: var(--surface); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); }
+.ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; min-height: 46px; padding: 8px 18px; background: var(--btn); color: var(--on-btn); font-weight: 700; font-size: 16px; }
+.ds-btn.soft { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+
+/* ===== رأس الصفحة (من «الواضح») ===== */
+.ds-top { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; padding-top: 10px; }
+.ds-tbtn { width: 40px; height: 40px; border-radius: 12px; background: var(--surface); display: grid; place-items: center; box-shadow: var(--shadow); color: var(--accent); }
+.ds-tt { text-align: center; display: grid; line-height: 1.4; }
+.ds-tt small { font-size: 13px; color: var(--muted); }
+.ds-tt b { font-size: 17px; font-weight: 700; }
+
+/* ===== رأس الدرس: مزيج «المخطوطة» و«الواضح» ===== */
+.ds-lh { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); border-top: 6px double var(--plum-2); padding: 14px 16px 0; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.ds-lh-k { font-size: 13px; font-weight: 600; color: var(--muted); }
+.ds-lh h1 { margin: 0; font-size: 27px; font-weight: 800; line-height: 1.4; color: var(--accent); text-wrap: balance; }
+.ds-orn { display: block; width: 96px; height: 8px; background: radial-gradient(circle, var(--plum-2) 2.3px, transparent 2.8px) center / 13px 8px repeat-x; opacity: .7; }
+.ds-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 2px; }
+.ds-chips span { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 10px; background: var(--surface-2); font-size: 14px; font-weight: 500; color: var(--muted); }
+.ds-chips .ds-ic { width: 16px; height: 16px; color: var(--plum-2); }
+.ds-tabs { justify-self: stretch; display: flex; justify-content: center; gap: 28px; border-top: 1px solid var(--line); margin-top: 8px; }
+.ds-tabs a { padding: 8px 2px 9px; font-weight: 700; font-size: 16px; color: var(--muted); border-bottom: 3px solid transparent; text-decoration: none; }
+.ds-tabs a[aria-current] { color: var(--accent); border-color: var(--plum-2); }
+.ds-tabs i { font-style: normal; font-size: 12px; font-weight: 500; color: var(--muted); }
+
+/* ===== الملخص: طريقة الكويز كما هي، وبخط هذا التصميم ===== */
+.ds-intro { background: var(--mauve); border-radius: var(--r-md); padding: 14px 16px; display: grid; gap: 6px; }
+.ds-tag { justify-self: start; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--plate); color: var(--on-plate); }
+.ds-intro p { margin: 0; font-size: 18px; line-height: 1.75; }
+.ds-sum { display: grid; gap: 12px; font-size: 19px; line-height: 1.85; }
+.ds-sum h3 { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; font-size: 22px; font-weight: 700; line-height: 1.4; color: var(--accent); }
+.ds-sum h3::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 2px; background: var(--plum-2); transform: rotate(45deg); }
+.ds-sum p { margin: 0; }
+.ds-sum ul, .ds-sum ol { margin: 0; padding-inline-start: 24px; display: grid; gap: 6px; }
+.ds-sum .lead { font-weight: 700; margin: 0 0 4px; }
+.ds-pg { display: inline-block; font-size: 12px; font-weight: 500; line-height: 1.8; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin-inline-start: 6px; vertical-align: 2px; white-space: nowrap; }
+.ds-quote { background: var(--surface-2); border-radius: var(--r-md); padding: 14px 16px; border-inline-start: 4px solid var(--plum-2); display: grid; gap: 4px; }
+.ds-quote .ds-lbl { font-size: 13px; font-weight: 700; color: var(--plum-2); }
+.ds-quote p { margin: 0; }
+.ds-quote p::before { content: "«"; }
+.ds-quote p::after { content: "»"; }
+.ds-note { background: var(--note); border-radius: var(--r-md); padding: 12px 14px; }
+.ds-note .ds-lbl { display: block; font-size: 13px; font-weight: 700; color: var(--bad); }
+.ds-tbl { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); }
+.ds-tbl table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 15px; line-height: 1.55; }
+.ds-tbl caption { text-align: start; padding: 10px 12px 4px; font-weight: 700; font-size: 16px; color: var(--accent); }
+.ds-tbl th, .ds-tbl td { padding: 9px 12px; border-top: 1px solid var(--line); text-align: start; vertical-align: top; }
+.ds-tbl thead th { background: var(--surface-2); border-top: 0; }
+.ds-tbl tbody th { color: var(--plum-2); font-weight: 700; }
+.ds-tbl .core { padding: 10px 12px; font-size: 15px; border-top: 1px solid var(--line); background: var(--surface-2); }
+
+/* ===== الأسئلة (من «الواضح»): أزرار لمس كبيرة، ولوح نتيجة تحت السؤال ===== */
+.ds-qprog { display: grid; gap: 6px; }
+.ds-qprog-r { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+.ds-qprog-r b { color: var(--ink); font-size: 16px; }
+.ds-bar { height: 8px; border-radius: 99px; background: var(--surface-2); display: flex; gap: 2px; overflow: hidden; }
+.ds-bar i { display: block; height: 100%; }
+.ds-bar i.ok { background: var(--ok); }
+.ds-bar i.bad { background: var(--bad); }
+.ds-q { display: grid; gap: 14px; }
+.ds-kind { justify-self: start; font-size: 13px; font-weight: 700; color: var(--plum-2); background: var(--surface-2); padding: 1px 10px; border-radius: 8px; }
+.ds-qt { margin: 0; font-size: 19px; font-weight: 500; line-height: 1.8; }
+.ds-tf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ds-tf button { min-height: 58px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface-2); font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.ds-opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ds-opts li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 54px; padding: 10px 14px; border-radius: 14px; background: var(--surface-2); border: 1.5px solid var(--line); font-size: 17.5px; line-height: 1.6; }
+.ds-tf .is-right, .ds-opts .is-right { background: var(--ok); border-color: var(--ok); color: var(--on-solid); }
+.ds-tf .is-wrong, .ds-opts .is-wrong { background: var(--bad); border-color: var(--bad); color: var(--on-solid); }
+.ds-tf .is-dim, .ds-opts .is-dim { opacity: .5; }
+.ds-tf .ds-ic, .ds-opts .ds-ic { stroke-width: 2.6; }
+.ds-fb { border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; background: var(--ok-bg); border-top: 4px solid var(--ok); }
+.ds-fb.bad { background: var(--bad-bg); border-top-color: var(--bad); }
+.ds-fb-h { display: flex; align-items: center; gap: 8px; color: var(--ok); font-weight: 700; font-size: 16px; line-height: 1.5; }
+.ds-fb.bad .ds-fb-h { color: var(--bad); }
+.ds-fb-h .ds-ic { stroke-width: 2.6; }
+.ds-fb p { margin: 0; font-size: 17px; line-height: 1.8; }
+.ds-fb-c { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ds-fb-c .ds-pg { margin: 0; }
+.ds-et { font-size: 12.5px; font-weight: 700; padding: 0 10px; border-radius: 999px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); line-height: 1.9; }
+
+/* ===== الرئيسية (من «الودود») ===== */
+.ds-hello { display: grid; grid-template-columns: 1fr 118px; gap: 10px; align-items: center; background: var(--surface); border-radius: 32px; padding: 18px; box-shadow: var(--shadow); }
+.ds-hello small, .ds-hello span { font-size: 14px; color: var(--muted); }
+.ds-hello h1 { margin: 0; font-size: 31px; font-weight: 800; line-height: 1.25; color: var(--accent); }
+.ds-ring { position: relative; width: 118px; height: 118px; }
+.ds-ring svg { width: 118px; height: 118px; transform: rotate(-90deg); }
+.ds-ring circle { fill: none; stroke-width: 10; }
+.ds-ring .t { stroke: var(--mauve); }
+.ds-ring .v { stroke: var(--plum-2); stroke-linecap: round; }
+.ds-ring div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.1; }
+.ds-ring b { font-size: 38px; font-weight: 800; color: var(--accent); }
+.ds-ring span { font-size: 14px; color: var(--muted); }
+.ds-sec { display: grid; gap: 10px; }
+.ds-sec h2 { margin: 2px 4px 0; font-size: 22px; font-weight: 800; }
+.ds-line { list-style: none; margin: 0; padding: 0; display: grid; }
+.ds-line li { position: relative; display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding-bottom: 12px; }
+.ds-line li::before { content: ""; position: absolute; inset-inline-start: 16px; top: 34px; bottom: 0; width: 2px; background: var(--line); }
+.ds-line li:last-child::before { display: none; }
+.ds-line i { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%; background: var(--surface); border: 2px solid var(--mauve); display: grid; place-items: center; }
+.ds-line li.done i { background: var(--ok); border-color: var(--ok); color: var(--on-solid); }
+.ds-line .ds-ic { width: 16px; height: 16px; stroke-width: 3; }
+.ds-line div { background: var(--surface); border-radius: 20px; padding: 8px 14px 10px; box-shadow: var(--shadow); }
+.ds-line b { display: block; font-size: 17px; line-height: 1.5; }
+.ds-line li.done b { color: var(--muted); text-decoration: line-through; }
+.ds-line span { font-size: 14px; color: var(--muted); }
+.ds-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ds-blocks a { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 22px; font-size: 17px; font-weight: 700; color: inherit; text-decoration: none; }
+.ds-blocks .b0 { background: var(--mauve); }
+.ds-blocks .b1 { background: var(--surface); }
+.ds-blocks .b2 { background: var(--note); }
+.ds-blocks .ds-ic { width: 24px; height: 24px; color: var(--plum-2); }
+
+/* ===== البطاقات (من «الودود»): رزمة خلف البطاقة ===== */
+.ds-deck { position: relative; padding-bottom: 14px; }
+.ds-deck::before, .ds-deck::after { content: ""; position: absolute; inset-inline: 18px; bottom: 6px; height: 40px; background: var(--surface-2); border-radius: 24px; box-shadow: var(--shadow); }
+.ds-deck::after { inset-inline: 36px; bottom: 0; opacity: .7; }
+.ds-fcard { position: relative; z-index: 1; background: var(--surface); border-radius: 28px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 8px; text-align: center; min-height: 150px; align-content: center; }
+.ds-fcard small { font-size: 14px; font-weight: 700; color: var(--plum-2); }
+.ds-fcard small .ds-pg { margin: 0; }
+.ds-fcard b { font-size: 27px; font-weight: 800; color: var(--accent); line-height: 1.4; }
+.ds-hint { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.ds-hint .ds-ic { width: 16px; height: 16px; }
+.ds-fcard.back { text-align: start; align-content: start; }
+.ds-fcard.back p { margin: 0; font-size: 18px; line-height: 1.8; }
+.ds-exc { background: var(--note); border-radius: 16px; padding: 8px 12px; font-size: 17px; line-height: 1.7; }
+.ds-exc b { color: var(--bad); margin-inline-end: 4px; }
+
+/* ===== التنقل السفلي (من «الودود»): شريط عائم ===== */
+.ds-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--plate); color: var(--on-plate); border-radius: 999px; padding: 8px; box-shadow: 0 12px 26px -12px rgba(0,0,0,.45); }
+.ds-nav a { display: grid; justify-items: center; font-size: 13px; opacity: .75; padding: 4px 0; border-radius: 999px; color: inherit; text-decoration: none; }
+.ds-nav a[aria-current] { opacity: 1; font-weight: 700; background: color-mix(in srgb, var(--on-plate) 14%, transparent); }
+.ds-nav .ds-ic { width: 22px; height: 22px; }

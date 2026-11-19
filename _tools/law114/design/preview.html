@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>معاينة تصميم موقع النهائي — مصادر الالتزام</title>
+<!-- معاينة مكوّنات التصميم المعتمد بمحتوى حقيقي من الدرس l37. ليست جزءاً من الموقع.
+     ?screen=summary أو questions أو home لشاشة واحدة، و?mode=night لليل. وبلا معاملات تظهر الشاشات الثلاث. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="../../../law114/style.css">
+<style>
+  .pv { width: 390px; display: grid; gap: 14px; padding: 0 14px 18px; }
+  .pv-h { margin: 0 -14px; padding: 10px 16px; background: #120C10; color: #F2E7DA; font-weight: 700; font-size: 16px; display: flex; justify-content: space-between; }
+  .pv-h small { font-weight: 500; opacity: .75; }
+</style>
+<script src="../parts/c7-1.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const P = new URLSearchParams(location.search);
+const mode = P.get("mode");
+if (mode) document.body.dataset.mode = mode;
+const C = window.LAW114.chapters[0], L = C.lessons[0];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pg = (p) => (p ? '<span class="ds-pg">ص ' + esc(p) + "</span>" : "");
+const I = {
+  check: '<path d="M20 6 9 17l-5-5"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  bank: '<path d="M11 6h9M11 12h9M11 18h9"/><path d="m3 6 1.5 1.5L7 5"/><path d="m3 12 1.5 1.5L7 11"/><path d="m3 18 1.5 1.5L7 17"/>',
+  cards: '<path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  mark: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+  grid: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  cal: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  chev: '<path d="m9 18 6-6-6-6"/>', next: '<path d="m15 18-6-6 6-6"/>',
+  flip: '<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+};
+const ic = (n) => '<svg class="ds-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[n] + "</svg>";
+
+/* الملخص: دالة الكويز نفسها بأصناف ds- */
+function block(b) {
+  if (b.t === "h") return "<h3>" + esc(b.x) + "</h3>";
+  if (b.t === "p") return "<p>" + esc(b.x) + pg(b.pg) + "</p>";
+  if (b.t === "list") return "<div>" + (b.lead ? '<p class="lead">' + esc(b.lead) + pg(b.pg) + "</p>" : "") + "<ul>" + b.items.map((i) => "<li>" + esc(i) + "</li>").join("") + "</ul></div>";
+  if (b.t === "q") {
+    const txt = b.x || ((b.pre ? b.pre + " " : "") + b.parts.join(" ") + (b.post ? " " + b.post : ""));
+    return '<div class="ds-quote">' + (b.label ? '<span class="ds-lbl">' + esc(b.label) + "</span>" : "") + "<p>" + esc(txt) + "</p><div>" + pg(b.pg) + "</div></div>";
+  }
+  if (b.t === "note") return '<div class="ds-note"><span class="ds-lbl">تنبيه</span>' + esc(b.x) + pg(b.pg) + "</div>";
+  return "";
+}
+const pick = [0, 1, 3, 4, 6, 9, 10].map((i) => L.summary[i]);
+const q = (id) => L.objective.find((x) => x.id === id);
+const [QA, QB, QC] = [q("l37o1"), q("l37o5"), q("l37o2")];
+const K = L.cards[0];
+const tf = (qq, chosen) => ["صح", "خطأ"].map((lb, i) => {
+  const right = qq.a ? 0 : 1;
+  const c = chosen == null ? "" : i === right ? "is-right" : i === chosen ? "is-wrong" : "is-dim";
+  return '<button class="' + c + '">' + (c === "is-right" ? ic("check") : c === "is-wrong" ? ic("x") : "") + "<span>" + lb + "</span></button>";
+}).join("");
+const opts = (qq, chosen) => qq.opts.map((o, i) => {
+  const c = chosen == null ? "" : i === qq.a ? "is-right" : i === chosen ? "is-wrong" : "is-dim";
+  return '<li class="' + c + '"><span>' + esc(o) + "</span>" + (c === "is-right" ? ic("check") : c === "is-wrong" ? ic("x") : "") + "</li>";
+}).join("");
+const fb = (ok, title, qq, extra) => '<div class="ds-fb ' + (ok ? "" : "bad") + '"><div class="ds-fb-h">' + ic(ok ? "check" : "x") + "<b>" + title + "</b></div><p>" + esc(qq.why) + '</p><div class="ds-fb-c">' + pg(qq.pg) + '<span class="ds-et">' + extra + '</span></div><button class="ds-btn">السؤال التالي ' + ic("next") + "</button></div>";
+const topBar = (t) => '<header class="ds-top"><span class="ds-tbtn">' + ic("chev") + '</span><div class="ds-tt"><small>الفصل السابع</small><b>' + t + '</b></div><span class="ds-tbtn">' + ic("moon") + "</span></header>";
+const lessonHead = (tab) => '<section class="ds-lh"><span class="ds-lh-k">الدرس 37</span><h1>' + esc(L.title) + '</h1><i class="ds-orn"></i>' +
+  '<div class="ds-chips"><span>' + ic("book") + "ص " + L.pages + "</span><span>" + ic("clock") + L.minutes + " دقيقة</span><span>" + ic("bank") + L.objective.length + " سؤالاً</span></div>" +
+  '<nav class="ds-tabs">' + [["الملخص", ""], ["الأسئلة", L.objective.length], ["البطاقات", L.cards.length]].map(([n, c], i) => "<a" + (i === tab ? ' aria-current="page"' : "") + ">" + n + (c ? " <i>" + c + "</i>" : "") + "</a>").join("") + "</nav></section>";
+
+const S = {
+  summary: () => topBar(C.title) + lessonHead(0) +
+    '<section class="ds-card" style="display:grid;gap:14px"><div class="ds-intro"><span class="ds-tag">للفهم لا للحفظ</span>' + L.intro.map((s) => "<p>" + esc(s) + "</p>").join("") + '</div><div class="ds-sum">' + pick.map(block).join("") + "</div></section>",
+  questions: () => topBar("أسئلة الدرس 37") +
+    '<section class="ds-qprog"><div class="ds-qprog-r"><b>3 من ' + L.objective.length + '</b><span>صحيح 1 · خطأ 1</span></div><div class="ds-bar"><i class="ok" style="width:8%"></i><i class="bad" style="width:8%"></i></div></section>' +
+    '<article class="ds-q ds-card"><span class="ds-kind">صح أم خطأ</span><p class="ds-qt">' + esc(QA.q) + '</p><div class="ds-tf">' + tf(QA, 1) + "</div>" + fb(true, "إجابتك صحيحة: العبارة خطأ", QA, "نوع الخطأ: " + esc(QA.e)) + "</article>" +
+    '<article class="ds-q ds-card"><span class="ds-kind">اختيار من متعدد</span><p class="ds-qt">' + esc(QB.q) + '</p><ul class="ds-opts">' + opts(QB, 1) + "</ul>" + fb(false, "الجواب الصحيح: " + esc(QB.opts[QB.a]), QB, "خيارك: " + esc(QB.e[1])) + "</article>" +
+    '<article class="ds-q ds-card"><span class="ds-kind">صح أم خطأ</span><p class="ds-qt">' + esc(QC.q) + '</p><div class="ds-tf">' + tf(QC, null) + "</div></article>",
+  home: () => '<section class="ds-hello" style="margin-top:12px"><div><small>الاختبار النهائي</small><h1>مصادر الالتزام</h1><span>الثلاثاء 15 ديسمبر · ص 7–166</span></div>' +
+    '<div class="ds-ring"><svg viewBox="0 0 118 118"><circle cx="59" cy="59" r="50" class="t"/><circle cx="59" cy="59" r="50" class="v" stroke-dasharray="314" stroke-dashoffset="94"/></svg><div><b>26</b><span>يوماً</span></div></div></section>' +
+    '<section class="ds-sec"><h2>اليوم</h2><ol class="ds-line">' + [
+      ["ذاكر: " + L.title, L.minutes + " دقيقة · ص " + L.pages, 1], ["تسميع الخروج: " + L.title, "نحو 10 دقائق"], ["جولة في بنك الأسئلة", "15 سؤالاً من الفصول السابقة"], ["مراجعة دفتر الأخطاء", "6 أخطاء تنتظرك"],
+    ].map(([t, m, d]) => '<li class="' + (d ? "done" : "") + '"><i>' + (d ? ic("check") : "") + "</i><div><b>" + esc(t) + "</b><span>" + esc(m) + "</span></div></li>").join("") + "</ol></section>" +
+    '<section class="ds-sec"><h2>أدواتك</h2><div class="ds-blocks">' + [["bank", "بنك الأسئلة"], ["cards", "البطاقات"], ["pen", "المقالي"], ["moon", "ورقة الليلة"], ["mark", "دفتر الأخطاء"], ["grid", "جداول المقارنة"]].map(([i, n], k) => '<a class="b' + (k % 3) + '">' + ic(i) + "<span>" + n + "</span></a>").join("") + "</div></section>" +
+    '<section class="ds-sec"><h2>بطاقة</h2><div class="ds-deck"><div class="ds-fcard"><small>قاعدة</small><b>' + esc(K.front) + '</b><span class="ds-hint">' + ic("flip") + " المس لتقلب</span></div></div>" +
+    '<div class="ds-fcard back"><small>القاعدة ' + pg(K.pg) + "</small><p>" + esc(K.rule) + '</p><div class="ds-exc"><b>إلا</b> ' + esc(K.exc) + "</div></div></section>" +
+    '<nav class="ds-nav">' + [["home", "الرئيسية", 1], ["cal", "الخطة"], ["book", "الدروس"], ["bank", "البنك"]].map(([i, n, a]) => "<a" + (a ? ' aria-current="page"' : "") + ">" + ic(i) + "<span>" + n + "</span></a>").join("") + "</nav>",
+};
+const NAMES = { summary: "الدرس والملخص", questions: "الأسئلة", home: "الرئيسية والبطاقة" };
+const list = P.get("screen") ? [P.get("screen")] : ["home", "summary", "questions"];
+document.getElementById("app").innerHTML = list.map((s) =>
+  '<main class="pv"><div class="pv-h"><span>' + NAMES[s] + "</span><small>" + (mode === "night" ? "ليلاً" : "نهاراً") + "</small></div>" + S[s]() + "</main>").join("");
+</script>
+</body>
+</html>
