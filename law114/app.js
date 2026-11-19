@@ -868,12 +868,12 @@ function lessonHTML(n) {
     (l.imp ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">الخط الجانبي يعلّم الفقرات الموسومة</span></div>' : '') +
     (exitFlag(l) ? '<p class="p0"><span class="flag solo">ينقصه تسميع الخروج</span></p>' : '') +
     (todayTask(l.id) && todayTask(l.id).kind === 'recall' ? '<p class="fin-msg">مهمتك اليوم في هذا الدرس تسميع بلا كتاب. <a href="#r-' + l.n + '">ابدأ التسميع</a></p>' : '') +
-    '<nav class="les-tabs" aria-label="أقسام الدرس"><a aria-current="page">الملخص</a>' +
-      (l.objective.length ? '<button type="button" data-act="goto-exit">الأسئلة <i>' + l.objective.length + '</i></button>' : '') +
-      (l.cards.length ? '<button type="button" data-act="deck-lesson" data-n="' + l.n + '">البطاقات <i>' + l.cards.length + '</i></button>' : '') + '</nav>' +
     '<div class="les-quick">' +
       (hasMap(l.ch) ? '<button type="button" class="btn ghost sm" data-act="map" data-ch="' + l.ch.id + '">خريطة الفصل</button>' : '') +
-      (l.essay.length ? '<button type="button" class="btn ghost sm es-mark" data-act="es-mark" data-n="' + l.n + '" aria-pressed="' + !!(S.es[l.id] && S.es[l.id].v) + '">' + (S.es[l.id] && S.es[l.id].v ? 'اختُبرت في مقاليه ✓' : 'اختُبرت في مقاليه؟') + '</button>' : '') + '</div></section>';
+      (l.essay.length ? '<button type="button" class="btn ghost sm es-mark" data-act="es-mark" data-n="' + l.n + '" aria-pressed="' + !!(S.es[l.id] && S.es[l.id].v) + '">' + (S.es[l.id] && S.es[l.id].v ? 'اختُبرت في مقاليه ✓' : 'اختُبرت في مقاليه؟') + '</button>' : '') + '</div>' +
+    '<nav class="les-tabs" aria-label="أقسام الدرس"><a aria-current="page">الملخص</a>' +
+      (l.objective.length ? '<button type="button" data-act="goto-exit">الأسئلة <i>' + l.objective.length + '</i></button>' : '') +
+      (l.cards.length ? '<button type="button" data-act="deck-lesson" data-n="' + l.n + '">البطاقات <i>' + l.cards.length + '</i></button>' : '') + '</nav>' + '</section>';
   if (!l.pending && arr(l.intro).length) h += '<section class="intro" aria-label="تمهيد مبسّط"><span class="intro-tag">للفهم لا للحفظ</span>' +
     arr(l.intro).map(function (s) { return '<p>' + esc(s) + '</p>'; }).join('') + '</section>';
   h += l.pending ? '<div class="empty">تُبنى مادة هذا الدرس حين تطلبها.</div>' : (summaryHTML(l) || '<div class="empty">لم يصل ملخص هذا الدرس بعد.</div>');
@@ -2494,7 +2494,7 @@ function paintMode() {
   var n = isNight(), btn = document.getElementById('modeBtn');
   document.getElementById('modeIcon').innerHTML = n ? SUN : MOON;
   btn.setAttribute('aria-label', n ? 'الوضع النهاري' : 'الوضع الليلي');
-  var col = n ? '#121726' : '#ECEAE4';
+  var col = n ? '#1A1217' : '#E7DED1';
   if (body.getAttribute('data-mode')) document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', col); });
   if (MAP) drawEdges();
 }
