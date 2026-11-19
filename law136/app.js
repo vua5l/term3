@@ -46,6 +46,8 @@ var GO = '<svg class="t-go" viewBox="0 0 24 24" fill="none" stroke="currentColor
 var BOLT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg>';
 var FIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
 var CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+/* عبارة الدرس المعلّق: مخطط على أقصى نطاق متوقع، لم تُبنَ مادته بعد */
+var PENDING_NOTE = 'تُبنى مادة هذا الدرس في دفعة قادمة، ووقته محجوز في الخطة.';
 
 /* الأعداد على قواعد العربية: [واحد، اثنان، من 3 إلى 10، من 11 فأكثر، اثنان بعد «من»] */
 var W = {
@@ -535,9 +537,29 @@ function levelsHTML() {
   return '<section class="block" aria-labelledby="lv-h"><div class="block-head"><h2 id="lv-h">مستواك في الفصول</h2><span class="muted small">ممتاز من 85% · جيد من 60%</span></div>' +
     '<div class="card levels">' + rows + '<p class="insight">' + ins + '</p></div></section>';
 }
+/* المهام الجانبية: أدوات لا يضعها الجدول في المهام، ويُحسب فيها ما أُنجز وما بقي، ولا تصل إلى الجدول.
+   منقولة من منطق law135 (BEHAVIOR.md، الباب 16)، مقصورة على ما في هذا الموقع من أدوات:
+   فلا صف للاختبار المقالي ولا لجداول المقارنة، إذ ليس فيه علامة «اختُبرت في مقاليه» ولا وضع اختبار للجداول. */
+var SIDE_ICON = {
+  text: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 11h14M5 16h9"/></svg>',
+  cell: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/></svg>',
+  cards: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>'
+};
+function sideHTML() {
+  var rows = [], dl = DEFS.filter(function (d) { return !dxOn(d.id); });
+  if (dl.length) rows.push(['#defs', 'text', 'خانة التعريفات', dl.filter(function (d) { var r = defRec(d.id); return (r && r.n) || dvOn(d.id); }).length, dl.length, 'تكفي طريقة واحدة ليُحسب التعريف']);
+  if (CELLS.length) rows.push(['#cells', 'cell', 'سؤال الخانة', CELLS.filter(function (c) { var r = cellRec(c.id); return r && r.n; }).length, CELLS.length, 'من جداول المقارنة']);
+  if (KL.length) rows.push(['#rev', 'cards', 'البطاقات', KL.filter(function (k) { return known(k.id); }).length, KL.length, 'ما علّمته «أعرفها»']);
+  if (!rows.length) return '';
+  return '<section class="block" aria-labelledby="sd-h"><div class="block-head"><h2 id="sd-h">المهام الجانبية</h2><span class="muted small">لا تدخل الخطة</span></div><div class="card side">' +
+    rows.map(function (r) {
+      return '<a class="side-row" href="' + r[0] + '"><span class="si">' + SIDE_ICON[r[1]] + '</span><b>' + esc(r[2]) + '</b><em>' + r[3] + ' من ' + r[4] + '</em><small>' + esc(r[5]) + '</small></a>';
+    }).join('') +
+    '</div></section>';
+}
 function homeHTML() {
   var mk = mistakes().length;
-  return heroHTML() + impHomeHTML() + levelsHTML() + todayBlock() +
+  return heroHTML() + impHomeHTML() + levelsHTML() + todayBlock() + sideHTML() +
     '<section class="block"><div class="row">' +
       '<button type="button" class="btn" data-go="#quiz">اختبر نفسك من البنك</button>' +
       '<button type="button" class="btn ghost" data-go="#nb">دفتر الأخطاء (' + mk + ')</button>' +
@@ -701,9 +723,10 @@ function lessonHTML(n) {
     '<div class="les-quick">' + (l.cards.length ? '<button type="button" class="btn ghost sm" data-act="deck-lesson" data-n="' + l.n + '">بطاقاته (' + l.cards.length + ')</button>' : '') +
       (l.objective.length ? '<button type="button" class="btn ghost sm" data-act="goto-exit">تسميع الخروج</button>' : '') +
       (hasMap(l.ch) ? '<button type="button" class="btn ghost sm" data-act="map" data-ch="' + l.ch.id + '">خريطة الفصل</button>' : '') + '</div></section>';
-  h += summaryHTML(l) || '<div class="empty">لم يصل ملخص هذا الدرس بعد.</div>';
+  /* الدرس المعلّق (pending): مخطط في الخطة يحجز الجدول وقته، ولم تُبنَ مادته بعد */
+  h += l.pending ? '<div class="empty">' + PENDING_NOTE + '</div>' : (summaryHTML(l) || '<div class="empty">لم يصل ملخص هذا الدرس بعد.</div>');
   if (tbs.length) h += '<p class="sec-title">جداول المقارنة</p>' + tbs.map(cmpHTML).join('');
-  h += '<div id="exit-box">' + exitCard(l) + '</div>';
+  if (!l.pending) h += '<div id="exit-box">' + exitCard(l) + '</div>';
   h += '<div class="row">' + (prev ? '<a class="btn ghost" href="#l-' + prev.n + '">الدرس السابق</a>' : '') + (next ? '<a class="btn ghost" href="#l-' + next.n + '">الدرس التالي</a>' : '') + '</div>';
   return h;
 }
@@ -719,7 +742,8 @@ function sumHTML() {
     (c.qs.length ? '<button type="button" class="btn ghost sm" data-act="go-bank" data-ch="' + c.id + '">اختبر نفسك في الفصل</button>' : '') + '</div></section>';
   c.les.forEach(function (l) {
     h += '<div class="ch-head" id="les-' + l.n + '"><p class="eyebrow">الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + ' ' + lesChip(l) + '</p>' +
-      '<div class="block-head"><h3>' + esc(l.title) + flagHTML(l) + '</h3><a class="link" href="#l-' + l.n + '">صفحة الدرس</a></div></div>' + summaryHTML(l);
+      '<div class="block-head"><h3>' + esc(l.title) + flagHTML(l) + '</h3><a class="link" href="#l-' + l.n + '">صفحة الدرس</a></div></div>' +
+      (l.pending ? '<p class="muted small">' + PENDING_NOTE + '</p>' : summaryHTML(l));
   });
   if (c.tables.length) h += '<p class="sec-title">جداول المقارنة</p>' + c.tables.map(cmpHTML).join('');
   if (nx) h += '<button type="button" class="btn ghost wide" data-act="sum-ch" data-ch="' + nx.id + '">' + esc(nx.title) + ': ' + esc(nx.name) + '</button>';

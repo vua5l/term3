@@ -517,3 +517,13 @@ body:has(.deck-nav.two) .toast{bottom:calc(136px + env(safe-area-inset-bottom,0p
 /* مهمة «مراجعة دفتر الأخطاء» في مهام اليوم: علامتها تلقائية */
 .task.kind-nb .tick{cursor:default}
 .task.kind-nb .t-meta{color:var(--accent)}
+/* المهام الجانبية في الصفحة الأولى: أدوات خارج الخطة، لكل منها ما أُنجز وما بقي */
+.side{display:grid;gap:0}
+.side-row{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.side-row:first-child{padding-top:0}
+.side-row:last-child{border-bottom:0;padding-bottom:0}
+.side-row .si{width:36px;height:36px;border-radius:12px;background:var(--surface-2);color:var(--accent);display:grid;place-items:center;grid-row:span 2}
+.side-row .si svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.side-row b{font-weight:600;font-size:.95rem}
+.side-row small{font-size:.76rem;color:var(--ink-2);grid-column:2}
+.side-row em{font-style:normal;font-size:.8rem;color:var(--ink-2);font-variant-numeric:tabular-nums;grid-row:1;grid-column:3}

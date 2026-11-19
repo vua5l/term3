@@ -92,9 +92,13 @@ function scanStrings(where, v) {
 ['id', 'title', 'name', 'pages'].forEach((k) => { if (!isStr(ch[k])) E('chapter: missing ' + k); });
 if (!/^c\d+$/.test(ch.id || '')) E('chapter id must look like c6');
 if (!Array.isArray(ch.lessons) || !ch.lessons.length) E('chapter: lessons[] missing');
-if (!Array.isArray(ch.tables)) E('chapter: tables[] missing');
-if (!ch.map || !isStr(ch.map.t) || !Array.isArray(ch.map.c)) E('chapter: map {t, c[]} missing');
-if (!Array.isArray(ch.night) || !ch.night.length) E('chapter: night[] missing');
+/* فصل كل دروسه معلّقة: مخطط لم يُبنَ بعد، فلا تُطلب جداوله ولا خريطته ولا ورقة ليلته حتى يُبنى أول درس فيه */
+const allPending = Array.isArray(ch.lessons) && ch.lessons.length > 0 && ch.lessons.every((l) => l && l.pending === true);
+if (!allPending) {
+  if (!Array.isArray(ch.tables)) E('chapter: tables[] missing');
+  if (!ch.map || !isStr(ch.map.t) || !Array.isArray(ch.map.c)) E('chapter: map {t, c[]} missing');
+  if (!Array.isArray(ch.night) || !ch.night.length) E('chapter: night[] missing');
+}
 
 const ids = new Set();
 function uid(where, id, re) {
@@ -115,6 +119,13 @@ const stats = [];
   if (!isStr(l.title)) E(L + ': missing title');
   if (!isStr(l.pages)) E(L + ': missing pages'); else checkPg(L + '.pages', l.pages);
   if (!Number.isInteger(l.minutes) || l.minutes < 1 || l.minutes > 75) E(L + ': minutes must be an integer 1..75');
+  /* الدرس المعلّق: مخطط في الخطة على أقصى نطاق متوقع، يحجز الجدول وقته، ولا محتوى له حتى يُبنى */
+  if (l.pending === true) {
+    ['summary', 'cards', 'objective', 'essay'].forEach((k) => { if (l[k] !== undefined && (!Array.isArray(l[k]) || l[k].length)) E(L + ': pending lesson must carry no ' + k); });
+    stats.push(l.id + ' ' + l.pages + ' ' + l.minutes + 'min: pending');
+    return;
+  }
+  if (l.pending !== undefined) E(L + ': pending must be true or absent');
   ['summary', 'cards', 'objective', 'essay'].forEach((k) => { if (!Array.isArray(l[k])) E(L + ': ' + k + '[] missing'); });
   const S = l.summary || [], K = l.cards || [], O = l.objective || [], ES = l.essay || [];
   S.forEach((b, i) => {
