@@ -2256,7 +2256,7 @@ function paintMode() {
   var n = isNight(), btn = document.getElementById('modeBtn');
   document.getElementById('modeIcon').innerHTML = n ? SUN : MOON;
   btn.setAttribute('aria-label', n ? 'الوضع النهاري' : 'الوضع الليلي');
-  var col = n ? '#121726' : '#ECEAE4';
+  var col = n ? '#121315' : '#E7E3DC';
   if (body.getAttribute('data-mode')) document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', col); });
   if (MAP) drawEdges();
 }
