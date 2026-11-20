@@ -431,33 +431,6 @@ function essayMessage(ls) {
   });
   return out.join('\n');
 }
-/* رسالة «أسئلة الفهم»: منقولة من منطق law135 كما هي (BEHAVIOR.md، الباب 10)، ولا يُعاد صوغها.
-   ملفات نص الكتاب في الإعدادات فارغة على مهارة «بناء موقع دراسة»، فلا يُحفظ للكتاب نص في مشروع المادة،
-   فتقع الرسالة على pagesNote؛ وإن توقف تصحيح جواب على لفظ الكتاب رُفعت صفحته وقت التصحيح. */
-function pgSpan(p) { var m = String(p || '').replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }).match(/\d+/g); return m ? [Math.min.apply(null, m.map(Number)), Math.max.apply(null, m.map(Number))] : null; }
-function textFiles(ls) {
-  var out = [];
-  arr(CFG.textFiles).forEach(function (r) { var f = pgSpan(r); if (!f) return;
-    if (ls.some(function (l) { var x = pgSpan(l.pages); return x && x[0] <= f[1] && x[1] >= f[0]; })) out.push('«نص الكتاب ص ' + r + '»'); });
-  return out;
-}
-function filesLine(ls) {
-  var f = textFiles(ls);
-  return f.length ? 'نص صفحات هذه الدروس حرفياً في ملفات المشروع: ' + f.join('، ') + '. فارجع إليها وحدها عند الحاجة، ولا تقرأ الكتاب كله.' : pagesNote();
-}
-function compMessage(ls) {
-  return [
-    'أريد أسئلة فهم في ' + subjLine() + '، من ' + bookLine() + '، في هذه الدروس وصفحاتها:'
-  ].concat(ls.map(function (l) { return '- ' + lesLine(l); }), [
-    '',
-    filesLine(ls),
-    'ابنِ من هذه الملفات وحدها الأسئلة وأجوبتها بصفحاتها، وصحّح بها لا بمعرفتك العامة، ورأي المؤلف هو المرجع وإن خالف المشهور.',
-    'اسألني عن أفكار هذه الدروس بصياغة جديدة غير صياغة الكتاب، وبسؤال «لماذا؟»: كأن تسألني لماذا لا ينطبق حكم على حالة بعينها، أو لماذا فرّق الكتاب بين أمرين، أو لماذا رجّح المؤلف رأياً. فالحفظ قد يتعلّق بصياغة السؤال لا بفهم فكرته.',
-    CFG.cases ? 'ولك أن تسألني حالات تطبيقية، فهي في اختبار هذه المادة.' : 'ولا تسألني حالات تطبيقية، فليست في اختبار هذه المادة.',
-    'اسألني أولاً كم سؤالاً أريد ونتفق على العدد، ثم أرسل ثلاثة أسئلة في رسالة واحدة دون أن تكشف أجوبتها، فأجيب عنها في رسالة واحدة، فتصحّحها معاً، ثم الثلاثة التالية حتى يتم العدد.',
-    'صحّح كل سؤال بهذا الترتيب: السؤال، ثم جوابي كما كتبته، ثم التصحيح (ما أصبت وما فاتني وما أخطأت فيه)، ثم الجواب الأفضل بصفحته.'
-  ]).join('\n');
-}
 function newEssaysRequest(ls) {
   var have = []; ls.forEach(function (l) { l.essay.forEach(function (e) { have.push('- ' + e.q); }); });
   var out = [
@@ -1005,8 +978,7 @@ function essaySetup() {
   var ok = nq > 0;
   h += '<p class="fin-msg">' + (ok ? 'في الرسالة ' + countWord(nq, W.ess) + ' من ' + countWord(ls.length, W.les) + '، بترتيب الدروس، مع نقاط أجوبتها النموذجية وصفحاتها.' : 'اختر درساً فيه أسئلة مقالية.') + '</p>' +
     '<div class="row"><button type="button" class="btn" data-act="copy-essay"' + (ok ? '' : ' disabled') + '>انسخ رسالة الاختبار المقالي</button>' +
-    '<button type="button" class="btn ghost" data-act="copy-new"' + (ls.length ? '' : ' disabled') + '>انسخ طلب أسئلة مقالية جديدة</button>' +
-    '<button type="button" class="btn ghost" data-act="copy-comp"' + (ls.length ? '' : ' disabled') + '>أسئلة الفهم</button></div>' +
+    '<button type="button" class="btn ghost" data-act="copy-new"' + (ls.length ? '' : ' disabled') + '>انسخ طلب أسئلة مقالية جديدة</button></div>' +
     (ok ? '<details class="pre"><summary>اعرض الرسالة لتنسخها بيدك إن تعذّر النسخ</summary><textarea class="essay-pre" readonly aria-label="رسالة الاختبار المقالي">' + esc(essayMessage(ls)) + '</textarea></details>' : '') +
   '</section>';
   return h;
@@ -2158,7 +2130,6 @@ view.addEventListener('click', function (e) {
     }
     case 'copy-essay': { var ls = pickedLessons().filter(function (x) { return x.essay.length; }); if (ls.length) copyText(essayMessage(ls), 'نُسخت الرسالة. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
     case 'copy-new': { var ls2 = pickedLessons(); if (ls2.length) copyText(newEssaysRequest(ls2), 'نُسخ الطلب. الصقه في محادثة جديدة داخل مشروع المادة.'); return; }
-    case 'copy-comp': { var lsc = pickedLessons(); if (lsc.length) copyText(compMessage(lsc), 'نُسخت رسالة أسئلة الفهم. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
     case 'answer': {
       if (!quiz || quiz.picked !== null) return;
       q = Q[quiz.ids[quiz.i]]; var v = +el.getAttribute('data-v'), ok = isRight(q, v);
