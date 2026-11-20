@@ -106,7 +106,7 @@ fs.writeFileSync(out, L.join('\n') + '\n');
 
 /* تحقق: الدمج لا يُسقط شيئاً */
 const back = load(out);
-const cnt = (c) => JSON.stringify([c.lessons.length, c.lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), (c.tables || []).length, c.map ? c.map.c.length : 0, (c.night || []).length]);
-const want = JSON.stringify([lessons.length, lessons.map((l) => [l.summary.length, l.cards.length, l.objective.length, l.essay.length]), tables.length, mapC.length, night.length]);
+const cnt = (c) => JSON.stringify([c.lessons.length, c.lessons.map((l) => [(l.summary || []).length, (l.cards || []).length, (l.objective || []).length, (l.essay || []).length]), (c.tables || []).length, c.map ? c.map.c.length : 0, (c.night || []).length]);
+const want = JSON.stringify([lessons.length, lessons.map((l) => [(l.summary || []).length, (l.cards || []).length, (l.objective || []).length, (l.essay || []).length]), tables.length, mapC.length, night.length]);
 if (cnt(back) !== want) { console.error('ERROR: round-trip mismatch'); process.exit(1); }
 console.log('merged ' + parts.length + ' part(s) -> ' + out + ': lessons ' + lessons.map((l) => l.id).join(',') + ' · tables ' + tables.length + ' · map ' + mapC.length + ' · night ' + night.length + (renamed.length ? ' · renumbered ' + renamed.join(' ') : ''));
