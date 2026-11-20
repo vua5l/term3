@@ -11,6 +11,15 @@ Read `BRIEF.md` for the data format and every content rule, then this file. This
 6. **Format sample:** `law136/data/c10.js` lines 719–952 (lesson l53, then the chapter's tables, map and night), instead of c5.js.
 7. **Keep each lesson's id, title, pages and minutes as given:** the exam schedule depends on them. If a boundary must move, say so in your report instead of moving it.
 
+## Lessons from the batch 1 reviews (apply them)
+- **History:** the professor's guidance means one orienting sentence for a lesson's whole historical passage, not one per paragraph. Keep what is examinable (criteria, rules, lists, legal terms).
+- **Never drop a qualifier** when you turn the book's words into a question, an option or a table cell («في نطاق وزارته»، «التي تدخل ضمن أعمال وزارته»، «في المرحلة الأولى…»): without it a true statement becomes false or general.
+- **No applied cases** («اقترح وزيرٌ…، فهو يمارس…»): ask directly.
+- **Options of one kind and level:** if the question is about the King's powers as president of the council, every option is a presidential power, the wrong ones distorted in one detail. No option eliminable at sight; no pair of opposite options of which one is the answer; no word in the stem sharing a root with the answer; no fill-in whose surrounding words give the answer away. When options combine two elements, balance them: each element in exactly two options (2×2).
+- **A term the book uses in two senses** (search the published chapters): restrict the question («في نظام المجلس الحالي»).
+- **A table cell** must not restate its column's name, even in other words.
+- **Output C** lists real definitions only (the book defines a term: «يقصد به»، «هو»، «يُعرَّف بأنه»), not other verbatim statements.
+
 ## Inputs and outputs
 - Page images: `{W}/pages/pNNN.png` (NNN = printed book page). Open all your pages first, and no others. Check the printed number at the foot of each page.
 - **A)** `{W}/parts/<part>.js`: a chapter file with the chapter's header fields, containing only your lessons, plus the chapter extras for your lessons only: `tables` (0–2, only where the content truly compares; ids `<chapter>t1…`, renumbered when parts are joined), `map` (root `t` = "<chapter title>: <chapter name>", one child per lesson), `night` (3–5 points per lesson).
