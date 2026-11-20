@@ -514,10 +514,10 @@ function tfMessage(ls, part) {
   });
   return out.join('\n');
 }
-/* أسئلة الفهم: Claude يصوغ أسئلة جديدة بسؤال «لماذا؟» من ملفات نص الكتاب لهذه الدروس */
+/* أسئلة التعليل: Claude يصوغ أسئلة جديدة بسؤال «لماذا؟» من ملفات نص الكتاب لهذه الدروس */
 function compMessage(ls) {
   return [
-    'أريد أسئلة فهم في ' + subjLine() + '، من ' + bookLine() + '، في هذه الدروس وصفحاتها:'
+    'أريد أسئلة تعليل في ' + subjLine() + '، من ' + bookLine() + '، في هذه الدروس وصفحاتها:'
   ].concat(ls.map(function (l) { return '- ' + lesLine(l); }), [
     '',
     filesLine(ls),
@@ -1129,7 +1129,7 @@ function essaySetup() {
   h += '<p class="fin-msg">' + (ok ? 'في الرسالة ' + what + '، من ' + countWord(ls.length, W.les) + '، مع صفحاتها.' : 'اختر درساً فيه أسئلة.') + '</p>' +
     '<button type="button" class="btn wide" data-act="copy-essay"' + (ok ? '' : ' disabled') + '>انسخ رسالة الاختبار</button>' +
     '<div class="row"><button type="button" class="btn ghost" data-act="copy-new"' + (ls.length ? '' : ' disabled') + '>طلب أسئلة مقالية جديدة</button>' +
-    '<button type="button" class="btn ghost" data-act="copy-comp"' + (ls.length ? '' : ' disabled') + '>أسئلة الفهم</button></div>' +
+    '<button type="button" class="btn ghost" data-act="copy-comp"' + (ls.length ? '' : ' disabled') + '>أسئلة التعليل</button></div>' +
     (ok ? '<details class="pre"><summary>اعرض الرسالة لتنسخها بيدك إن تعذّر النسخ</summary><textarea class="essay-pre" readonly aria-label="رسالة الاختبار">' + esc(essayMessage(ls, essKind)) + '</textarea></details>' : '') +
   '</section>';
   return h;
@@ -2340,7 +2340,7 @@ view.addEventListener('click', function (e) {
       startQuiz(ids, 'اختبار موضوعي: ' + chs.map(function (c) { return c.title; }).join('، '), 'bank'); return;
     }
     case 'copy-essay': { var ls = pickedLessons().filter(function (x) { return essKind === 'essay' ? x.essay.length : (x.essay.length || tfOf([x]).length); }); if (ls.length) copyText(essayMessage(ls, essKind), 'نُسخت الرسالة. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
-    case 'copy-comp': { var lsc = pickedLessons(); if (lsc.length) copyText(compMessage(lsc), 'نُسخت رسالة أسئلة الفهم. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
+    case 'copy-comp': { var lsc = pickedLessons(); if (lsc.length) copyText(compMessage(lsc), 'نُسخت رسالة أسئلة التعليل. الصقها في محادثة جديدة داخل مشروع المادة.'); return; }
     case 'exp-quiz': startQuiz(shuffle(QL.filter(function (x) { return x.exp; }).map(function (x) { return x.id; })), 'المتوقع', 'expq'); return;
     case 'ess-kind': essKind = el.getAttribute('data-k'); try { ST.setPref('essKind', essKind); } catch (e3) {} render(); return;
     case 'copy-new': { var ls2 = pickedLessons(); if (ls2.length) copyText(newEssaysRequest(ls2), 'نُسخ الطلب. الصقه في محادثة جديدة داخل مشروع المادة.'); return; }
