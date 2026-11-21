@@ -1,0 +1,30 @@
+# تجارب طبقة «الطريق» في schedule.js
+
+أربع تجارب تُشغَّل بـ node على بيانات المستودع، بحزام واحد `t.js`. ومواصفة الطريق في ملف المشروع `claude/الطريق.md`.
+
+- T0: بلا طريق، ناتج `schedule.js` يطابق الأصل قبل الطريق حرفياً (10 حالات).
+- T1: اللصق، ومهام اليوم، والترحيل، والعلامات، والصفحات المعلّقة، وأيام الاختبارات، والموعد المخالف، والحفظ والمسح، ورفض الطريق المعيب.
+- T2: سير يوم بيوم من 21 نوفمبر إلى 11 ديسمبر مع يومين فائتين.
+- T3: الصفحة الحقيقية (`index.html` و`sync.js` و`app.js`) في متصفح محاكى (jsdom)، واللصق من زر «لصق الجواب» القائم.
+
+`path.json` هو ملف الطريق كما لُصق في 21 نوفمبر 2026.
+
+## التشغيل
+من جذر نسخة محلية فيها origin/main وorigin/progress (وorigin/temp-final-law114 إن بقي):
+
+```
+D=/tmp/pathtest; mkdir -p $D && (cd $D && npm init -y >/dev/null && npm i jsdom)
+git show 49defdb:schedule.js > $D/schedule.orig.js            # الأصل قبل طبقة الطريق
+cp schedule.js $D/schedule.js                                  # الملف الحالي (أو نسخة العمل بعد تعديلها)
+cp _tools/schedule/path-tests/*.js _tools/schedule/path-tests/path.json $D/
+for f in index.html sync.js app.js; do git show origin/main:$f > $D/$f; done   # أو نسخ العمل بعد تعديلها
+for c in law114 law117 law135 law136 law138; do git show origin/main:$c/lessons.json > $D/$c.lessons.json; git show origin/progress:$c/_passes.json > $D/$c.passes.json; done
+git show origin/progress:_schedule/exams.json > $D/exams.json
+git show origin/temp-final-law114:law114/lessons.json > $D/law114temp.lessons.json   # إن بقي الفرع
+cd $D && for t in t0 t1 t2 t3; do TZ=Asia/Riyadh node $t.js || break; done
+```
+
+- التجارب تبدأ بلا طريق مهما كان في ملف المواعيد، وتكمل ما لم يُنشر من الدروس بدروس وهمية (z1، z2…)، وساعتها مثبّتة.
+- T1 (د) تفترض بقاء دروس الدولي l1–l38 بصفحاتها.
+- T3 تقبل وقتاً آخر: `node t3.js 2026-11-29T10:00:00+03:00`.
+- إذا عُدّلت `schedule.js` تعديلاً مقصوداً يغيّر الناتج بلا طريق، فـ T0 تخفق حتماً: يُحدَّث سطر الأصل إلى آخر commit قبل التعديل.
