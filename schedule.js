@@ -225,6 +225,11 @@
   /* بعد تصحيحه بالوقت الفعلي للمادة إن وُجد */
   function lessonMinutes(l, f) { return Math.max(1, Math.round(baseMinutes(l) * (f || 1))); }
   function recallOf(m) { return Math.max(RECALL_MIN, Math.round(m * RECALL_SHARE)); }
+  /* صفحات الدرس من خانة pages: أول رقم فيها وآخر رقم، ولو كانت متقطعة («42، 50–55») */
+  function pageSpan(l) {
+    var m = String((l && l.pages) || '').match(/\d+/g);
+    return m ? { s: +m[0], e: +m[m.length - 1] } : null;
+  }
   /* الجلسات بأنصافها، للمواقع التي ما زالت تعرض الجلسات */
   function unitsOf(m) { return Math.max(0.5, Math.round(m / SESSION * 2) / 2); }
   function ceilStep(x) { return Math.ceil(x / STEP) * STEP; }
@@ -310,7 +315,7 @@
     اختباراً أول اليوم، ومادة ليلة الاختبار آخره، والتسميع أول جلسة المادة.
     يُبنى بالدقائق من بداية اليوم: ما أُنجز اليوم لا يغيّر خطة اليوم، بل يُعلَّم منجزاً فيها.
   */
-  function buildPlan(exams, lessons, passes, today, cap, factors) {
+  function buildPlan(exams, lessons, passes, today, cap, factors, preset) {
     cap = cap || 8; factors = factors || {};
     var CAP = cap * SESSION;
     var subj = [], warnings = [];
@@ -325,7 +330,8 @@
         var ds = ((passes[e.code] || {})[l.id] || []).filter(function (d) { return d < today; });
         ds = ds.filter(function (d, i) { return ds.indexOf(d) === i; });
         var m = lessonMinutes(l, factors[e.code]);
-        return { l: l, m: m, r: recallOf(m), n: Math.min(ds.length, REQ), last: ds.length ? ds[ds.length - 1] : null };
+        return { l: l, m: m, r: recallOf(m), n: Math.min(ds.length, REQ), last: ds.length ? ds[ds.length - 1] : null,
+          p: preset && preset.placed[e.code + '|' + l.id] ? 1 : 0 }; // p: درس له يوم في الطريق، فلا يوزّعه الترتيب التلقائي
       });
       subj.push({ e: e, st: st });
     });
@@ -335,7 +341,7 @@
     var days = [], end = today;
     subj.forEach(function (s) { var last = addDays(s.e.date, -1); if (last > end) end = last; });
 
-    function freshOf(s) { return s.st.filter(function (x) { return x.n === 0; }); }
+    function freshOf(s) { return s.st.filter(function (x) { return x.n === 0 && !x.p; }); }
     function freshMin(s) { return freshOf(s).reduce(function (t, x) { return t + x.m; }, 0); }
     /* أيام التعلّم الباقية من يوم d: إلى يوم المراجعة الشاملة، وليلة الاختبار وحدها إن لم يبقَ غيرها */
     function learnDays(s, d) { var A = diffDays(d, s.e.date); return A >= 2 ? A - 1 : 1; }
@@ -397,6 +403,22 @@
         }
         return done;
       };
+      // 0) الطريق المحفوظ: دروس هذا اليوم فيه أولاً (وما فات يومه رُحّل إلى اليوم)، ثم يمضي الترتيب التلقائي
+      //    فيما بقي: التسميع بما يتسع له السقف، والمراجعة الشاملة، وليلة الاختبار، وما ليس له يوم في الطريق
+      //    وفي مدة الطريق: اليوم الذي لا حصة فيه راحة (لا تسميع ولا جرعات)، والمادة التي لم يبدأ طريقها بعد
+      //    لا يُعرض تسميعها ولا جرعاتها حتى يبدأ. والتغطية والمراجعة الشاملة وليلة الاختبار لا يحجبها شيء
+      var hasPath = false;
+      var rest = !!(preset && preset.until && d <= preset.until && !preset.dayHas[d]);
+      var idle = function (s) { var f = preset && preset.first[s.e.code]; return rest || !!(f && f > d); };
+      if (preset && preset.byDay[d]) preset.byDay[d].forEach(function (p) {
+        var s = null, x = null;
+        active.forEach(function (a) { if (a.e.code === p.code) s = a; });
+        if (!s) return;
+        s.st.forEach(function (y) { if (y.l.id === p.lesson) x = y; });
+        if (!x || x.n !== 0) return;
+        var t = task(s, x, 'learn'); t.path = true; if (p.late) t.late = true;
+        add(s, t); x.n = 1; x.last = d; hasPath = true;
+      });
       // 1) التغطية في المواد القريبة: دروسها الباقية بالتساوي على أيام تعلّمها، ولو زاد اليوم على السقف.
       //    ويوزن اليوم بأقل معدّل يومي ثابت يكفي لتغطية المواد القريبة كلها في مواعيدها (rate)، فلا يثقل
       //    يوم ويخف آخر: الأقرب اختباراً يأخذ نصيبه أولاً، والتي بعدها ما بقي من المعدّل ولا تتأخر عن موعدها.
@@ -432,7 +454,7 @@
       // 4) المتسع داخل السقف: تسميع المواد القريبة أولاً والأقرب اختباراً أحق به، ثم تسميع ما تعلّمه من البعيدة
       [true, false].forEach(function (nearPass) {
         active.forEach(function (s) {
-          if (s._near !== nearPass || !canJoin(s)) return;
+          if (s._near !== nearPass || !canJoin(s) || idle(s)) return;
           dueRecalls(s, d).forEach(function (x) {
             if (room() < x.r - 2) return;
             add(s, task(s, x, 'recall')); x.n++; x.last = d;
@@ -441,7 +463,7 @@
       });
       // 5) ثم المادة البعيدة جرعات صغيرة: نصيبها المتساوي من دروسها الباقية على أيامها، ودرسان على الأكثر
       active.forEach(function (s) {
-        if (s._near || !canJoin(s)) return;
+        if (s._near || !canJoin(s) || idle(s)) return;
         var fr = freshOf(s), pace = freshMin(s) / learnDays(s, d), done = 0;
         for (var i = 0; i < fr.length && i < FAR_DOSE; i++) {
           if (done + fr[i].m / 2 > pace || room() < fr[i].m - TOL) break;
@@ -450,7 +472,7 @@
       });
       // 6) ثم التقدم في دروس القريبة إن بقي متسع، ولا تعلّم ليلة الاختبار إلا ما تحتاجه التغطية
       active.forEach(function (s) {
-        if (!s._near || s._A === 1 || !canJoin(s)) return;
+        if (!s._near || s._A === 1 || !canJoin(s) || idle(s)) return;
         var fr = freshOf(s);
         for (var i = 0; i < fr.length; i++) {
           if (room() < fr[i].m - TOL) break;
@@ -464,7 +486,7 @@
         if (g.s._A === 1 && g.tasks.some(function (t) { return t.kind === 'learn'; })) warnings.push({ date: d, type: 'eve-learn', code: g.s.e.code });
         g.tasks.forEach(function (t) { t.units = unitsOf(t.minutes); day.tasks.push(t); });
       });
-      if (load > CAP + TOL) warnings.push({ date: d, type: 'over', minutes: load, cap: CAP });
+      if (load > CAP + TOL && !hasPath) warnings.push({ date: d, type: 'over', minutes: load, cap: CAP }); // يوم الطريق اختيار صاحبه، فلا يُنبَّه إلى سقفه
       days.push(packDay(day));
       // ما أُنجز اليوم خارج مهامه، كمهمة «إن بقي عندك وقت»، يُحسب في الأيام التالية في الحال،
       // فيُحذف درسه من يومه الآتي وتخفّ الأيام بعده. وتبقى مهام اليوم نفسه كما بُنيت من أوله.
@@ -493,7 +515,7 @@
      الذي حان، ثم تسميع البعيدة، ثم درس من المادة البعيدة، ثم التقدم في دروس القريبة.
      فإن كانت الأيام الآتية فوق السقف لأجل التغطية (tight)، قُدّم التقدم في دروس القريبة، لأنه يخفّفها.
      ولا يُقترح درس مرّ اليوم، ولا ما في مهام اليوم، ولا تعلّم جديد ليلة اختبار مادته. */
-  function extraFor(today, exams, lessonList, passes, factors, todayTasks, tight) {
+  function extraFor(today, exams, lessonList, passes, factors, todayTasks, tight, pc) {
     var inToday = {};
     (todayTasks || []).forEach(function (t) { inToday[t.code + '|' + t.lesson] = 1; });
     var subs = (exams || []).filter(function (e) { return e.code && e.date && lessonList[e.code] && diffDays(today, e.date) > 0; })
@@ -516,6 +538,10 @@
         }
       });
     });
+    if (pc) { // مع الطريق: تسميع حان في مادة بدأ طريقها، وإلا فأول درس آتٍ في الطريق
+      var began = function (t) { return !!pc.started[t.code]; };
+      return rec.filter(began)[0] || farRec.filter(began)[0] || pc.next || null;
+    }
     if (tight) return ahead[0] || rec[0] || farRec[0] || far[0] || null;
     return rec[0] || farRec[0] || far[0] || ahead[0] || null;
   }
@@ -525,6 +551,80 @@
   function emit() { listeners.forEach(function (f) { try { f(state); } catch (e) {} }); }
 
   function examsBasis(exams) { return (exams || []).map(function (e) { return (e.code || e.key) + '@' + e.date; }).join(','); }
+
+  /* ---------- الطريق (path) ----------
+     توزيع يكتبه مشروع الجدول بالصفحات لا بالدروس، ويُحفظ في exams.json (خانة path) فيصل الأجهزة كلها:
+       { v: 1, since: 'YYYY-MM-DD', exams: { code: 'YYYY-MM-DD' },
+         subjects: { code: { from: صفحة البداية, days: [['YYYY-MM-DD', الصفحة التي يُوقف عندها], ...] } } }
+     الدرس يقع في أول يوم تبلغ صفحتُه آخرَ صفحات الدرس. فلا يقيّد التوزيع تقسيم الموقع لدروسه، وما يُنشر من
+     دروس بعد حفظ الطريق يأخذ يومه من نفسه، وما لم يُنشر بعد يظهر في يومه صفحاتٍ معلّقة (pending).
+     ودرس تُعلِّم قبل since خارج الطريق (تسميعه للترتيب التلقائي). وما فات يومه ولم يُتعلَّم رُحّل إلى اليوم
+     (late) ومواعيد الباقي ثابتة. والمادة التي يخالف موعدها في الجدول موعدها في الطريق تُترك للترتيب التلقائي.
+     وما بعد آخر أيام الطريق، والتسميع والمراجعة الشاملة وليلة الاختبار، كلها للترتيب التلقائي كما هي. */
+  function resolvePath(pth, exams, lessonList, passes, today) {
+    if (!pth || pth.v !== 1 || !pth.subjects) return null;
+    var RE = /^\d{4}-\d{2}-\d{2}$/;
+    var since = RE.test(pth.since || '') ? pth.since : today;
+    var examOf = {}; exams.forEach(function (e) { if (e.code) examOf[e.code] = e.date; });
+    var placed = {}, byDay = {}, started = {}, first = {}, dayHas = {}, dayMap = {}, subjects = {}, active = false, until = '', late = 0;
+    Object.keys(pth.subjects).forEach(function (code) {
+      var sub = pth.subjects[code] || {}, exam = examOf[code], want = (pth.exams || {})[code];
+      var info = { valid: false, why: '', from: +sub.from || 1, first: '', last: '', total: 0, done: 0, late: 0 };
+      subjects[code] = info;
+      var mk = (sub.days || []).map(function (x) { return { d: String(x && x[0]), to: +(x && x[1]) }; })
+        .filter(function (x) { return RE.test(x.d) && x.to > 0; })
+        .sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+      if (!mk.length) { info.why = 'empty'; return; }
+      info.first = mk[0].d; info.last = mk[mk.length - 1].d;
+      if (!exam) { info.why = 'unknown'; return; }          // مادة ليست في الجدول
+      if (want && want !== exam) { info.why = 'date'; return; } // موعدها في الجدول غير موعدها في الطريق
+      if (diffDays(today, exam) <= 0) { info.why = 'past'; return; }
+      info.valid = true; active = true;
+      first[code] = info.first;
+      if (info.first <= today) started[code] = 1;
+      if (info.last > until) until = info.last;
+      var ls = lessonList[code] || [], spans = ls.map(pageSpan), listedTo = 0;
+      spans.forEach(function (sp) { if (sp && sp.e > listedTo) listedTo = sp.e; });
+      var prevTo = info.from - 1;
+      mk.forEach(function (m, i) {
+        var item = { code: code, from: prevTo + 1, to: m.to, total: 0, done: 0, pending: null, finish: i === mk.length - 1, lessons: [] };
+        var any = false;
+        ls.forEach(function (l, k) {
+          var sp = spans[k]; if (!sp || sp.e <= prevTo || sp.e > m.to) return;
+          any = true;
+          var ps = (passes[code] || {})[l.id] || [];
+          if (ps.length && ps[0] < since) return; // تُعلِّم قبل بدء الطريق: خارجه
+          item.total++; item.lessons.push({ id: l.id, done: !!ps.length }); // دروس هذا اليوم في الطريق، لشاشة التقويم
+          if (ps.length) item.done++;
+          if (ps.length && ps[0] < today) return; // تُعلِّم في يوم سابق: لا مهمة تعلّم له
+          var key = code + '|' + l.id;
+          if (m.d <= today) { // درس اليوم، أو فات يومه فرُحّل إليه
+            if (today < exam) {
+              placed[key] = 1; (byDay[today] = byDay[today] || []).push({ code: code, lesson: l.id, late: m.d < today });
+              if (m.d < today && !ps.length) { info.late++; late++; }
+            }
+          } else if (ps.length) placed[key] = 1; // سُبق إليه اليوم قبل يومه: لا يُعاد وضعه
+          else if (m.d < exam) { placed[key] = 1; (byDay[m.d] = byDay[m.d] || []).push({ code: code, lesson: l.id, late: false }); }
+        });
+        // صفحات لم تُنشر دروسها بعد: ما وراء آخر صفحة في قائمة الدروس، أو يوم لا درس في القائمة ينتهي في صفحاته
+        if (m.to > listedTo) item.pending = [Math.max(prevTo, listedTo) + 1, m.to];
+        else if (!any) item.pending = [prevTo + 1, m.to];
+        info.total += item.total; info.done += item.done;
+        (dayMap[m.d] = dayMap[m.d] || { date: m.d, items: [] }).items.push(item); dayHas[m.d] = 1;
+        prevTo = m.to;
+      });
+    });
+    var days = Object.keys(dayMap).sort().map(function (d) {
+      var x = dayMap[d]; x.total = 0; x.done = 0; x.pending = false;
+      x.items.forEach(function (it) { x.total += it.total; x.done += it.done; if (it.pending) x.pending = true; });
+      x.complete = !x.pending && x.total > 0 && x.done >= x.total;
+      return x;
+    });
+    var next = null;
+    Object.keys(byDay).sort().forEach(function (d) { if (!next && d > today && byDay[d].length) next = byDay[d][0]; });
+    return { active: active, placed: placed, byDay: byDay, started: started, first: first, dayHas: dayHas, until: until, next: next,
+      pub: { active: active, since: since, until: until, subjects: subjects, days: days, late: late } };
+  }
 
   function compose(examsRec, lessonsBy, marksBy) {
     var today = todayISO();
@@ -545,7 +645,13 @@
 
     var ov = examsRec && examsRec.override;
     var source = 'auto', plan;
-    if (ov && ov.basis === examsBasis(exams) && ov.days) {
+    // الطريق المحفوظ يُقدَّم على الترتيبين الذكي والتلقائي
+    var pinfo = examsRec && examsRec.path ? resolvePath(examsRec.path, exams, lessonList, passes, today) : null;
+    if (pinfo && pinfo.active) {
+      source = 'path';
+      plan = buildPlan(exams, lessonList, passes, today, cap, factors,
+        { placed: pinfo.placed, byDay: pinfo.byDay, first: pinfo.first, dayHas: pinfo.dayHas, until: pinfo.until });
+    } else if (ov && ov.basis === examsBasis(exams) && ov.days) {
       source = 'smart';
       plan = { days: ov.days.filter(function (x) { return x.date >= today; }).map(function (x) {
         return { date: x.date, tasks: x.tasks.map(function (t) {
@@ -582,7 +688,13 @@
     var todayPlan = null;
     plan.days.forEach(function (x) { if (x.date === today) todayPlan = x; });
     var tight = (plan.warnings || []).some(function (w) { return w.type === 'over' && w.date > today; });
-    var extra = extraFor(today, exams, lessonList, passes, factors, todayPlan ? todayPlan.tasks : [], tight);
+    var pc = null;
+    if (source === 'path') {
+      pc = { started: pinfo.started, next: null };
+      var nx = pinfo.next, nl = nx && (lessonIndex[nx.code] || {})[nx.lesson];
+      if (nl) pc.next = { code: nx.code, lesson: nx.lesson, kind: 'learn', minutes: lessonMinutes(nl, factors[nx.code]) };
+    }
+    var extra = extraFor(today, exams, lessonList, passes, factors, todayPlan ? todayPlan.tasks : [], tight, pc);
     if (extra) {
       var el = (lessonIndex[extra.code] || {})[extra.lesson] || {};
       extra.title = el.title || extra.lesson; extra.pages = el.pages || '';
@@ -604,6 +716,7 @@
     exams.forEach(function (e) {
       var xs = e.code && e.date && diffDays(today, e.date) > 0 && marksBy[e.code] && marksBy[e.code].extra;
       if (!xs) return;
+      if (source === 'path' && pinfo.first[e.code] && pinfo.first[e.code] > today) return; // مادة لم يبدأ طريقها بعد
       Object.keys(xs).sort().forEach(function (id) {
         var r = xs[id]; if (!r || !r.active || !r.title) return;
         if (!todayPlan) { todayPlan = { date: today, tasks: [], minutes: 0, load: 0, sessions: 0 }; plan.days.unshift(todayPlan); }
@@ -618,6 +731,7 @@
       overrideLost: !!(ov && ov.basis === examsBasis(exams) && source === 'auto'),
       lessons: lessonList, passes: passes, progress: progress,
       days: plan.days, warnings: plan.warnings || [], calib: calib, extra: extra,
+      path: pinfo ? pinfo.pub : null, // الطريق: حالته وأيامه وموادّه، لشاشة التقويم (source === 'path' حين يعمل)
       updated: examsRec && examsRec.savedAt || 0
     };
   }
@@ -735,10 +849,67 @@
       var cur = examsStore.local() || { v: 1, exams: [], cap: 8, override: null };
       var rec = { v: 1, exams: clone(exams || cur.exams), cap: opts.cap || cur.cap || 8,
         override: opts.override !== undefined ? opts.override : cur.override };
+      var pv = opts.path !== undefined ? opts.path : cur.path; // الطريق يبقى مع كل حفظ حتى يُمسح صراحة
+      if (pv) rec.path = pv;
       var p = examsStore.put(rec);
       refreshFromLocal(); return p;
     },
     clearOverride: function () { return this.saveExams(null, { override: null }); },
+
+    /* ---------- الطريق (انظر resolvePath) ---------- */
+    /* يستخرج الطريق من نص ملصوق ويتحقق منه. found: هل في النص طريق أصلاً */
+    parsePath: function (text, s) {
+      s = s || state;
+      var t = String(text || ''), i = t.indexOf('{'), found = null;
+      while (i >= 0 && !found) {
+        var depth = 0, inStr = false, esc = false;
+        for (var j = i; j < t.length; j++) {
+          var ch = t[j];
+          if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+          if (ch === '"') inStr = true; else if (ch === '{') depth++; else if (ch === '}') { depth--; if (depth === 0) {
+            try {
+              var o = JSON.parse(t.slice(i, j + 1));
+              if (o && o.path && o.path.subjects) found = o.path; else if (o && o.subjects && o.exams && !o.days) found = o;
+            } catch (e) {}
+            break;
+          } }
+        }
+        i = t.indexOf('{', i + 1);
+      }
+      if (!found) return { found: false, ok: false, errors: [] };
+      var errors = [], RE = /^\d{4}-\d{2}-\d{2}$/, codes = {};
+      ((s && s.exams) || []).forEach(function (e) { if (e.code) codes[e.code] = 1; });
+      if (found.v !== 1) errors.push('صيغة الطريق غير معروفة.');
+      var out = { v: 1, since: RE.test(found.since || '') ? found.since : (s ? s.today : todayISO()), created: Date.now(), exams: {}, subjects: {} };
+      Object.keys(found.subjects || {}).forEach(function (c) {
+        var sub = found.subjects[c] || {}, ex = (found.exams || {})[c];
+        if (!codes[c]) { errors.push('مادة غير معروفة في الجدول: ' + c); return; }
+        if (!RE.test(ex || '')) { errors.push(c + ': موعد الاختبار ناقص أو غير صحيح.'); return; }
+        var from = +sub.from, prevD = '', prevTo = from - 1, days = [];
+        if (!(from > 0)) { errors.push(c + ': صفحة البداية ناقصة.'); return; }
+        (sub.days || []).forEach(function (x) {
+          var d = x && x[0], to = +(x && x[1]);
+          if (!RE.test(d || '')) { errors.push(c + ': تاريخ غير صحيح: ' + d); return; }
+          if (!(to >= from)) { errors.push(c + ' ' + d + ': صفحة غير صحيحة.'); return; }
+          if (prevD && d <= prevD) errors.push(c + ' ' + d + ': الأيام ليست متصاعدة.');
+          if (to < prevTo) errors.push(c + ' ' + d + ': الصفحات تتراجع.');
+          if (d >= ex) errors.push(c + ' ' + d + ': يوم الاختبار أو بعده.');
+          prevD = d; prevTo = to; days.push([d, to]);
+        });
+        if (!days.length) errors.push(c + ': لا أيام في طريقها.');
+        out.exams[c] = ex; out.subjects[c] = { from: from, days: days };
+      });
+      if (!Object.keys(out.subjects).length && !errors.length) errors.push('الطريق فارغ.');
+      return { found: true, ok: !errors.length, path: out, errors: errors };
+    },
+    /* يحفظ الطريق، ويضبط مواعيد مواده في الجدول على مواعيده ويرفع عنها وصف «مبدئي» */
+    applyPath: function (p) {
+      var cur = examsStore.local() || { exams: [] }, exams = clone(cur.exams || []);
+      exams.forEach(function (e) { if (e.code && p && p.exams && p.exams[e.code]) { e.date = p.exams[e.code]; e.tentative = false; } });
+      return this.saveExams(exams, { path: p });
+    },
+    /* يمسح الطريق فيعود الجدول إلى ترتيبه التلقائي (أو الذكي إن كان محفوظاً) */
+    clearPath: function () { return this.saveExams(null, { path: null }); },
     buildPlan: buildPlan,
     calibrate: calibrate,
     basis: examsBasis,
@@ -780,6 +951,9 @@
     /* يستخرج الخطة من جواب ملصوق ويتحقق منها */
     parseSmart: function (text, s) {
       s = s || state;
+      // النص الملصوق طريق لا خطة ذكية: يمرّ من زر «لصق الجواب» نفسه، وapplySmart يحفظه طريقاً
+      var pp = this.parsePath(text, s);
+      if (pp.found) return pp.ok ? { ok: true, plan: { path: pp.path }, errors: [] } : { ok: false, errors: pp.errors };
       var errors = [], plan = null;
       var t = String(text || ''), i = t.indexOf('{'), found = null;
       while (i >= 0 && !found) {
@@ -822,7 +996,7 @@
       }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }) };
       return { ok: true, plan: plan, errors: [] };
     },
-    applySmart: function (plan) { return this.saveExams(null, { override: plan }); },
+    applySmart: function (plan) { if (plan && plan.path) return this.applyPath(plan.path); return this.saveExams(null, { override: plan }); },
     hasToken: function () { return !!token(); },
 
     /* حالة الحفظ في المستودع: ما ينتظر الرفع من هذا الجهاز، وآخر تغيير محفوظ في المستودع من أي جهاز */
