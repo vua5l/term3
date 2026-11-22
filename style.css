@@ -12,6 +12,7 @@
   --dot-iltizam: #3A8FA3; --dot-idari: #8E8BC7; --dot-dustori: #8B4A4E; --dot-usra: #9DBF85; --dot-dawli: #D4C44A;
   --on-iltizam: #1C1C1A; --on-idari: #1C1C1A; --on-dustori: #F2F1EC; --on-usra: #1C1C1A; --on-dawli: #1C1C1A;
   --dot-other: #9A958B; --sub-other: #65625C; --on-other: #1C1C1A;
+  --scrim: rgba(28, 28, 26, 0.35); /* التعتيم خلف نافذة اليوم */
 }
 :root[data-theme="dark"] {
   --bg: #1C211E; --card: #262D29; --text: #F2F1EC; --sec: #A5ABA6; --line: #343B37;
@@ -19,7 +20,7 @@
   --past-bg: #343B37; --past-text: #A5ABA6;
   --fut-bg: #ECEAE4; --fut-text: #1C1C1A; --fut-border: #ECEAE4;
   --sub-iltizam: #7FC6D6; --sub-idari: #B9B7E6; --sub-dawli: #E3D56A; --sub-usra: #B6D4A3; --sub-dustori: #D9969A;
-  --sub-other: #A5ABA6; color-scheme: dark;
+  --sub-other: #A5ABA6; --scrim: rgba(0, 0, 0, 0.5); color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -28,7 +29,7 @@
     --past-bg: #343B37; --past-text: #A5ABA6;
     --fut-bg: #ECEAE4; --fut-text: #1C1C1A; --fut-border: #ECEAE4;
     --sub-iltizam: #7FC6D6; --sub-idari: #B9B7E6; --sub-dawli: #E3D56A; --sub-usra: #B6D4A3; --sub-dustori: #D9969A;
-    --sub-other: #A5ABA6; color-scheme: dark;
+    --sub-other: #A5ABA6; --scrim: rgba(0, 0, 0, 0.5); color-scheme: dark;
   }
 }
 
@@ -131,6 +132,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .next-chip { background: var(--coral); color: var(--ink); border-radius: 999px; padding: 1px 7px; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .t-kind { font-size: 11px; color: var(--sec); white-space: nowrap; }
 .t-min { font-size: 12px; color: var(--sec); white-space: nowrap; min-width: 34px; text-align: left; }
+/* مكان خانة الإنجاز حين لا تُعلَّم المهمة من هنا، وسطر الصفحات التي لم تُنشر دروسها */
+.task-gap { width: 24px; height: 24px; flex-shrink: 0; }
+.pend { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.t-pend { color: var(--sec); }
 .empty { font-size: 13px; color: var(--sec); text-align: center; padding: 18px 0; line-height: 1.8; }
 /* «إن بقي عندك وقت»: اختيارية، في أسفل شاشة اليوم بعد المهام الأساسية */
 .group.extra .g-name { color: var(--sec); }
@@ -149,7 +154,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .mlabel { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
 .mlabel span { font-size: 11px; font-weight: 600; color: var(--sec); white-space: nowrap; }
 .mlabel i { flex: 1; height: 1px; background: var(--line); }
-.cellwrap { display: flex; justify-content: center; }
+.cellwrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* نقاط المواد تحت دائرة اليوم: نقطة بلون كل مادة لها فيه مهام */
+.dots { display: flex; justify-content: center; gap: 3px; height: 5px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; }
+button.cell { margin: 0; }
 .cellwrap.blank { visibility: hidden; }
 .cell {
   width: 38px; height: 38px; border-radius: 50%; border: 1px solid transparent;
@@ -174,6 +183,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .ex-left { font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .ex-left.over { color: var(--sec); font-weight: 500; }
 .chip { background: var(--chip); color: var(--ink); border-radius: 999px; padding: 1px 7px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+/* ---------- نافذة اليوم من التقويم ---------- */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 6; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 480px; max-height: 76vh; max-height: 76dvh;
+  overflow-y: auto; overscroll-behavior: contain; background: var(--card); color: var(--text); border-radius: 24px 24px 0 0;
+  padding: 10px 24px max(34px, calc(16px + env(safe-area-inset-bottom, 0px)));
+  display: flex; flex-direction: column; gap: 16px; z-index: 6;
+}
+.scrim[hidden], .sheet[hidden] { display: none; }
+html.sheet-on body { overflow: hidden; }
+.sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; flex-shrink: 0; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-head .tt { display: flex; flex-direction: column; gap: 2px; }
+.sheet-head .st { font-size: 20px; font-weight: 700; }
+.sheet-head .ss { font-size: 12px; font-weight: 500; color: var(--sec); }
+.sheet-x { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); color: var(--sec); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 /* ---------- التعديل ---------- */
 .settings { display: flex; flex-direction: column; gap: 18px; padding-bottom: 10px; }

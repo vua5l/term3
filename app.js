@@ -17,6 +17,11 @@
   var LETTERS = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'];
   var KIND = { learn: 'تعلّم', recall: 'تسميع', review: 'مراجعة', eve: 'تسميع' };
   var HEADS = ['القانون', 'قانون', 'مصادر', 'أحكام', 'مبادئ', 'أصول', 'نظام', 'مدخل', 'علم', 'فقه'];
+  /* ترتيب الصعوبة عند صاحب الجدول: تُقدَّم به نقطة المادة الأصعب تحت دائرة اليوم عند تساوي المهام */
+  var HARD = ['dawli', 'dustori', 'idari', 'iltizam', 'usra'];
+  /* سبب خروج مادة من الطريق، لبيانه في التعديل (ولا يُذكر past: انتهى اختبارها فخروجها مفهوم) */
+  var WHY = { date: 'خارج الطريق، لأن موعدها في الجدول غير موعدها فيه، فيرتّبها الجدول تلقائياً.',
+    unknown: 'خارج الطريق، لأنها ليست في الجدول.', empty: 'خارج الطريق، لأنه لا أيام لها فيه.' };
 
   var state = null;       // حالة الجدول كاملة من schedule.js
   var loadFailed = false; // تعذّر الوصول إلى المستودع ولا نسخة في الجهاز
@@ -24,6 +29,7 @@
   var pick = null;        // 'auto' أو 'smart'
   var pasteOpen = false, smartErrors = null, smartText = '';
   var armed = null;       // فعل ينتظر ضغطة ثانية للتأكيد: { act, code, t }
+  var sheetDay = null;    // اليوم المفتوح في نافذة التقويم، أو null
 
   /* ---------- أدوات ---------- */
   function $(id) { return document.getElementById(id); }
@@ -72,6 +78,113 @@
     state.days.forEach(function (d) { if (d.date === today) day = d; });
     return day ? day.tasks : [];
   }
+
+  /* ---------- مهام يوم بعينه: للرئيسية ولنافذة التقويم معاً ---------- */
+  function tasksWord(n) { if (!n) return 'لا مهام'; if (n === 1) return 'مهمة واحدة'; if (n === 2) return 'مهمتان'; return n + (n <= 10 ? ' مهام' : ' مهمة'); }
+  function aboutWord(n) { return n === 2 ? 'مهمتين' : tasksWord(n); } // بعد «نحو»
+  function pathCell(date) {
+    var c = null;
+    ((state && state.path && state.path.days) || []).forEach(function (x) { if (x.date === date) c = x; });
+    return c;
+  }
+  /* الصفحات التي لم تُنشر دروسها في يومها، وتقدير عددها: صفحاتها ÷ متوسط صفحات الدرس في قائمة دروس الموقع
+     (من أول صفحة إلى آخرها مقسومة على عدد الدروس)، تقريباً ولا يقل عن واحد. والصفحات المنشورة داخل درس
+     ينتهي في يوم بعده ليست معلّقة، فدرسها يأخذ يومه الذي ينتهي فيه */
+  function pendOf(it) {
+    if (!it || !it.pending) return null;
+    var lo = 0, hi = 0, n = 0;
+    ((state.lessons || {})[it.code] || []).forEach(function (l) {
+      var m = String(l.pages || '').match(/\d+/g); if (!m) return;
+      n++; if (!lo || +m[0] < lo) lo = +m[0]; if (+m[m.length - 1] > hi) hi = +m[m.length - 1];
+    });
+    var a = it.pending[0], b = it.pending[1];
+    if (n && b <= hi) return null;
+    return { from: a, to: b, n: n ? Math.max(1, Math.round((b - a + 1) / ((hi - lo + 1) / n))) : 0 };
+  }
+  /* درس من خانة يوم آتٍ في الطريق تعلّمه صاحبه قبل يومه: يبقى في يومه منجزاً (القاعدة 9)، وتاريخ علامته
+     للتراجع عنها */
+  function doneAhead(code, id) {
+    var l = {}; ((state.lessons || {})[code] || []).forEach(function (x) { if (x.id === id) l = x; });
+    var ps = ((state.passes || {})[code] || {})[id] || [], f = state.calib && state.calib[code] ? state.calib[code].factor : 1;
+    var base = +l.minutes > 0 ? +l.minutes : (+l.sessions > 0 ? +l.sessions : 1) * SESSION;
+    return { code: code, lesson: id, kind: 'learn', title: l.title || id, link: (S ? S.base : '') + code + '/' + (l.link || ''),
+      minutes: Math.max(1, Math.round(base * f)), done: true, doneOn: ps[0] || '', path: true };
+  }
+  /* مهام اليوم مجموعة تحت موادها كما يحسبها الجدول (state.days)، ومع كل مادة صفحاتها المعلّقة في الطريق.
+     واليوم الحالي كما هو في الرئيسية حرفاً، وفي الأيام الآتية تبقى دروس الطريق المنجزة قبل يومها في يومها */
+  function dayGroups(date) {
+    if (!state) return [];
+    var day = null, groups = [], by = {}, isToday = date === todayISO(), cell = pathCell(date);
+    state.days.forEach(function (d) { if (d.date === date) day = d; });
+    var tasks = day ? day.tasks : [];
+    function grp(code) { if (!by[code]) { by[code] = { code: code, tasks: [], pend: null }; groups.push(by[code]); } return by[code]; }
+    if (isToday || !cell) tasks.forEach(function (t) { grp(t.code).tasks.push(t); });
+    else {
+      var have = {};
+      tasks.forEach(function (t) { grp(t.code); if (t.kind === 'learn') have[t.code + '|' + t.lesson] = t; });
+      cell.items.forEach(function (it) { if (it.lessons.some(function (l) { return l.done; })) grp(it.code); });
+      groups.forEach(function (g) {
+        var mine = tasks.filter(function (t) { return t.code === g.code; }), learns = [];
+        cell.items.forEach(function (it) {
+          if (it.code !== g.code) return;
+          it.lessons.forEach(function (l) {
+            var k = g.code + '|' + l.id;
+            if (have[k]) { learns.push(have[k]); delete have[k]; } else if (l.done) learns.push(doneAhead(g.code, l.id));
+          });
+        });
+        mine.forEach(function (t) { if (t.kind === 'learn' && have[t.code + '|' + t.lesson]) learns.push(t); });
+        g.tasks = mine.filter(function (t) { return t.kind === 'recall'; }).concat(learns,
+          mine.filter(function (t) { return t.kind !== 'recall' && t.kind !== 'learn'; }));
+      });
+    }
+    if (cell) cell.items.forEach(function (it) { var p = pendOf(it); if (p) grp(it.code).pend = p; });
+    return groups;
+  }
+  /* نقاط المواد تحت دائرة اليوم: نقطة لكل مادة لها مهام أو صفحات معلّقة، من الأكثر مهاماً، والأصعب عند التساوي */
+  function dotsFor(date) {
+    var key = {}; subjects().forEach(function (s) { key[s.code] = s.key; });
+    return dayGroups(date).map(function (g) {
+      var k = key[g.code] || 'other', h = HARD.indexOf(k);
+      return { key: k, w: g.tasks.length + (g.pend ? Math.max(1, g.pend.n) : 0), h: h < 0 ? 99 : h };
+    }).filter(function (x) { return x.w > 0; }).sort(function (a, b) { return b.w - a.w || a.h - b.h; });
+  }
+  /* المجموعات بشكل مهام الرئيسية: رأس المادة، وخانة الإنجاز، والعنوان رابط إلى الدرس، و«التالي» في اليوم الحالي
+     وحده، والنوع، والدقائق. وفي الأيام الآتية خانة الإنجاز للتعلّم وحده، فتعليم تسميع آتٍ يفسد تباعده */
+  function groupsHTML(groups, isToday) {
+    var subByCode = {}, nextFound = !isToday, g = '';
+    subjects().forEach(function (s) { subByCode[s.code] = s; });
+    groups.forEach(function (gr) {
+      var s = subByCode[gr.code] || { key: 'other', name: gr.code, left: 0 };
+      g += '<section class="group"><div class="g-head"><div class="g-name" style="color:' + textColor(s.key) + '">' + esc(s.name) + '</div><div class="g-left">' + daysAfter(s.left) + '</div></div>';
+      gr.tasks.forEach(function (t) {
+        var next = !t.done && !nextFound; if (next) nextFound = true;
+        /* مهمة يملكها موقع المادة (kind: extra) كمراجعة دفتر الأخطاء: علامتها من الموقع، فلا تُعلَّم هنا ولا وقت لها */
+        if (t.kind === 'extra') {
+          g += '<div class="task' + (t.done ? ' done' : '') + '"><span class="check' + (t.done ? ' done' : next ? ' next' : '') + '" aria-hidden="true">' + ICON_CHECK + '</span>' +
+            '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' + (next ? '<span class="next-chip">التالي</span>' : '') + '</div>';
+          return;
+        }
+        var can = isToday || t.kind === 'learn';
+        g += '<div class="task' + (t.done ? ' done' : '') + '">' +
+          (can ? '<button type="button" class="check' + (t.done ? ' done' : next ? ' next' : '') + '" data-act="toggle" data-code="' + esc(t.code) + '" data-lesson="' + esc(t.lesson) + '" data-kind="' + esc(t.kind) + '" data-done="' + (t.done ? 1 : 0) + '"' +
+            (t.doneOn ? ' data-date="' + esc(t.doneOn) + '"' : '') + (t.path ? ' data-path="1"' : '') + ' aria-label="' + (t.done ? 'إلغاء إنجاز المهمة' : 'إنجاز المهمة') + '">' + ICON_CHECK + '</button>'
+            : '<span class="task-gap" aria-hidden="true"></span>') +
+          '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' +
+          (next ? '<span class="next-chip">التالي</span>' : '') +
+          (t.late ? '<span class="chip">متأخر</span>' : '') +
+          '<span class="t-kind">' + (KIND[t.kind] || esc(t.kind)) + '</span>' +
+          '<span class="t-min">' + (t.minutes | 0) + ' د</span></div>';
+      });
+      if (gr.pend) {
+        var p = gr.pend;
+        g += '<div class="pend"><span class="task-gap" aria-hidden="true"></span><span class="t-title t-pend">ص ' + (p.from === p.to ? p.from : p.from + '–' + p.to) + '</span>' +
+          '<span class="t-kind">لم يُنشر بعد' + (p.n ? ' · نحو ' + aboutWord(p.n) : '') + '</span></div>';
+      }
+      g += '</section>';
+    });
+    return g;
+  }
+
   function toast(msg) {
     var t = $('toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toast._h); toast._h = setTimeout(function () { t.classList.remove('show'); }, 2600);
@@ -104,6 +217,7 @@
   var ICON_PASTE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>';
   var ICON_MINUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>';
   var ICON_PLUS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>';
+  var ICON_X = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>';
 
   /* ---------- الرأس ---------- */
   function renderHead(id, withGear) {
@@ -148,40 +262,13 @@
       '<circle class="arc" cx="37" cy="37" r="31" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + (pct / 100 * 194.8).toFixed(1) + ' 194.8"></circle></svg>' +
       '<div class="pct">' + (total ? pct + '%' : '—') + '</div></div>';
 
-    var g = '';
+    var g = '', groups = state ? dayGroups(todayISO()) : [];
     if (!state) {
       g = '<div class="empty">' + (loadFailed ? 'افتح الصفحة مع الاتصال ليصلك الجدول.' : 'جارٍ تحميل الجدول من المستودع…') + '</div>';
-    } else if (!total) {
+    } else if (!groups.length) {
       var future = subjects().some(function (s) { return s.left > 0 && s.hasSite; });
       g = '<div class="empty">' + (future ? 'لا مهام مقررة اليوم.' : 'لا مواد قادمة لها دروس في الجدول.') + '</div>';
-    } else {
-      var groups = [], byCode = {}, nextFound = false, subByCode = {};
-      subjects().forEach(function (s) { subByCode[s.code] = s; });
-      tasks.forEach(function (t) {
-        if (!byCode[t.code]) { byCode[t.code] = { code: t.code, tasks: [] }; groups.push(byCode[t.code]); }
-        byCode[t.code].tasks.push(t);
-      });
-      groups.forEach(function (gr) {
-        var s = subByCode[gr.code] || { key: 'other', name: gr.code, left: 0 };
-        g += '<section class="group"><div class="g-head"><div class="g-name" style="color:' + textColor(s.key) + '">' + esc(s.name) + '</div><div class="g-left">' + daysAfter(s.left) + '</div></div>';
-        gr.tasks.forEach(function (t) {
-          var next = !t.done && !nextFound; if (next) nextFound = true;
-          /* مهمة يملكها موقع المادة (kind: extra) كمراجعة دفتر الأخطاء: علامتها من الموقع، فلا تُعلَّم هنا ولا وقت لها */
-          if (t.kind === 'extra') {
-            g += '<div class="task' + (t.done ? ' done' : '') + '"><span class="check' + (t.done ? ' done' : next ? ' next' : '') + '" aria-hidden="true">' + ICON_CHECK + '</span>' +
-              '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' + (next ? '<span class="next-chip">التالي</span>' : '') + '</div>';
-            return;
-          }
-          g += '<div class="task' + (t.done ? ' done' : '') + '">' +
-            '<button type="button" class="check' + (t.done ? ' done' : next ? ' next' : '') + '" data-act="toggle" data-code="' + esc(t.code) + '" data-lesson="' + esc(t.lesson) + '" data-kind="' + esc(t.kind) + '" data-done="' + (t.done ? 1 : 0) + '" aria-label="' + (t.done ? 'إلغاء إنجاز المهمة' : 'إنجاز المهمة') + '">' + ICON_CHECK + '</button>' +
-            '<a class="t-title" href="' + esc(t.link) + '">' + esc(t.title) + '</a>' +
-            (next ? '<span class="next-chip">التالي</span>' : '') +
-            '<span class="t-kind">' + (KIND[t.kind] || esc(t.kind)) + '</span>' +
-            '<span class="t-min">' + (t.minutes | 0) + ' د</span></div>';
-        });
-        g += '</section>';
-      });
-    }
+    } else g = groupsHTML(groups, true); // ومع المهام: وسم «متأخر» على المرحّلة، وسطر للصفحات المعلّقة في يومها
     g += extraBlock(total, done);
     $('groups').innerHTML = g;
   }
@@ -226,7 +313,14 @@
         var ex = examBy[day], cls = ex ? 'exam' : day === today ? 'today' : day < today ? 'past' : 'future';
         var st = ex ? ' style="background:' + dotColor(ex.key) + ';border-color:' + dotColor(ex.key) + ';color:' + onColor(ex.key) + '"' : '';
         var label2 = ex ? (ex.short + ' ' + dayMonth(day)) : (day === today ? 'اليوم' : '');
-        cells.push('<div class="cellwrap"><div class="cell ' + cls + '"' + st + (label2 ? ' title="' + esc(label2) + '"' : '') + '>' + dt.getDate() + '</div></div>');
+        /* من اليوم إلى آخر اختبار: نقاط مواد اليوم تحت دائرته، والضغط عليها يفتح مهامه. والأيام الماضية بلا نقاط */
+        var open = !!state && day >= today && day <= last, dots = open ? dotsFor(day) : [];
+        var aria = dateText(day) + (ex ? ' · اختبار ' + ex.name : '') + (day === today ? ' · اليوم' : '') +
+          (dots.length ? ' · ' + unit(dots.length, 'مادة واحدة', 'مادتان', 'مواد', 'مادة') : '');
+        var tag = open ? 'button' : 'div';
+        cells.push('<div class="cellwrap"><' + tag + (open ? ' type="button" data-act="day" data-date="' + day + '" aria-label="' + esc(aria) + '"' : '') +
+          ' class="cell ' + cls + '"' + st + (label2 ? ' title="' + esc(label2) + '"' : '') + '>' + dt.getDate() + '</' + tag + '>' +
+          '<div class="dots" aria-hidden="true">' + dots.map(function (x) { return '<i style="background:' + dotColor(x.key) + '"></i>'; }).join('') + '</div></div>');
       }
       h += '<div class="week">' + (label ? '<div class="mlabel"><span>' + label + '</span><i></i></div>' : '') + '<div class="cells">' + cells.join('') + '</div></div>';
     }
@@ -242,11 +336,26 @@
     $('cal').innerHTML = h;
   }
 
+  /* نافذة اليوم من أسفل الشاشة: تاريخه وعدد مهامه، ومهامه بشكل مهام الرئيسية. تُغلق بالزر أو بالضغط خارجها */
+  function renderSheet() {
+    var on = !!(sheetDay && state && screen === 'calendar');
+    $('scrim').hidden = !on; $('sheet').hidden = !on;
+    document.documentElement.classList.toggle('sheet-on', on);
+    if (!on) return;
+    var isToday = sheetDay === todayISO(), groups = dayGroups(sheetDay), n = 0;
+    groups.forEach(function (g) { n += g.tasks.length; });
+    $('sheet').setAttribute('aria-label', dateText(sheetDay));
+    $('sheet').innerHTML = '<div class="grab" aria-hidden="true"></div>' +
+      '<div class="sheet-head"><div class="tt"><div class="st">' + dateText(sheetDay) + '</div><div class="ss">' + (isToday ? 'اليوم · ' : '') + tasksWord(n) + '</div></div>' +
+      '<button type="button" class="sheet-x" data-act="sheet-close" aria-label="إغلاق">' + ICON_X + '</button></div>' +
+      (groups.length ? groupsHTML(groups, isToday) : '<div class="empty">لا مهام مقررة في هذا اليوم.</div>');
+  }
+
   /* ---------- شاشة التعديل ---------- */
   function currentPick() {
     if (pick) return pick;
     var saved = lsGet(LS_PICK);
-    if (state && state.source === 'smart') return 'smart';
+    if (state && (state.source === 'smart' || state.source === 'path')) return 'smart'; // الطريق يُلصق من «لصق الجواب»
     return saved === 'smart' ? 'smart' : 'auto';
   }
   function calibText(c) {
@@ -341,7 +450,7 @@
     if (!subs.length) h += '<div class="empty">' + (state ? 'لا مواعيد بعد.' : 'جارٍ تحميل الجدول…') + '</div>';
     h += '</div>';
 
-    var status = !state ? '' : state.source === 'smart' ? 'الخطة الحالية ذكية.' : state.overrideLost ? 'الخطة الذكية تركت دروساً بلا مكان قبل اختبارها، والجدول الآن تلقائي.' : state.overrideExpired ? 'الخطة الذكية السابقة انتهت بتغيير المواعيد، والجدول الآن تلقائي.' : 'الخطة الحالية تلقائية.';
+    var status = !state ? '' : state.source === 'path' ? 'الخطة الحالية: الطريق المحفوظ.' : state.source === 'smart' ? 'الخطة الحالية ذكية.' : state.overrideLost ? 'الخطة الذكية تركت دروساً بلا مكان قبل اختبارها، والجدول الآن تلقائي.' : state.overrideExpired ? 'الخطة الذكية السابقة انتهت بتغيير المواعيد، والجدول الآن تلقائي.' : 'الخطة الحالية تلقائية.';
     h += '<div class="mode-card"><div><div class="k">بعد تغيير موعد</div><div class="q">كيف تُعاد خطة الأيام؟</div></div>' +
       '<button type="button" class="opt' + (pk === 'auto' ? ' on' : '') + '" data-act="pick-auto"><span class="radio"><i></i></span><span class="txt"><span class="t1">ترتيب تلقائي</span><span class="t2">فوري ومجاني، بقواعد الجدول نفسها</span></span></button>' +
       '<button type="button" class="opt' + (pk === 'smart' ? ' on' : '') + '" data-act="pick-smart"><span class="radio"><i></i></span><span class="txt"><span class="t1">ترتيب ذكي</span><span class="t2">ينسخ طلباً تلصقه في محادثة جديدة، ثم تلصق الجواب هنا</span></span></button>';
@@ -357,6 +466,17 @@
       }
     }
     if (status) h += '<div class="status">' + status + '</div>';
+    /* الطريق المحفوظ: المادة التي خرجت منه وسببها، ومسحه بضغطتين */
+    var pth = state && state.path;
+    if (pth) {
+      var pname = {}; subs.forEach(function (s) { pname[s.code] = s.name; });
+      if (!pth.active) h += '<div class="status">الطريق المحفوظ لا يعمل الآن.</div>';
+      Object.keys(pth.subjects || {}).forEach(function (c) {
+        var x = pth.subjects[c]; if (x.valid || !WHY[x.why]) return;
+        h += '<div class="status">' + esc(pname[c] || c) + ': ' + WHY[x.why] + '</div>';
+      });
+      h += '<button type="button" class="chip-btn' + (isArmed('clear-path', '') ? ' armed' : '') + '" style="align-self:flex-start" data-act="clear-path">' + (isArmed('clear-path', '') ? 'مسح الطريق؟' : 'مسح الطريق') + '</button>';
+    }
     h += '</div>';
 
     var cap = state ? state.cap : 8, short = [];
@@ -404,9 +524,11 @@
     $('nav').classList.toggle('hidden', screen === 'settings');
     $('nav-today').classList.toggle('on', screen === 'today');
     $('nav-calendar').classList.toggle('on', screen === 'calendar');
+    if (screen !== 'calendar') sheetDay = null;
     if (screen === 'today') renderToday();
     else if (screen === 'calendar') renderCalendar();
     else renderSettings();
+    renderSheet();
   }
 
   /* ---------- الأفعال ---------- */
@@ -451,7 +573,7 @@
     var r = S.parseSmart(text, state);
     if (!r.ok) { smartErrors = r.errors; smartText = text; pasteOpen = true; render(); return; }
     smartErrors = null; smartText = ''; pasteOpen = false;
-    try { S.applySmart(r.plan); toast('طُبقت الخطة الذكية'); } catch (e) { toast('تعذّر الحفظ'); }
+    try { S.applySmart(r.plan); toast(r.plan && r.plan.path ? 'حُفظ الطريق' : 'طُبقت الخطة الذكية'); } catch (e) { toast('تعذّر الحفظ'); }
     render();
   }
   function pasteAnswer() {
@@ -468,7 +590,19 @@
     else if (act === 'toggle') {
       if (!S) return;
       var code = el.getAttribute('data-code'), lesson = el.getAttribute('data-lesson'), kind = el.getAttribute('data-kind');
-      try { if (el.getAttribute('data-done') === '1') S.undo(code, lesson); else S.done(code, lesson, kind); } catch (e) { toast('تعذّر الحفظ'); }
+      var ahead = sheetDay && sheetDay !== todayISO(); // تعليم درس من يوم آتٍ في النافذة: يُسجَّل اليوم
+      try {
+        if (el.getAttribute('data-done') === '1') S.undo(code, lesson, el.getAttribute('data-date') || undefined);
+        else { S.done(code, lesson, kind); if (ahead) toast(el.getAttribute('data-path') ? 'سُجّل الدرس، ويُحسب في يومه' : 'سُجّل الدرس اليوم'); }
+      } catch (e) { toast('تعذّر الحفظ'); }
+    }
+    else if (act === 'day') { sheetDay = el.getAttribute('data-date'); renderSheet(); var sh = $('sheet'); if (sh) sh.scrollTop = 0; }
+    else if (act === 'sheet-close') { sheetDay = null; renderSheet(); }
+    else if (act === 'clear-path') {
+      if (!S || !state) return;
+      if (!arm('clear-path', '')) { toast('اضغط «مسح الطريق؟» مرة أخرى ليُمسح الطريق المحفوظ'); return; }
+      try { S.clearPath(); toast('مُسح الطريق، والجدول الآن ' + (state && state.source === 'smart' ? 'ذكي' : 'تلقائي')); } catch (e) { toast('تعذّر الحفظ'); }
+      render();
     }
     else if (act === 'extra') {
       if (!S) return;
@@ -499,6 +633,7 @@
     if (el.getAttribute && el.getAttribute('data-act') === 'date' && el.value) setDate(el.getAttribute('data-code'), el.value);
   });
   window.addEventListener('hashchange', function () { window.scrollTo(0, 0); render(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && sheetDay) { sheetDay = null; renderSheet(); } });
 
   /* ---------- البدء ---------- */
   applyTheme();

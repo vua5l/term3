@@ -20,7 +20,7 @@ function boot(file,o){
   return {S:ctx.term3Schedule,mem};
 }
 // البداية دائماً بلا طريق: تُحذف خانة path من نسخة ملف المواعيد، وتضيفها التجربة التي تحتاجها
-const base=()=>{const e=J('exams.json');delete e.path;return {lessons:Object.fromEntries(CODES.map(c=>[c,J(c+'.lessons.json')])),marks:Object.fromEntries(CODES.map(c=>[c,J(c+'.passes.json')])),exams:e}};
+const base=()=>{const e=J('exams.json');delete e.path;e.savedAt=0;/* وقت الحفظ الحقيقي قد يسبق ساعة التجربة فيغلب حفظها */return {lessons:Object.fromEntries(CODES.map(c=>[c,J(c+'.lessons.json')])),marks:Object.fromEntries(CODES.map(c=>[c,J(c+'.passes.json')])),exams:e}};
 function listedTo(ls){let m=0;ls.forEach(l=>{const g=String(l.pages||'').match(/\d+/g);if(g&&+g[g.length-1]>m)m=+g[g.length-1]});return m}
 // يكمل قائمة دروس المادة بدروس وهمية (معرّفاتها z1، z2…) لما لم يُنشر من الصفحات حتى upto، ستّ صفحات للدرس. ولا يضيف شيئاً إن كانت منشورة
 function pad(o,code,upto,mins){const ls=o.lessons[code].lessons;let n=1;for(let p=listedTo(ls)+1;p<=upto;p+=6)ls.push({id:'z'+(n++),title:'درس لم يُنشر',minutes:mins,pages:p+'–'+Math.min(upto,p+5),link:'#x'})}
