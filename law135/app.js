@@ -32,11 +32,14 @@ function rich(s) { return esc(s).replace(/«([^«»]+)»/g, '«<span class="q-in
 function pg(p) { return p ? '<span class="chip pg">ص ' + esc(p) + '</span>' : ''; }
 /* الوسم: 1 «الأهم» و2 «مهم» */
 var IMPW = { 1: 'الأهم', 2: 'مهم' };
-function expChip(x) { return x && x.imp ? '<span class="chip exp' + (x.imp === 2 ? ' lv2' : '') + '">' + IMPW[x.imp] + '</span>' : ''; }
-function lesChip(l) { return (l && l.imp ? '<span class="chip exp' + (l.imp === 2 ? ' lv2' : '') + '">' + IMPW[l.imp] + (l.imp === 1 ? ' · ' + l.rank : '') + '</span>' : '') + xpTag(l); }
+/* درجة الوسم الظاهرة الآن: «مهم» مثل «متوقع» لا يظهر إلا في آخر ثلاثة أيام قبل الاختبار (expOn)، بطلب الطالب في 22 نوفمبر 2026.
+   فكل عرض للوسم يمر من هنا، و0 معناه لا شيء يظهر */
+function IM(x) { return x && x.imp && expOn() ? x.imp : 0; }
+function expChip(x) { var v = IM(x); return v ? '<span class="chip exp' + (v === 2 ? ' lv2' : '') + '">' + IMPW[v] + '</span>' : ''; }
+function lesChip(l) { var v = IM(l); return (v ? '<span class="chip exp' + (v === 2 ? ' lv2' : '') + '">' + IMPW[v] + (v === 1 ? ' · ' + l.rank : '') + '</span>' : '') + xpTag(l); }
 /* كتلة الملخص الموسومة يميزها تظليل خفيف (لا خط جانبي، فالخط الجانبي هنا علامة نص الكتاب)، فلا تتكرر الشارة في كل فقرة.
    و«متوقع» (data/exp.js) يميز كتلته إطار رفيع، فيجتمع مع تظليل «مهم» في الكتلة الواحدة */
-function impAttr(b, base) { var c = (base || '') + (b && b.imp ? ' imp-b' + (b.imp === 2 ? ' lv2' : '') : '') + (b && b.xp && expOn() ? ' xp-b' : ''); return c ? ' class="' + c.trim() + '"' : ''; }
+function impAttr(b, base) { var v = IM(b), c = (base || '') + (v ? ' imp-b' + (v === 2 ? ' lv2' : '') : '') + (b && b.xp && expOn() ? ' xp-b' : ''); return c ? ' class="' + c.trim() + '"' : ''; }
 function arr(x) { return Array.isArray(x) ? x : []; }
 function num(id) { return +String(id == null ? '' : id).replace(/\D/g, '') || 0; }
 function now() { return Date.now(); }
@@ -863,7 +866,7 @@ function lessonHTML(n) {
   var i = LES.indexOf(l), prev = LES[i - 1], next = LES[i + 1], tbs = lesTables(l);
   var h = '<div class="block-head"><button type="button" class="link" data-go="#sum">الملخصات</button><span class="chip">الدرس ' + l.no + ' من ' + LES.length + '</span></div>' +
     '<section class="les-head"><p class="eyebrow">' + esc(chLabel(l.ch)) + ' · ص ' + esc(l.pages) + ' · ' + esc(minutesText(lesMin(l))) + '</p><h2>' + esc(l.title) + '</h2>' +
-    (l.imp || xpTag(l) ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">' + (l.imp && xpTag(l) ? 'المظلَّل هو المهم، والمؤطَّر هو المتوقع' : l.imp ? 'المظلَّل من الملخص هو المهم' : 'المؤطَّر من الملخص هو المتوقع') + '</span></div>' : '') +
+    (IM(l) || xpTag(l) ? '<div class="chips">' + lesChip(l) + '<span class="imp-leg">' + (IM(l) && xpTag(l) ? 'المظلَّل هو المهم، والمؤطَّر هو المتوقع' : IM(l) ? 'المظلَّل من الملخص هو المهم' : 'المؤطَّر من الملخص هو المتوقع') + '</span></div>' : '') +
     (exitFlag(l) ? '<p class="p0"><span class="flag solo">ينقصه تسميع الخروج</span></p>' : '') +
     (todayTask(l.id) && todayTask(l.id).kind === 'recall' ? '<p class="fin-msg">مهمتك اليوم في هذا الدرس تسميع بلا كتاب. <a href="#r-' + l.n + '">ابدأ التسميع</a></p>' : '') +
     '<div class="les-quick">' + (l.cards.length ? '<button type="button" class="btn ghost sm" data-act="deck-lesson" data-n="' + l.n + '">بطاقاته (' + l.cards.length + ')</button>' : '') +
@@ -964,7 +967,7 @@ function cardHTML(k, flipped) {
   var ty = KLBL[k.type] || 'بطاقة', ref = 'ص ' + (k.pg || k.les.pages);
   return '<button type="button" class="fc t-' + esc(k.type) + (flipped ? ' flipped' : '') + '" data-act="flip" aria-label="' + (flipped ? 'اعرض الوجه' : 'اقلب البطاقة') + '">' +
     '<span class="fc-inner">' +
-      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (k.imp ? IMPW[k.imp] + ' · ' : '') + (xpTag(k) ? 'متوقع · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
+      '<span class="face front" aria-hidden="' + !!flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + (IM(k) ? IMPW[IM(k)] + ' · ' : '') + (xpTag(k) ? 'متوقع · ' : '') + esc(ref) + '</span></span><span class="fc-body">' + frontHTML(k) + '<span class="reveal">اكشف الجواب</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
       '<span class="face back" aria-hidden="' + !flipped + '"><span class="fc-top"><span class="fc-type">' + ty + '</span><span class="fc-ref">' + esc(ref) + '</span></span><span class="fc-body">' + backHTML(k) + '</span></span>' +
     '</span></button>';
 }
@@ -1068,7 +1071,7 @@ function lesPicker(sel, act, cnt, word) {
     h += '<div class="les-pick"><div class="les-pick-h"><b>' + esc(chLabel(c)) + '</b><button type="button" class="link" data-act="' + act + '-ch" data-ch="' + c.id + '">' + (all ? 'ألغِ الفصل' : 'الفصل كله') + '</button></div>' +
       '<div class="pick soft" role="group" aria-label="' + esc(c.title) + '">' + c.les.map(function (l) {
         var n = cnt(l);
-        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + (l.imp ? ' · ' + IMPW[l.imp] : '') + (xpTag(l) ? ' · متوقع' : '') + '</small></span></button>';
+        return '<button type="button" data-act="' + act + '-les" data-l="' + l.id + '" aria-pressed="' + !!sel[l.id] + '"' + (n ? '' : ' disabled') + '><span class="pk-box" aria-hidden="true">' + TICK + '</span><span>' + esc(l.title) + '<small>الدرس ' + l.no + ' · ص ' + esc(l.pages) + ' · ' + countWord(n, word) + (IM(l) ? ' · ' + IMPW[IM(l)] : '') + (xpTag(l) ? ' · متوقع' : '') + '</small></span></button>';
       }).join('') + '</div></div>';
   });
   return h;
@@ -1575,7 +1578,7 @@ function defsHTML() {
 }
 /* «اطّلاع»: وجه البطاقة المصطلح وظهرها التعريف بنصه الحرفي، ولا جواب فيها ولا نتيجة */
 function viewCard(d, open) {
-  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + (d.imp ? IMPW[d.imp] + ' · ' : '') + (xpTag(d) ? 'متوقع · ' : '') + esc(ref) + '</span></span>';
+  var ref = 'ص ' + d.pg, top = '<span class="fc-top"><span class="fc-type">تعريف</span><span class="fc-ref">' + (IM(d) ? IMPW[IM(d)] + ' · ' : '') + (xpTag(d) ? 'متوقع · ' : '') + esc(ref) + '</span></span>';
   return '<button type="button" class="fc t-def' + (open ? ' flipped' : '') + '" data-act="defs-flip" aria-label="' + (open ? 'اعرض المصطلح' : 'أظهر التعريف') + '">' +
     '<span class="fc-inner">' +
       '<span class="face front" aria-hidden="' + !!open + '">' + top + '<span class="fc-body"><p class="fc-q">' + esc(d.term) + '</p><p class="fc-hint">اضغط ليظهر التعريف</p><span class="reveal">أظهر التعريف</span></span><span class="seal">' + esc(ref.replace(' ', '')) + '</span></span>' +
