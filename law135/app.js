@@ -7,7 +7,7 @@
    الدرس وتسميع الخروج: lessonHTML، summaryHTML، exitCard، finishQuiz (الوضع exit).
    مهام الجدول: recallHTML، reviewHTML، eveHTML. البطاقات: deckHTML، cardsBrowser.
    البنك: objSetup، bankPick، bankMark، closeRound. المقالي: essaySetup، essayMessage، newEssaysRequest.
-   دفتر الأخطاء: record، nbHTML. «ما حاولت أعلّل»: skipWhy، noWhy، noWhyList، njHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
+   دفتر الأخطاء: record، nbHTML. «ما حاولت أعلّل»: tfJ، skipWhy، noWhy، noWhyList، njHTML. المستوى: statsFor، level. الجداول: cmpHTML، fitTables.
    سؤال الخانة: buildCells، cellsSetup، cellsHTML، cellsResultHTML، cellPick، cellRecord.
    التعريفات (data/defs.js): buildDefs، defsSetup، defsStart، defsHTML، defChips، defOpts، diffHTML، defsResultHTML، setDx.
    طريقة «اطّلاع» في التعريفات: viewHTML، viewCard، viewBar، viewStep، viewEndHTML، setDv.
@@ -290,7 +290,10 @@ function judgeWhy(id, okWhy) {
    يُحفظ تلقائياً حين يُكشف جواب «صح أو خطأ»، فيبقى إن خرج الطالب من السؤال بلا اختيار، وكذلك إن ضغط زره.
    وتخرج منها حين يضغط فيها «علّلت صح» أو «فاتني شيء» في أي مكان، وإعادتها منها كأي سؤال في البنك.
    وما أُجيب عنه قبل ذلك ولم يُحكم على تعليله قط (لا j فيه) يدخلها كذلك. */
-function noWhy(id) { var q = Q[id], r = S.q[id]; return !!(q && q.k === 'tf' && r && (r.j === 2 || (r.j === undefined && +r.n > 0))); }
+/* «صح أو خطأ» نوعان: «علّل» (الأصل، وكل عبارات الفصلي الثاني منه)، وبلا تعليل (plain: 1) يجيب عنها الطالب بالحكم وحده.
+   وكل ما للتعليل من قائمة «ما حاولت أعلّل» ورسالة «صح وخطأ مع التعليل» لنوع «علّل» وحده */
+function tfJ(q) { return !!(q && q.k === 'tf' && !q.plain); }
+function noWhy(id) { var q = Q[id], r = S.q[id]; return !!(tfJ(q) && r && (r.j === 2 || (r.j === undefined && +r.n > 0))); }
 function noWhyList(chId) { return QL.filter(function (q) { return noWhy(q.id) && (!chId || q.ch.id === chId); }); }
 function skipWhy(id) {
   var r = S.q[id]; if (!r) return;
@@ -462,7 +465,7 @@ function filesLine(ls) {
   return f.length ? 'نص صفحات هذه الدروس حرفياً في ملفات المشروع: ' + f.join('، ') + '. فارجع إليها وحدها عند الحاجة، ولا تقرأ الكتاب كله.' : pagesNote();
 }
 /* عبارات «صح أو خطأ» مع تعليلها النموذجي، لاختبار «بيّن مدى صحة العبارة مع التعليل» في المحادثة */
-function tfOf(ls) { var a = []; ls.forEach(function (l) { l.objective.forEach(function (q) { if (q.k === 'tf') a.push(q); }); }); return a; }
+function tfOf(ls) { var a = []; ls.forEach(function (l) { l.objective.forEach(function (q) { if (tfJ(q)) a.push(q); }); }); return a; }
 function pickedLessons() { return LES.filter(function (l) { return essaySel[l.id]; }); }
 function essayMessage(ls, kind) {
   kind = kind || 'essay';
@@ -1148,7 +1151,7 @@ function bankHTML() {
     (bankKind === 'obj' ? '<p class="muted small p0">صح وخطأ، واختيار من متعدد، وضع الكلمة الصحيحة، من فصل واحد أو أكثر.</p>' + roundBanner() + objSetup() +
       '<section class="card"><div class="block-head"><h3>دفتر الأخطاء</h3><span class="chip">' + countWord(mk, W.q) + '</span></div><p class="muted small p0">يدخله كل سؤال موضوعي أخطأت فيه، ويخرج منه بعد إجابتين صحيحتين في يومين مختلفين.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nb">افتح الدفتر</button></section>' +
-      '<section class="card"><div class="block-head"><h3>ما حاولت أعلّل</h3><span class="chip">' + countWord(noWhyList().length, W.q) + '</span></div><p class="muted small p0">عبارات «صح أو خطأ» لم تحكم فيها على تعليلك، لتعود إليها وتعلّلها.</p>' +
+      '<section class="card"><div class="block-head"><h3>ما حاولت أعلّل</h3><span class="chip">' + countWord(noWhyList().length, W.q) + '</span></div><p class="muted small p0">عبارات «صح أو خطأ» التي فيها «علّل» ولم تحكم فيها على تعليلك، لتعود إليها وتعلّلها.</p>' +
       '<button type="button" class="btn ghost wide" data-go="#nj">افتح القائمة</button></section>'
     : bankKind === 'cells' && CELLS.length ? cellsSetup() : essaySetup()));
 }
@@ -1210,10 +1213,17 @@ function runHTML() {
   if (!(q.id in quiz.nb0)) quiz.nb0[q.id] = inNb(q.id);
   var h = '<div class="block-head"><h2>' + esc(quiz.label) + '</h2><button type="button" class="link" data-act="quit">' + (quiz.quitArmed ? 'اضغط مرة أخرى للإنهاء' : 'إنهاء') + '</button></div>' +
     '<div class="qbar"><div class="track"><div class="fill" style="width:' + Math.round(100 * quiz.i / n) + '%"></div></div><span class="n">' + (quiz.i + 1) + ' من ' + n + '</span></div>' +
-    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span><span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + expChip(q) + (q.xp ? xpTag(q) : quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + '</div>';
+    '<div class="chips"><span class="chip">' + KQ[q.k] + '</span>' + (tfJ(q) ? '<span class="chip">علّل</span>' : '') + '<span class="chip">' + esc(q.ch.title) + '</span><span class="chip">الدرس ' + q.les.no + '</span>' + expChip(q) + (q.xp ? xpTag(q) : quiz.mode === 'recall' || quiz.mode === 'review' || quiz.mode === 'expq' ? expTag(q) : '') + (quiz.nb0[q.id] ? '<span class="chip">من دفتر الأخطاء</span>' : '') + '</div>';
   var b = '<p class="q-text">' + qText(q) + '</p>';
-  if (q.k === 'tf') {
-    /* صح أو خطأ مع التعليل: يختار الحكم، ثم يعلّل بكلماته أو في ذهنه، ثم ينكشف الجواب وتعليل الكتاب فيقارن */
+  if (q.k === 'tf' && q.plain) {
+    /* صح أو خطأ بلا تعليل: يختار الحكم فينكشف الجواب وسببه من الكتاب، كالاختيار من متعدد */
+    b += '<div class="tf">' + [[1, 'صح'], [0, 'خطأ']].map(function (t) {
+      var cls = 'opt', v = t[0] === 1;
+      if (answered) { if (v === !!q.a) cls += ' is-right'; else if (quiz.picked === t[0]) cls += ' is-wrong'; }
+      return '<button type="button" class="' + cls + '" data-act="answer" data-v="' + t[0] + '"' + (answered ? ' disabled' : '') + '>' + t[1] + '</button>';
+    }).join('') + '</div>';
+  } else if (q.k === 'tf') {
+    /* صح أو خطأ مع التعليل («علّل»): يختار الحكم، ثم يعلّل بكلماته أو في ذهنه، ثم ينكشف الجواب وتعليل الكتاب فيقارن */
     var tp = quiz.tfPick;
     b += '<div class="tf">' + [[1, 'صح'], [0, 'خطأ']].map(function (t) {
       var cls = 'opt', v = t[0] === 1;
@@ -1237,7 +1247,7 @@ function runHTML() {
     var ok = quiz.results[quiz.results.length - 1];
     b += '<p class="verdict ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'إجابة صحيحة' : 'إجابة خاطئة') + (q.k === 'tf' ? ': العبارة ' + (q.a ? 'صحيحة' : 'خاطئة') : '') + '</p>' +
       (!ok && quiz.lastEt ? '<p class="etype">نوع خطئك: <b>' + esc(quiz.lastEt) + '</b></p>' : '') + nbNote(quiz.lastRes, ok) +
-      (q.k === 'tf'
+      (tfJ(q)
         ? (quiz.tfText ? '<div class="my-why"><span>تعليلك</span><p>' + esc(quiz.tfText) + '</p></div>' : '') +
           '<div class="book-why"><span>التعليل من الكتاب</span><p>' + rich(q.why || '') + pg(q.pg) + '</p></div>' +
           '<div class="self" role="group" aria-label="قارن تعليلك بتعليل الكتاب"><button type="button" class="btn plain' + (quiz.self === 1 ? ' on' : '') + '" data-act="why-self" data-s="1" aria-pressed="' + (quiz.self === 1) + '">علّلت صح</button>' +
@@ -1853,7 +1863,7 @@ var njCh = 'all';
 function njHTML() {
   var all = noWhyList(), list = njCh === 'all' ? all : noWhyList(njCh);
   var h = '<div class="block-head"><h2>ما حاولت أعلّل</h2><span class="chip">' + countWord(all.length, W.q) + '</span></div>' +
-    '<p class="muted small p0">كل عبارة «صح أو خطأ» تكشف جوابها ولا تضغط فيها «علّلت صح» ولا «فاتني شيء» تُحفظ هنا، وتخرج حين تضغط أحدهما فيها في أي مكان. وإعادتها تُحسب كأي سؤال في البنك.</p>' +
+    '<p class="muted small p0">كل عبارة «صح أو خطأ» فيها «علّل» تكشف جوابها ولا تضغط فيها «علّلت صح» ولا «فاتني شيء» تُحفظ هنا، وتخرج حين تضغط أحدهما فيها في أي مكان. وإعادتها تُحسب كأي سؤال في البنك.</p>' +
     chBar('nj-ch', njCh, true, function (c) { return ' (' + noWhyList(c.id).length + ')'; }) +
     '<button type="button" class="btn wide" data-act="start-nj"' + (list.length ? '' : ' disabled') + '>أعدها الآن' + (list.length ? ': ' + countWord(list.length, W.q) : '') + '</button>';
   if (!list.length) return h + '<div class="empty"><b>القائمة فارغة</b><br>' + (all.length ? 'لا شيء منها في هذا الفصل.' : 'حين تتجاوز تعليل عبارة تظهر هنا لتعود إليها.') + '</div>';
@@ -2367,8 +2377,8 @@ view.addEventListener('click', function (e) {
       var ok = isRight(q, v);
       quiz.lastEt = ok ? '' : errType(q, v);
       quiz.picked = v; quiz.results.push(ok); quiz.lastRes = record(q.id, ok, quiz.lastEt);
-      /* «صح أو خطأ»: «ما حاولت أعلّل» تلقائياً حتى يضغط «علّلت صح» أو «فاتني شيء» */
-      if (q.k === 'tf') skipWhy(q.id);
+      /* «صح أو خطأ» مع «علّل»: «ما حاولت أعلّل» تلقائياً حتى يضغط «علّلت صح» أو «فاتني شيء» */
+      if (tfJ(q)) skipWhy(q.id);
       if (quiz.mode === 'imp') impSet(q.id, ok);
       /* محاولة تسميع الخروج تُحسب من أول إجابة، فتُحفظ نسبتها على أسئلة الدرس كلها كلما أجاب */
       if (quiz.mode === 'exit') saveExit(quiz.les, Math.round(100 * quiz.results.filter(Boolean).length / quiz.ids.length), 'exit');
