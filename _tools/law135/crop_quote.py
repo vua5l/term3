@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Crop the spot of a book page where a given text appears, to check it against the page image.
 usage: python3 crop_quote.py PAGE "text as in the transcription" [out.png]
-Prints the output path (view it with the Read tool). PDF page = book page - 97."""
+Prints the output path (view it with the Read tool). Book page -> PDF page: pdfpage.py (full file, old partial file, photos of pp. 446-447)."""
 import sys, os, re, csv, subprocess
 from PIL import Image
-PDF=os.environ.get('BOOK_PDF','/mnt/user-data/uploads/51c4f0f5-___________________________.pdf')
-D=os.environ.get('BOOK_TSV','/home/claude/book/tsv')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pdfpage import render
+D=os.environ.get('BOOK_TSV','/home/claude/book/tsv'); os.makedirs(D, exist_ok=True)
 p=int(sys.argv[1]); text=sys.argv[2]; out=sys.argv[3] if len(sys.argv)>3 else f'/tmp/crop-{p}-{abs(hash(text))%10**6}.png'
 png=f'{D}/p{p}.png'; tsv=f'{D}/p{p}.tsv'
 if not os.path.exists(png):
-    subprocess.run(['pdftoppm','-r','300','-gray','-f',str(p-97),'-l',str(p-97),'-png',PDF,f'{D}/tmp{p}'],check=True)
-    f=[x for x in os.listdir(D) if x.startswith(f'tmp{p}-')][0]; os.rename(f'{D}/{f}',png)
+    render(p, 300, png)
 if not os.path.exists(tsv):
     subprocess.run(['tesseract',png,tsv[:-4],'-l','ara','--psm','3','tsv'],check=True,capture_output=True)
 CL={}

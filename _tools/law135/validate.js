@@ -17,6 +17,7 @@ if (!file) { console.error('usage: node validate.js chapter.js [source.md] [--ra
 
 const errors = [], warns = [];
 const ETYPES = ['خلط مصطلح بشبيهه', 'حكم لحالة أخرى', 'شرط أو ركن ناقص', 'رقم أو تاريخ قريب', 'رأي منسوب إلى غير قائله', 'تعميم وإطلاق'];
+const FINAL_FROM = 47; /* أول دروس الاختبار النهائي: لها نسب أسئلتها (validate أدناه) */
 const E = (m) => errors.push(m), W = (m) => warns.push(m);
 
 let ch;
@@ -163,6 +164,7 @@ const stats = [];
     const key = norm(q.q);
     if (qTexts.has(key)) E(w + ': duplicate question text (also ' + qTexts.get(key) + ')'); else qTexts.set(key, q.id);
     if (q.exp !== undefined && q.exp !== 1) E(w + ': exp must be 1 when present');
+    if (q.plain !== undefined && (q.plain !== 1 || q.k !== 'tf')) E(w + ': plain must be 1, and only on a tf (plain true/false without «علّل»)');
     if (q.k === 'tf') {
       tfN++; if (q.a === true) tfTrue++; if (typeof q.a !== 'boolean') E(w + ': tf needs a true|false');
       if (q.a === false && !ETYPES.includes(q.e)) E(w + ': a false statement needs e (its error type), one of: ' + ETYPES.join(' | '));
@@ -212,11 +214,23 @@ const stats = [];
   if (l.steps !== undefined && !Array.isArray(l.steps)) E(L + ': steps must be an array');
   if (K.length < 5) W(L + ': only ' + K.length + ' cards');
   if (O.length < 8) W(L + ': only ' + O.length + ' objective questions');
-  const tfShare = O.length ? O.filter((q) => q.k === 'tf').length / O.length : 0;
-  if (O.length && tfShare < 0.55) W(L + ': true/false is ' + Math.round(tfShare * 100) + '% of the objective questions; the exam favours it (aim for 60–70%)');
-  if (O.filter((q) => q.k === 'mcq').length > 3) W(L + ': more than 3 multiple-choice questions; keep them for confusable terms only');
-  if (ES.length < 2) W(L + ': fewer than 2 essay questions');
-  stats.push(l.id + ' ' + l.pages + ' ' + l.minutes + 'min: summary ' + S.length + ', cards ' + K.length + ', objective ' + O.length + ' (tf ' + O.filter((q) => q.k === 'tf').length + ' mcq ' + O.filter((q) => q.k === 'mcq').length + ' fill ' + O.filter((q) => q.k === 'fill').length + '), essay ' + ES.length + ' — ' + l.title);
+  const tfAll = O.filter((q) => q.k === 'tf'), tfPlain = tfAll.filter((q) => q.plain === 1), tfWhy = tfAll.length - tfPlain.length;
+  if (+String(l.id).slice(1) >= FINAL_FROM) {
+    /* دروس الاختبار النهائي (l47 فما بعد): الخيارات نحو 70%، وصح وخطأ نوعان (بلا تعليل، و«علّل» للمهم)، والمقالي على قدر الحاجة */
+    const choice = O.length ? O.filter((q) => q.k === 'mcq' || q.k === 'fill').length / O.length : 0;
+    if (O.length && (choice < 0.6 || choice > 0.8)) W(L + ': choices (mcq + fill) are ' + Math.round(choice * 100) + '% of the objective questions; aim for about 70%');
+    if (O.length && !tfPlain.length) W(L + ': no plain true/false (plain: 1); every lesson has some');
+    if (tfWhy > 3) W(L + ': ' + tfWhy + ' true/false with «علّل»; keep «علّل» for the important statements that deserve a justification (usually 1–3)');
+    if (!ES.length) W(L + ': no essay question; check that the lesson really has no essay-worthy topic');
+    if (ES.length > 3) W(L + ': ' + ES.length + ' essay questions; not every important point needs an essay (usually 1–3)');
+  } else {
+    /* دروس الفصلي الثاني (l1–l38) على نسبها القديمة */
+    const tfShare = O.length ? tfAll.length / O.length : 0;
+    if (O.length && tfShare < 0.55) W(L + ': true/false is ' + Math.round(tfShare * 100) + '% of the objective questions; the exam favours it (aim for 60–70%)');
+    if (O.filter((q) => q.k === 'mcq').length > 3) W(L + ': more than 3 multiple-choice questions; keep them for confusable terms only');
+    if (ES.length < 2) W(L + ': fewer than 2 essay questions');
+  }
+  stats.push(l.id + ' ' + l.pages + ' ' + l.minutes + 'min: summary ' + S.length + ', cards ' + K.length + ', objective ' + O.length + ' (tf ' + tfPlain.length + ' plain + ' + tfWhy + ' «علّل», mcq ' + O.filter((q) => q.k === 'mcq').length + ', fill ' + O.filter((q) => q.k === 'fill').length + '), essay ' + ES.length + ' — ' + l.title);
 });
 
 (ch.tables || []).forEach((t, i) => {

@@ -3,9 +3,10 @@
 Finds the line in the 300-DPI OCR whose words best match the anchor, and crops that line (plus half a line around) at 600 DPI."""
 import sys, os, re, csv, subprocess
 from PIL import Image
-PDF=os.environ.get('BOOK_PDF','/mnt/user-data/uploads/51c4f0f5-___________________________.pdf'); D=os.environ.get('BOOK_TSV','/home/claude/book/tsv')
+D=os.environ.get('BOOK_TSV','/home/claude/book/tsv')
 p=int(sys.argv[1]); anchor=sys.argv[2]; OUT=sys.argv[3]
-sys.argv=[sys.argv[0],str(p),anchor,'/tmp/_z.png']; exec(open('/home/claude/scripts/crop_quote.py').read().split('im=Image.open(png)')[0])
+HERE=os.path.dirname(os.path.abspath(__file__))
+sys.argv=[sys.argv[0],str(p),anchor,'/tmp/_z.png']; exec(open(os.path.join(HERE,'crop_quote.py')).read().split('im=Image.open(png)')[0])
 lines={}
 with open(tsv,encoding='utf-8') as fh:
     for x in csv.DictReader(fh,delimiter='\t',quoting=csv.QUOTE_NONE):
@@ -18,8 +19,7 @@ best=max(lines.values(), key=lambda L: sum(1 for a in A if a in L['w']))
 x0,y0,x1,y1=best['box']; hh=y1-y0
 hi=f'{D}/p{p}-600.png'
 if not os.path.exists(hi):
-    subprocess.run(['pdftoppm','-r','600','-gray','-f',str(p-97),'-l',str(p-97),'-png',PDF,f'{D}/hi{p}'],check=True)
-    f=[x for x in os.listdir(D) if x.startswith(f'hi{p}-')][0]; os.rename(f'{D}/{f}',hi)
+    render(p, 600, hi)
 im=Image.open(hi)
 c=im.crop((max(0,2*x0-40),max(0,2*(y0-hh//2)),min(im.width,2*x1+40),min(im.height,2*(y1+hh//2))))
 if c.width>1600: c=c.resize((1600,int(c.height*1600/c.width)))

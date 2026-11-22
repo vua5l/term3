@@ -1,11 +1,11 @@
 # Brief: independent review of one batch of study-site content (International Law, law135)
 
-You are an independent reviewer. Another worker read a scanned International Law textbook and wrote study content for a Saudi law student's exam site (القانون الدولي العام 1, second midterm, Tuesday 17 Nov 2026). You did not write it; your job is to find its errors before the student studies from it. You do **not** edit the content: you write a report, and the editor verifies every item against the book before fixing anything.
+You are an independent reviewer. Another worker read a scanned International Law textbook and wrote study content for a Saudi law student's exam site (القانون الدولي العام 1, final exam, Saturday 19 Dec 2026). You did not write it; your job is to find its errors before the student studies from it. You do **not** edit the content: you write a report, and the editor verifies every item against the book before fixing anything.
 
 ## Inputs (for your chapter `cN`)
 - Review copy: `/home/claude/build/reviews/review-cN.md`. For each lesson it gives **the book's text for the lesson's pages** (verbatim transcription, checked against the page images), then everything the worker wrote **in his own words**: summary paragraphs and lists, non-verbatim cards, every objective question with its approved answer marked [المعتمد] (and, in brackets, the kind of mistake each wrong option or false statement was built on), every essay question with its model-answer points, and the «الفرق الجوهري» rows of the comparison tables. Verbatim items (quoted definitions) are not in it: they were checked against the page images and by machine.
 - Automatic pre-check: `/home/claude/build/reviews/auto-cN.txt` (validator output). A first screen, not a verdict.
-- Page images, only for a doubtful place: the book PDF at the path in the environment variable `BOOK_PDF`, where PDF page = book page − 97 (`pdftoppm -f N -l N -r 110 -gray -png <PDF> /home/claude/build/work/review-cN/p`, then view with the Read tool). Do not read the whole book; the review copy holds the text you need.
+- Page images, only for a doubtful place: the book PDF at the path in the environment variable `BOOK_PDF`, rendered with `python3 /home/claude/term3/_tools/law135/pdfpage.py --render <book page> 110 /home/claude/build/work/review-cN/p<page>.png` (it maps book pages to the full PDF: same numbers up to p. 445, the student's photos for pp. 446–447, PDF page = book page − 2 from p. 448), then view with the Read tool. Do not read the whole book; the review copy holds the text you need.
 
 ## The rule of judgment (fixed)
 - Judge by the book's text alone, never by general knowledge or by what is commonly held.
@@ -14,7 +14,8 @@ You are an independent reviewer. Another worker read a scanned International Law
 
 ## What to check (the worker's own wording only; do not re-check verbatim quotes)
 - The approved answer is right according to the book, and every other option is really wrong (never two defensible answers), including options built on errors in classmates' files.
-- For true/false: the approved verdict is right, and the justification (التعليل) states the book's reason correctly and completely enough to earn full marks.
+- For true/false with «علّل» (marked «بيّن مدى صحة العبارة مع التعليل»): the approved verdict is right, and the justification (التعليل) states the book's reason correctly and completely enough to earn full marks.
+- For plain true/false (marked «صح أم خطأ (بلا تعليل)»): the approved verdict is right and the short reason (السبب) is correct according to the book; it need not be complete.
 - The summary, explanations and essay points never say what the book does not say, never omit a condition or exception that changes a rule, and never attribute a statement to anyone other than whom the book attributes it to (the author's own view versus «الفقه», a named scholar, a court, a convention, or vice versa).
 - When the book gives more than one opinion on a point, the question names whose opinion it asks about, so it never has two answers.
 - A fill-in blank admits only one answer.
