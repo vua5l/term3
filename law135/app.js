@@ -873,7 +873,7 @@ function lessonHTML(n) {
       (l.objective.length ? '<button type="button" class="btn ghost sm" data-act="goto-exit">تسميع الخروج</button>' : '') +
       (hasMap(l.ch) ? '<button type="button" class="btn ghost sm" data-act="map" data-ch="' + l.ch.id + '">خريطة الفصل</button>' : '') +
       (l.essay.length ? '<button type="button" class="btn ghost sm es-mark" data-act="es-mark" data-n="' + l.n + '" aria-pressed="' + !!(S.es[l.id] && S.es[l.id].v) + '">' + (S.es[l.id] && S.es[l.id].v ? 'اختُبرت في مقاليه ✓' : 'اختُبرت في مقاليه؟') + '</button>' : '') + '</div></section>';
-  h += l.pending ? '<div class="empty">تُبنى مادة هذا الدرس بعد أن تصلوا إليه في المحاضرات.</div>' : (summaryHTML(l) || '<div class="empty">لم يصل ملخص هذا الدرس بعد.</div>');
+  h += l.pending ? '<div class="empty">مادة هذا الدرس قيد البناء، وتُنشر قبل يومه في الجدول.</div>' : (summaryHTML(l) || '<div class="empty">لم يصل ملخص هذا الدرس بعد.</div>');
   if (tbs.length) h += '<p class="sec-title">جداول المقارنة</p>' + tbs.map(cmpHTML).join('');
   h += '<div id="exit-box">' + exitCard(l) + '</div>';
   h += '<div class="row">' + (prev ? '<a class="btn ghost" href="#l-' + prev.n + '">الدرس السابق</a>' : '') + (next ? '<a class="btn ghost" href="#l-' + next.n + '">الدرس التالي</a>' : '') + '</div>';
