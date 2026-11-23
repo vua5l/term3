@@ -1,0 +1,41 @@
+{
+  "//": "إعدادات الأدوات العامة لبناء دروس law135 التي لا نص لها من صور الصفحات (النهائي). يُعطى مساره في سطر الأمر، ولا يُسمّى subject.json لأن الأدوات العامة تقرؤه قبل إعدادات اختبارها. انظر IMAGES-METHOD.md.",
+  "code": "law135",
+  "name": "القانون الدولي",
+  "course": "القانون الدولي العام 1",
+  "exam": "الاختبار النهائي",
+  "book": {
+    "title": "القانون الدولي العام – الجزء الأول",
+    "author": "أ.د. محمد صافي يوسف",
+    "pdfOffset": 0
+  },
+  "scan": {
+    "readings": [
+      {
+        "name": "a",
+        "dpi": 300,
+        "args": "-l ara --psm 3"
+      },
+      {
+        "name": "b",
+        "dpi": 200,
+        "args": "-l ara --psm 3"
+      },
+      {
+        "name": "c",
+        "dpi": 300,
+        "args": "-l ara+fra --psm 3 -c thresholding_method=2"
+      }
+    ]
+  },
+  "checks": {
+    "defs": "chapter",
+    "intro": "off",
+    "map": "require",
+    "tfReason": true,
+    "mix": {
+      "essayMin": 1
+    },
+    "dupDefs": false
+  }
+}
