@@ -31,7 +31,11 @@
   var STEP = 5;             // تُقرَّب أنصبة المواد بخمس دقائق
   var TOL = 10;             // ويجوز تجاوز النصيب بعشر دقائق حتى لا يُقطع درس
   var BURST_MS = 60000;     // علامات الإنجاز المتلاحقة في أقل من دقيقة دفعة واحدة
-  var CAL_MIN = 4, CAL_KEEP = 15; // لا يُصحَّح تقدير مادة قبل أربع عينات، ويُعتمد آخر خمس عشرة
+  var CAL_MIN = 4, CAL_KEEP = 15; // البطء: لا يُطال تقدير مادة قبل أربع عينات، ويُعتمد وسيط آخر خمس عشرة
+  var CAL_FAST_MIN = 2, CAL_FAST_KEEP = 3; // السرعة: تكفي عينتان، ويُعتمد وسيط آخر ثلاث إن كان أقصر
+  var CAL_LO = 0.25, CAL_HI = 2.5;         // حدّا نسبة المادة
+  var CAL_LAST_KEY = 'term3_calib_last';   // آخر نسبة لكل مادة في الجهاز، يبدأ منها الجدول بعد مسح علاماتها
+  var CAL_PRIOR = { law136: 0.59 };        // الدستوري: سرعته المقيسة قبل مسح علاماته في 19 نوفمبر 2026
   var DAY_START = 7;        // يبدأ يوم الجدول في السابعة صباحاً، فالسهر بعد منتصف الليل يُحسب لليوم السابق
   var SPECIAL = { _review: 'مراجعة شاملة بالتسميع', _eve: 'ليلة الاختبار: تسميع البطاقات وورقة الليلة الأخيرة' };
   var KINDS = { learn: 1, recall: 1, review: 1, eve: 1 };
@@ -254,9 +258,11 @@
   /* ---------- الوقت الفعلي ----------
      من توقيت علامات الإنجاز قبل اليوم: الوقت بين دفعة علامات والتي قبلها في اليوم نفسه
      هو وقت مذاكرة مهامها. والعلامات المتلاحقة دفعة واحدة، وتُترك الفترات التي فيها استراحة
-     طويلة أو مادتان. فإن علّمتُ دروسي جملةً في آخر اليوم لم يتغير شيء.
-     والنتيجة لكل مادة نسبة الوقت الفعلي إلى المقدَّر، ولا تُعتمد قبل أربع عينات. */
-  function calibrate(marksBy, lessonIndex, passes, today) {
+     طويلة (أكثر من ضعف تقدير مهامها) أو مادتان. فإن علّمتُ دروسي جملةً في آخر اليوم لم يتغير شيء.
+     والنتيجة لكل مادة نسبة الوقت الفعلي إلى المقدَّر. والسرعة أسهل من البطء: تكفي لها عينتان ووسيط آخر
+     ثلاث، والبطء يحتاج أربعاً ووسيط آخر خمس عشرة. وما لم تكفِ العينات فالبداية من prior (آخر نسبة للمادة)،
+     ولا يُطال عنها إلا بأربع عينات. وفي النتيجة basis: slow أو fast أو prior. */
+  function calibrate(marksBy, lessonIndex, passes, today, prior) {
     var ev = [];
     Object.keys(marksBy || {}).forEach(function (c) {
       var rec = marksBy[c]; if (!rec || !rec.marks) return;
@@ -284,17 +290,42 @@
       });
       if (!ok || !est) continue;
       var actual = (b.start - p.end) / 60000;
-      if (actual < 1 || actual > Math.min(150, Math.max(3 * est, est + 30))) continue;
+      if (actual < 1 || actual > Math.min(150, Math.max(2 * est, est + 20))) continue;
       (samples[c] = samples[c] || []).push(Math.min(3, Math.max(0.2, actual / est)));
     }
-    var out = {};
-    Object.keys(samples).forEach(function (c) {
-      var s = samples[c].slice(-CAL_KEEP).sort(function (a, b) { return a - b; });
-      if (s.length < CAL_MIN) return;
-      var h = s.length >> 1, med = s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
-      out[c] = { factor: Math.min(2.5, Math.max(0.4, Math.round(med * 100) / 100)), samples: s.length };
+    var median = function (xs) {
+      var s = xs.slice().sort(function (a, b) { return a - b; }), h = s.length >> 1;
+      return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+    };
+    var out = {}, codes = {};
+    Object.keys(samples).forEach(function (c) { codes[c] = 1; });
+    Object.keys(prior || {}).forEach(function (c) { if (prior[c] > 0) codes[c] = 1; });
+    Object.keys(codes).forEach(function (c) {
+      var s = samples[c] || [], n = Math.min(s.length, CAL_KEEP);
+      var slow = s.length >= CAL_MIN ? median(s.slice(-CAL_KEEP)) : null;
+      var fast = s.length >= CAL_FAST_MIN ? median(s.slice(-CAL_FAST_KEEP)) : null;
+      var base = slow != null ? slow : (prior && prior[c] > 0 ? prior[c] : null);
+      var f = base, basis = slow != null ? 'slow' : 'prior';
+      if (fast != null && fast < (base != null ? base : 1)) { f = fast; basis = 'fast'; }
+      if (f == null) return;
+      out[c] = { factor: Math.min(CAL_HI, Math.max(CAL_LO, Math.round(f * 100) / 100)), samples: n, basis: basis };
     });
     return out;
+  }
+  /* آخر نسبة لكل مادة: المحفوظة في الجهاز، وإلا البداية المكتوبة في CAL_PRIOR */
+  function calibPrior() {
+    var out = {}, saved = lsGet(CAL_LAST_KEY) || {};
+    Object.keys(CAL_PRIOR).forEach(function (c) { out[c] = CAL_PRIOR[c]; });
+    Object.keys(saved).forEach(function (c) { if (+saved[c] > 0) out[c] = +saved[c]; });
+    return out;
+  }
+  function calibRemember(calib) {
+    var saved = lsGet(CAL_LAST_KEY) || {}, changed = false;
+    Object.keys(calib).forEach(function (c) {
+      if (calib[c].basis === 'prior' || saved[c] === calib[c].factor) return;
+      saved[c] = calib[c].factor; changed = true;
+    });
+    if (changed) lsSet(CAL_LAST_KEY, saved);
   }
 
   /* ---------- التوزيع التلقائي: التغطية أولاً، ثم قواعد البحث ---------- */
@@ -647,9 +678,25 @@
       lessonIndex[c] = {}; j.lessons.forEach(function (l) { lessonIndex[c][l.id] = l; });
     });
 
-    // الوقت الفعلي: نسبة ما استغرقته كل مادة إلى تقديرها، من علامات ما قبل اليوم
-    var calib = calibrate(marksBy, lessonIndex, passes, today), factors = {};
+    // الوقت الفعلي: نسبة ما استغرقته كل مادة إلى تقديرها. الخطة تُبنى بنسبة علامات ما قبل اليوم،
+    // وإن أسرعتُ اليوم صغرت دقائق المهام المعروضة فوراً (shown) ولم تتغير المهام نفسها إلا من الغد
+    var prior = calibPrior();
+    var calib = calibrate(marksBy, lessonIndex, passes, today, prior), factors = {};
     Object.keys(calib).forEach(function (c) { factors[c] = calib[c].factor; });
+    calibRemember(calib);
+    var calibNow = calibrate(marksBy, lessonIndex, passes, addDays(today, 1), prior), shown = {};
+    Object.keys(calibNow).forEach(function (c) {
+      if (calibNow[c].factor < (factors[c] || 1)) {
+        shown[c] = calibNow[c].factor;
+        calib[c] = { factor: calibNow[c].factor, samples: calibNow[c].samples, basis: calibNow[c].basis, plan: factors[c] || 1 };
+      }
+    });
+    var showMinutes = function (code, lessonId, kind, m) {
+      var l = shown[code] && (lessonIndex[code] || {})[lessonId];
+      if (!l || (kind !== 'learn' && kind !== 'recall')) return m;
+      var n = lessonMinutes(l, shown[code]);
+      return kind === 'recall' ? recallOf(n) : n;
+    };
 
     var ov = examsRec && examsRec.override;
     var source = 'auto', plan;
@@ -687,6 +734,7 @@
         t.title = SPECIAL[t.lesson] || l.title || t.lesson; t.pages = l.pages || '';
         t.link = BASE + t.code + '/' + (l.link || '');
         t.done = ((passes[t.code] || {})[t.lesson] || []).indexOf(day.date) >= 0;
+        t.minutes = showMinutes(t.code, t.lesson, t.kind, t.minutes);
         t.units = unitsOf(t.minutes);
       });
       packDay(day);
@@ -707,6 +755,7 @@
       var el = (lessonIndex[extra.code] || {})[extra.lesson] || {};
       extra.title = el.title || extra.lesson; extra.pages = el.pages || '';
       extra.link = BASE + extra.code + '/' + (el.link || '');
+      extra.minutes = showMinutes(extra.code, extra.lesson, extra.kind, extra.minutes);
       extra.done = false; extra.units = unitsOf(extra.minutes);
     }
 

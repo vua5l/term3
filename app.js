@@ -362,7 +362,7 @@
     if (!c) return 'لم يُقَس بعد';
     var p = Math.round((c.factor - 1) * 100), w;
     if (Math.abs(p) < 3) w = 'مطابق للتقدير'; else if (p > 0) w = 'أطول بـ' + p + '%'; else w = 'أقصر بـ' + (-p) + '%';
-    return w + ' · ' + samplesWord(c.samples);
+    return w + ' · ' + (c.basis === 'prior' ? 'من قياس سابق' : samplesWord(c.samples));
   }
   /* حالة الحفظ في المستودع، سطر تحت وصف المزامنة */
   function ago(t) {
@@ -495,7 +495,7 @@
     }
     h += '</div>';
 
-    h += '<div class="calib-rows"><div class="sec-head"><div class="sec-title">تصحيح الوقت الفعلي</div><div class="sec-note">يحتاج 4 قياسات</div></div>';
+    h += '<div class="calib-rows"><div class="sec-head"><div class="sec-title">تصحيح الوقت الفعلي</div><div class="sec-note">قياسان للأسرع، و4 للأبطأ</div></div>';
     var any = false;
     subs.forEach(function (s) {
       if (!s.hasSite) return; any = true;
