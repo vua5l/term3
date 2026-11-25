@@ -392,7 +392,14 @@
         g.tasks.push(t); load += t.minutes;
       };
       var room = function () { return CAP - load; };
-      var canJoin = function (s) { return !!byCode[s.e.code] || groups.length < MAX_SUBJECTS; };
+      // مادة لها في الطريق صفحات هذا اليوم ولم تُنشر دروسها بعد تحجز مكانها بين الثلاث، فلا يأخذه تسميع مادة رابعة
+      var held = (preset && preset.held && preset.held[d]) || {};
+      var canJoin = function (s) {
+        if (byCode[s.e.code]) return true;
+        var n = groups.length;
+        Object.keys(held).forEach(function (c) { if (c !== s.e.code && !byCode[c]) n++; });
+        return n < MAX_SUBJECTS;
+      };
       /* يتعلّم من دروس المادة بالترتيب ما يقارب target دقيقة، ولا يُقطع درس. وفي آخر أيام تعلّمها
          (all) يضع كل ما بقي، فلا يبقى درس بلا مكان قبل اختبارها */
       var learnTo = function (s, target, all) {
@@ -566,7 +573,7 @@
     var RE = /^\d{4}-\d{2}-\d{2}$/;
     var since = RE.test(pth.since || '') ? pth.since : today;
     var examOf = {}; exams.forEach(function (e) { if (e.code) examOf[e.code] = e.date; });
-    var placed = {}, byDay = {}, started = {}, first = {}, dayHas = {}, dayMap = {}, subjects = {}, active = false, until = '', late = 0;
+    var placed = {}, byDay = {}, started = {}, first = {}, dayHas = {}, dayMap = {}, subjects = {}, active = false, until = '', late = 0, held = {};
     Object.keys(pth.subjects).forEach(function (code) {
       var sub = pth.subjects[code] || {}, exam = examOf[code], want = (pth.exams || {})[code];
       var info = { valid: false, why: '', from: +sub.from || 1, first: '', last: '', total: 0, done: 0, late: 0 };
@@ -609,6 +616,7 @@
         // صفحات لم تُنشر دروسها بعد: ما وراء آخر صفحة في قائمة الدروس، أو يوم لا درس في القائمة ينتهي في صفحاته
         if (m.to > listedTo) item.pending = [Math.max(prevTo, listedTo) + 1, m.to];
         else if (!any) item.pending = [prevTo + 1, m.to];
+        if (item.pending && m.d < exam) (held[m.d] = held[m.d] || {})[code] = 1; // مادتها تحجز مكانها بين مواد ذلك اليوم (canJoin)
         info.total += item.total; info.done += item.done;
         (dayMap[m.d] = dayMap[m.d] || { date: m.d, items: [] }).items.push(item); dayHas[m.d] = 1;
         prevTo = m.to;
@@ -622,7 +630,7 @@
     });
     var next = null;
     Object.keys(byDay).sort().forEach(function (d) { if (!next && d > today && byDay[d].length) next = byDay[d][0]; });
-    return { active: active, placed: placed, byDay: byDay, started: started, first: first, dayHas: dayHas, until: until, next: next,
+    return { active: active, placed: placed, byDay: byDay, started: started, first: first, dayHas: dayHas, until: until, next: next, held: held,
       pub: { active: active, since: since, until: until, subjects: subjects, days: days, late: late } };
   }
 
@@ -650,7 +658,7 @@
     if (pinfo && pinfo.active) {
       source = 'path';
       plan = buildPlan(exams, lessonList, passes, today, cap, factors,
-        { placed: pinfo.placed, byDay: pinfo.byDay, first: pinfo.first, dayHas: pinfo.dayHas, until: pinfo.until });
+        { placed: pinfo.placed, byDay: pinfo.byDay, first: pinfo.first, dayHas: pinfo.dayHas, until: pinfo.until, held: pinfo.held });
     } else if (ov && ov.basis === examsBasis(exams) && ov.days) {
       source = 'smart';
       plan = { days: ov.days.filter(function (x) { return x.date >= today; }).map(function (x) {
@@ -713,12 +721,19 @@
     // مهام الموقع الإضافية (extra، انظر واجهة extra): تُلحق بمهام اليوم وحده بعد التوزيع وجمع الجلسات، فلا تمسّ
     // التوزيع ولا السقف ولا الدقائق ولا القياس ولا التقدم، ولا تظهر لمادة اختبارها اليوم أو مضى. والمادة التي
     // لم تبلّغ بمهمة لا يتغير فيها شيء. وبلاغ يوم سابق ما زال قائماً، لكنه غير منجز اليوم.
+    // ولا تزيد بها مواد اليوم على ثلاث: مادة ليست بين مواد اليوم (بمهامها أو بصفحاتها المعلّقة في الطريق) لا تُلحق مهمتها إن اكتملت الثلاث
+    var dayCodes = {}, dayCount = 0;
+    var seeCode = function (c) { if (!dayCodes[c]) { dayCodes[c] = 1; dayCount++; } };
+    if (todayPlan) todayPlan.tasks.forEach(function (t) { seeCode(t.code); });
+    if (source === 'path' && pinfo.held && pinfo.held[today]) Object.keys(pinfo.held[today]).forEach(seeCode);
     exams.forEach(function (e) {
       var xs = e.code && e.date && diffDays(today, e.date) > 0 && marksBy[e.code] && marksBy[e.code].extra;
       if (!xs) return;
       if (source === 'path' && pinfo.first[e.code] && pinfo.first[e.code] > today) return; // مادة لم يبدأ طريقها بعد
       Object.keys(xs).sort().forEach(function (id) {
         var r = xs[id]; if (!r || !r.active || !r.title) return;
+        if (!dayCodes[e.code] && dayCount >= MAX_SUBJECTS) return;
+        seeCode(e.code);
         if (!todayPlan) { todayPlan = { date: today, tasks: [], minutes: 0, load: 0, sessions: 0 }; plan.days.unshift(todayPlan); }
         todayPlan.tasks.push({ code: e.code, lesson: '_' + id, kind: 'extra', id: id, title: String(r.title), pages: '',
           link: BASE + e.code + '/' + (r.link || ''), minutes: 0, units: 0, done: !!r.done && r.day === today });
