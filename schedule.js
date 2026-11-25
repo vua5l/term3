@@ -609,11 +609,25 @@
       var sub = pth.subjects[code] || {}, exam = examOf[code], want = (pth.exams || {})[code];
       var info = { valid: false, why: '', from: +sub.from || 1, first: '', last: '', total: 0, done: 0, late: 0 };
       subjects[code] = info;
-      var mk = (sub.days || []).map(function (x) { return { d: String(x && x[0]), to: +(x && x[1]) }; })
-        .filter(function (x) { return RE.test(x.d) && x.to > 0; })
-        .sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+      var marks = function (ds) {
+        return (ds || []).map(function (x) { return { d: String(x && x[0]), to: +(x && x[1]) }; })
+          .filter(function (x) { return RE.test(x.d) && x.to > 0; })
+          .sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+      };
+      var mk = marks(sub.days);
       if (!mk.length) { info.why = 'empty'; return; }
+      // أجزاء طريق المادة: الأصلي (from وdays)، ثم ما في more: أجزاء لصفحات خارج ترتيبه (كصفحات قبل from تُدرس بعده)،
+      // لكل جزء صفحة بدايته وأيامه، ولا تتداخل صفحات الأجزاء. والنسخة التي لا تعرف more تتجاهله وتعمل بالأصلي وحده
+      var parts = [{ from: info.from, mk: mk }];
+      (Array.isArray(sub.more) ? sub.more : []).forEach(function (p) {
+        var k = marks(p && p.days);
+        if (k.length && +p.from > 0) parts.push({ from: +p.from, mk: k });
+      });
       info.first = mk[0].d; info.last = mk[mk.length - 1].d;
+      parts.forEach(function (p) {
+        if (p.mk[0].d < info.first) info.first = p.mk[0].d;
+        if (p.mk[p.mk.length - 1].d > info.last) info.last = p.mk[p.mk.length - 1].d;
+      });
       if (!exam) { info.why = 'unknown'; return; }          // مادة ليست في الجدول
       if (want && want !== exam) { info.why = 'date'; return; } // موعدها في الجدول غير موعدها في الطريق
       if (diffDays(today, exam) <= 0) { info.why = 'past'; return; }
@@ -623,9 +637,10 @@
       if (info.last > until) until = info.last;
       var ls = lessonList[code] || [], spans = ls.map(pageSpan), listedTo = 0;
       spans.forEach(function (sp) { if (sp && sp.e > listedTo) listedTo = sp.e; });
-      var prevTo = info.from - 1;
+      parts.forEach(function (part) {
+      var prevTo = part.from - 1, mk = part.mk;
       mk.forEach(function (m, i) {
-        var item = { code: code, from: prevTo + 1, to: m.to, total: 0, done: 0, pending: null, finish: i === mk.length - 1, lessons: [] };
+        var item = { code: code, from: prevTo + 1, to: m.to, total: 0, done: 0, pending: null, finish: i === mk.length - 1 && m.d === info.last, lessons: [] };
         var any = false;
         ls.forEach(function (l, k) {
           var sp = spans[k]; if (!sp || sp.e <= prevTo || sp.e > m.to) return;
@@ -651,6 +666,7 @@
         info.total += item.total; info.done += item.done;
         (dayMap[m.d] = dayMap[m.d] || { date: m.d, items: [] }).items.push(item); dayHas[m.d] = 1;
         prevTo = m.to;
+      });
       });
     });
     var days = Object.keys(dayMap).sort().map(function (d) {
@@ -949,19 +965,33 @@
         var sub = found.subjects[c] || {}, ex = (found.exams || {})[c];
         if (!codes[c]) { errors.push('مادة غير معروفة في الجدول: ' + c); return; }
         if (!RE.test(ex || '')) { errors.push(c + ': موعد الاختبار ناقص أو غير صحيح.'); return; }
-        var from = +sub.from, prevD = '', prevTo = from - 1, days = [];
-        if (!(from > 0)) { errors.push(c + ': صفحة البداية ناقصة.'); return; }
-        (sub.days || []).forEach(function (x) {
-          var d = x && x[0], to = +(x && x[1]);
-          if (!RE.test(d || '')) { errors.push(c + ': تاريخ غير صحيح: ' + d); return; }
-          if (!(to >= from)) { errors.push(c + ' ' + d + ': صفحة غير صحيحة.'); return; }
-          if (prevD && d <= prevD) errors.push(c + ' ' + d + ': الأيام ليست متصاعدة.');
-          if (to < prevTo) errors.push(c + ' ' + d + ': الصفحات تتراجع.');
-          if (d >= ex) errors.push(c + ' ' + d + ': يوم الاختبار أو بعده.');
-          prevD = d; prevTo = to; days.push([d, to]);
-        });
-        if (!days.length) errors.push(c + ': لا أيام في طريقها.');
-        out.exams[c] = ex; out.subjects[c] = { from: from, days: days };
+        // جزء من طريق المادة: صفحة بدايته وأيامه. الأصلي في from وdays، والإضافية في more
+        var part = function (p) {
+          var from = +p.from, prevD = '', prevTo = from - 1, days = [];
+          if (!(from > 0)) { errors.push(c + ': صفحة البداية ناقصة.'); return null; }
+          (p.days || []).forEach(function (x) {
+            var d = x && x[0], to = +(x && x[1]);
+            if (!RE.test(d || '')) { errors.push(c + ': تاريخ غير صحيح: ' + d); return; }
+            if (!(to >= from)) { errors.push(c + ' ' + d + ': صفحة غير صحيحة.'); return; }
+            if (prevD && d <= prevD) errors.push(c + ' ' + d + ': الأيام ليست متصاعدة.');
+            if (to < prevTo) errors.push(c + ' ' + d + ': الصفحات تتراجع.');
+            if (d >= ex) errors.push(c + ' ' + d + ': يوم الاختبار أو بعده.');
+            prevD = d; prevTo = to; days.push([d, to]);
+          });
+          if (!days.length) errors.push(c + ': لا أيام في طريقها.');
+          return { from: from, days: days };
+        };
+        var main = part(sub); if (!main) return;
+        out.exams[c] = ex; out.subjects[c] = main;
+        if (sub.more == null) return;
+        if (!Array.isArray(sub.more)) { errors.push(c + ': الأجزاء الإضافية ليست قائمة.'); return; }
+        var more = [];
+        sub.more.forEach(function (p) { var r = part(p || {}); if (r) more.push(r); });
+        // لا تتداخل صفحات الأجزاء، فلا يقع درس في يومين
+        var spans = [main].concat(more).filter(function (p) { return p.days.length; })
+          .map(function (p) { return [p.from, p.days[p.days.length - 1][1]]; }).sort(function (a, b) { return a[0] - b[0]; });
+        for (var q = 1; q < spans.length; q++) if (spans[q][0] <= spans[q - 1][1]) { errors.push(c + ': أجزاء طريقها تتداخل في الصفحات.'); break; }
+        if (more.length) out.subjects[c].more = more;
       });
       if (!Object.keys(out.subjects).length && !errors.length) errors.push('الطريق فارغ.');
       return { found: true, ok: !errors.length, path: out, errors: errors };
